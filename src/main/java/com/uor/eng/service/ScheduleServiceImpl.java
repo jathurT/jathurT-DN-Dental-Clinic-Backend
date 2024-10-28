@@ -28,14 +28,19 @@ public class ScheduleServiceImpl implements ScheduleService {
 
   @Override
   public List<ScheduleDTO> getAllSchedules() {
-    return scheduleRepository.findAll().stream()
+    List<Schedule> schedules = scheduleRepository.findAll();
+    if (schedules.isEmpty()) {
+      throw new RuntimeException("No schedules found. Please create a schedule to view the list.");
+    }
+    return schedules.stream()
             .map(schedule -> modelMapper.map(schedule, ScheduleDTO.class))
             .collect(Collectors.toList());
   }
 
   @Override
   public ScheduleDTO getScheduleById(Long id) {
-    Schedule schedule = scheduleRepository.findById(id).orElse(null);
+    Schedule schedule = scheduleRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Schedule with ID " + id + " not found. Please check the ID and try again."));
     return modelMapper.map(schedule, ScheduleDTO.class);
   }
 }

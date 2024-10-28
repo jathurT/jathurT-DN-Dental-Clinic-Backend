@@ -15,7 +15,7 @@ import java.util.List;
 public class FeedbackController {
 
   @Autowired
-  private  FeedbackService feedbackService;
+  private FeedbackService feedbackService;
 
   @Autowired
   private ModelMapper modelMapper;
@@ -25,35 +25,42 @@ public class FeedbackController {
   }
 
   @PostMapping("/submit")
-  public ResponseEntity<FeedbackDTO> submitFeedback(@RequestBody FeedbackDTO feedbackDTO) {
-    FeedbackDTO savedFeedbackDTO = feedbackService.saveFeedback(feedbackDTO);
-    return new ResponseEntity<>(savedFeedbackDTO, HttpStatus.CREATED);
+  public ResponseEntity<?> submitFeedback(@RequestBody FeedbackDTO feedbackDTO) {
+    try {
+      FeedbackDTO savedFeedbackDTO = feedbackService.saveFeedback(feedbackDTO);
+      return new ResponseEntity<>(savedFeedbackDTO, HttpStatus.CREATED);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
   }
 
   @GetMapping("/all")
-  public ResponseEntity<List<FeedbackDTO>> getAllFeedback() {
-    List<FeedbackDTO> feedbacksDTO = feedbackService.getAllFeedback();
-    return new ResponseEntity<>(feedbacksDTO, HttpStatus.OK);
+  public ResponseEntity<?> getAllFeedback() {
+    try {
+      List<FeedbackDTO> feedbacksDTO = feedbackService.getAllFeedback();
+      return new ResponseEntity<>(feedbacksDTO, HttpStatus.OK);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
+    }
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<FeedbackDTO> getFeedbackById(@PathVariable Long id) {
-    FeedbackDTO feedbackDTO = feedbackService.getFeedbackById(id);
-    if (feedbackDTO != null) {
+  public ResponseEntity<?> getFeedbackById(@PathVariable Long id) {
+    try {
+      FeedbackDTO feedbackDTO = feedbackService.getFeedbackById(id);
       return new ResponseEntity<>(feedbackDTO, HttpStatus.OK);
-    } else {
-      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteFeedback(@PathVariable Long id) {
-    FeedbackDTO feedbackDTO = feedbackService.getFeedbackById(id);
-    if (feedbackDTO != null) {
+  public ResponseEntity<?> deleteFeedback(@PathVariable Long id) {
+    try {
       feedbackService.deleteFeedback(id);
       return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    } else {
-      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
   }
 }

@@ -17,30 +17,42 @@ public class ContactController {
   private ContactService contactService;
 
   @PostMapping("/submit")
-  public ResponseEntity<ContactDTO> submitContact(@RequestBody ContactDTO contactDTO) {
-    ContactDTO savedContact = contactService.saveContact(contactDTO);
-    return new ResponseEntity<>(savedContact, HttpStatus.CREATED);
+  public ResponseEntity<?> submitContact(@RequestBody ContactDTO contactDTO) {
+    try {
+      ContactDTO savedContact = contactService.saveContact(contactDTO);
+      return new ResponseEntity<>(savedContact, HttpStatus.CREATED);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
   }
 
   @GetMapping("/all")
-  public ResponseEntity<List<ContactDTO>> getAllContacts() {
-    List<ContactDTO> contacts = contactService.getAllContacts();
-    return new ResponseEntity<>(contacts, HttpStatus.OK);
+  public ResponseEntity<?> getAllContacts() {
+    try {
+      List<ContactDTO> contacts = contactService.getAllContacts();
+      return new ResponseEntity<>(contacts, HttpStatus.OK);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
+    }
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ContactDTO> getContactById(@PathVariable Long id) {
-    ContactDTO contact = contactService.getContactById(id);
-    if (contact != null) {
+  public ResponseEntity<?> getContactById(@PathVariable Long id) {
+    try {
+      ContactDTO contact = contactService.getContactById(id);
       return new ResponseEntity<>(contact, HttpStatus.OK);
-    } else {
-      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteContact(@PathVariable Long id) {
-    contactService.deleteContact(id);
-    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  public ResponseEntity<?> deleteContact(@PathVariable Long id) {
+    try {
+      contactService.deleteContact(id);
+      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
   }
 }

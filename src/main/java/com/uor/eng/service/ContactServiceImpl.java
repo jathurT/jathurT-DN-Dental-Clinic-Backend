@@ -28,19 +28,28 @@ public class ContactServiceImpl implements ContactService {
 
   @Override
   public List<ContactDTO> getAllContacts() {
-    return contactRepository.findAll().stream()
+    List<Contact> contacts = contactRepository.findAll();
+    if (contacts.isEmpty()) {
+      throw new RuntimeException("No contacts found. Please add contacts to view the list.");
+    }
+    return contacts.stream()
             .map(contact -> modelMapper.map(contact, ContactDTO.class))
             .collect(Collectors.toList());
   }
 
   @Override
   public ContactDTO getContactById(Long id) {
-    Contact contact = contactRepository.findById(id).orElse(null);
+    Contact contact = contactRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Contact with ID " + id + " not found. Please check the ID and try again."));
     return modelMapper.map(contact, ContactDTO.class);
   }
 
   @Override
   public void deleteContact(Long id) {
-    contactRepository.deleteById(id);
+    if (contactRepository.existsById(id)) {
+      contactRepository.deleteById(id);
+    } else {
+      throw new RuntimeException("Contact with ID " + id + " does not exist. Unable to delete.");
+    }
   }
 }

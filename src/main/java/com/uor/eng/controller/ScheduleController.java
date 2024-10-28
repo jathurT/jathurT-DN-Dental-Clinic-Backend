@@ -17,20 +17,32 @@ public class ScheduleController {
   private ScheduleService scheduleService;
 
   @PostMapping("/create")
-  public ResponseEntity<ScheduleDTO> createSchedule(@RequestBody ScheduleDTO scheduleDTO) {
-    ScheduleDTO createdSchedule = scheduleService.createSchedule(scheduleDTO);
-    return new ResponseEntity<>(createdSchedule, HttpStatus.CREATED);
+  public ResponseEntity<?> createSchedule(@RequestBody ScheduleDTO scheduleDTO) {
+    try {
+      ScheduleDTO createdSchedule = scheduleService.createSchedule(scheduleDTO);
+      return new ResponseEntity<>(createdSchedule, HttpStatus.CREATED);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
   }
 
   @GetMapping("/all")
-  public ResponseEntity<List<ScheduleDTO>> getAllSchedules() {
-    List<ScheduleDTO> schedules = scheduleService.getAllSchedules();
-    return new ResponseEntity<>(schedules, HttpStatus.OK);
+  public ResponseEntity<?> getAllSchedules() {
+    try {
+      List<ScheduleDTO> schedules = scheduleService.getAllSchedules();
+      return new ResponseEntity<>(schedules, HttpStatus.OK);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
+    }
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ScheduleDTO> getScheduleById(@PathVariable Long id) {
-    ScheduleDTO schedule = scheduleService.getScheduleById(id);
-    return new ResponseEntity<>(schedule, HttpStatus.OK);
+  public ResponseEntity<?> getScheduleById(@PathVariable Long id) {
+    try {
+      ScheduleDTO schedule = scheduleService.getScheduleById(id);
+      return new ResponseEntity<>(schedule, HttpStatus.OK);
+    } catch (RuntimeException e) {
+      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
   }
 }

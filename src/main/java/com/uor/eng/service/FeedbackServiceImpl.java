@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class FeedbackServiceImpl implements FeedbackService {
@@ -24,8 +25,8 @@ public class FeedbackServiceImpl implements FeedbackService {
   }
 
   @Override
-  public FeedbackDTO saveFeedback(FeedbackDTO FeedbackDTO) {
-    Feedback feedback = modelMapper.map(FeedbackDTO, Feedback.class);
+  public FeedbackDTO saveFeedback(FeedbackDTO feedbackDTO) {
+    Feedback feedback = modelMapper.map(feedbackDTO, Feedback.class);
     Feedback savedFeedback = feedbackRepository.save(feedback);
     return modelMapper.map(savedFeedback, FeedbackDTO.class);
   }
@@ -33,20 +34,27 @@ public class FeedbackServiceImpl implements FeedbackService {
   @Override
   public List<FeedbackDTO> getAllFeedback() {
     List<Feedback> feedbacks = feedbackRepository.findAll();
+    if (feedbacks.isEmpty()) {
+      throw new RuntimeException("No feedback entries found. Please add feedback to view the list.");
+    }
     return feedbacks.stream()
             .map(feedback -> modelMapper.map(feedback, FeedbackDTO.class))
-            .toList();
+            .collect(Collectors.toList());
   }
 
   @Override
   public FeedbackDTO getFeedbackById(Long id) {
-    Optional<Feedback> feedback = feedbackRepository.findById(id);
-    return feedback.map(f -> modelMapper.map(f, FeedbackDTO.class)).orElse(null);
+    Feedback feedback = feedbackRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Feedback with ID " + id + " not found. Please check the ID and try again."));
+    return modelMapper.map(feedback, FeedbackDTO.class);
   }
 
   @Override
   public void deleteFeedback(Long id) {
-    feedbackRepository.deleteById(id);
+    if (feedbackRepository.existsById(id)) {
+      feedbackRepository.deleteById(id);
+    } else {
+      throw new RuntimeException("Feedback with ID " + id + " does not exist. Unable to delete.");
+    }
   }
 }
-
