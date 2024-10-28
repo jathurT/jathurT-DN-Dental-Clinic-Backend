@@ -38,4 +38,25 @@ public class BookingController {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
   }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+    BookingDTO bookingDTO = bookingService.getBookingById(id);
+    if (bookingDTO != null) {
+      bookingService.deleteBooking(id);
+      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    } else {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id) {
+    BookingDTO bookingDTO = bookingService.getBookingById(id);
+    if (bookingDTO != null) {
+      return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+    } else {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+  }
 }

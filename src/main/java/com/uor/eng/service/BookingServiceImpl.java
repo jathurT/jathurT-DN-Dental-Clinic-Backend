@@ -40,4 +40,15 @@ public class BookingServiceImpl implements BookingService {
     Optional<Booking> booking = bookingRepository.findByReferenceIdAndContactNumber(referenceId, contactNumber);
     return booking.map(value -> modelMapper.map(value, BookingDTO.class)).orElse(null);
   }
+
+  @Override
+  public BookingDTO getBookingById(Long id) {
+    Optional<Booking> booking = bookingRepository.findById(id);
+    return booking.map(value -> modelMapper.map(value, BookingDTO.class)).orElse(null);
+  }
+
+  @Override
+  public void deleteBooking(Long id) {
+    bookingRepository.deleteById(id);
+  }
 }
