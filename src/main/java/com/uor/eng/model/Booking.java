@@ -2,9 +2,9 @@ package com.uor.eng.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,11 +26,11 @@ public class Booking {
   private String name;
 
   @NotBlank(message = "NIC is required")
-  @Max(value = 12, message = "NIC should be 12 digits")
+  @Pattern(regexp = "(\\d{12}|\\d{9}[A-Z]\\d{2})", message = "NIC should be 12 digits")
   private String nic;
 
   @NotBlank(message = "Contact number is required")
-  @Max(value = 10, message = "Contact number should be 10 digits")
+  @Pattern(regexp = "\\d{10}", message = "Contact number should be 10 digits")
   private String contactNumber;
 
   @NotBlank(message = "Email is required")
