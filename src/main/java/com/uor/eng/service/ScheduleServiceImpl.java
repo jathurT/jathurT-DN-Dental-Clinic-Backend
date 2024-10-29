@@ -32,10 +32,13 @@ public class ScheduleServiceImpl implements ScheduleService {
     if (schedules.isEmpty()) {
       throw new RuntimeException("No schedules found. Please create a schedule to view the list.");
     }
-    return schedules.stream()
-            .map(schedule -> modelMapper.map(schedule, ScheduleDTO.class))
-            .collect(Collectors.toList());
+    return schedules.stream().map(schedule -> {
+      ScheduleDTO scheduleDTO = modelMapper.map(schedule, ScheduleDTO.class);
+      scheduleDTO.setNumberOfBookings(schedule.getBookings() != null ? schedule.getBookings().size() : 0);
+      return scheduleDTO;
+    }).collect(Collectors.toList());
   }
+
 
   @Override
   public ScheduleDTO getScheduleById(Long id) {

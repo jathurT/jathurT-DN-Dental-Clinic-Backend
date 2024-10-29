@@ -1,5 +1,6 @@
 package com.uor.eng.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,8 +26,10 @@ public class Schedule {
   @Column(nullable = false)
   private String dayOfWeek;
 
+  private String status;
+
   @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonManagedReference
   private List<Booking> bookings;
 
-  private String status;
 }

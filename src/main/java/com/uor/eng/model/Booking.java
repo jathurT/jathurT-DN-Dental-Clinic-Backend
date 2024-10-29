@@ -1,5 +1,6 @@
 package com.uor.eng.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -45,5 +46,6 @@ public class Booking {
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "schedule_id", nullable = false)
+  @JsonBackReference
   private Schedule schedule;
 }
