@@ -5,6 +5,8 @@ import com.uor.eng.model.Schedule;
 import com.uor.eng.payload.BookingDTO;
 import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.ScheduleRepository;
+import jakarta.annotation.PostConstruct;
+import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,17 +27,34 @@ public class BookingServiceImpl implements BookingService {
   @Autowired
   private ScheduleRepository scheduleRepository;
 
+  @PostConstruct
+  public void init() {
+    modelMapper.typeMap(Booking.class, BookingDTO.class).addMappings(mapper -> mapper.map(
+            Booking::getSchedule,
+            BookingDTO::setSchedule
+    ));
+  }
+
   @Override
   public BookingDTO createBooking(BookingDTO bookingDTO) {
-    Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
-            .orElseThrow(() -> new RuntimeException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule."));
+    Schedule schedule = scheduleRepository.findById(bookingDTO.getSchedule().getId())
+            .orElseThrow(() -> new RuntimeException("Schedule with ID " + bookingDTO.getSchedule().getId() + " not found. Please select a valid schedule."));
 
     if ("unavailable".equalsIgnoreCase(schedule.getStatus())) {
       throw new RuntimeException("Cannot create booking. The selected schedule is currently unavailable.");
     }
+
     Booking booking = modelMapper.map(bookingDTO, Booking.class);
+    booking.setSchedule(schedule);  // Set the Schedule object on Booking
     Booking savedBooking = bookingRepository.save(booking);
     return modelMapper.map(savedBooking, BookingDTO.class);
+  }
+
+  @Override
+  public BookingDTO getBookingById(Long id) {
+    return bookingRepository.findById(id)
+            .map(booking -> modelMapper.map(booking, BookingDTO.class))
+            .orElseThrow(() -> new RuntimeException("Booking with ID " + id + " not found. Please check the ID and try again."));
   }
 
   @Override
@@ -54,13 +73,6 @@ public class BookingServiceImpl implements BookingService {
     return bookingRepository.findByReferenceIdAndContactNumber(referenceId, contactNumber)
             .map(value -> modelMapper.map(value, BookingDTO.class))
             .orElseThrow(() -> new RuntimeException("Booking not found with reference ID " + referenceId + " and contact number " + contactNumber + ". Please verify the details and try again."));
-  }
-
-  @Override
-  public BookingDTO getBookingById(Long id) {
-    return bookingRepository.findById(id)
-            .map(value -> modelMapper.map(value, BookingDTO.class))
-            .orElseThrow(() -> new RuntimeException("Booking with ID " + id + " not found. Please check the ID and try again."));
   }
 
   @Override

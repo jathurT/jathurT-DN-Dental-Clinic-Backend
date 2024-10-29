@@ -17,5 +17,6 @@ public class BookingDTO {
   private String email;
   private String address;
   private LocalDateTime dateTime;
-  private Long scheduleId;
-}
+  private ScheduleDTO schedule;
+
+  }
