@@ -10,4 +10,6 @@ public interface IScheduleService {
   List<ScheduleDTO> getAllSchedules();
 
   ScheduleDTO getScheduleById(Long id);
+
+  void deleteSchedule(Long id);
 }

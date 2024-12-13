@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -17,9 +18,9 @@ public class ScheduleDTO {
   private LocalDate date;
   private String dayOfWeek;
   private String status;
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
   private Integer numberOfBookings;
-  @JsonIgnore
   private List<BookingDTO> bookings;
+  private LocalTime startTime;
+  private LocalTime endTime;
+  private long duration;
 }

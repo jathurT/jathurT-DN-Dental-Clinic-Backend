@@ -17,32 +17,26 @@ public class ScheduleController {
   private IScheduleService scheduleService;
 
   @PostMapping("/create")
-  public ResponseEntity<?> createSchedule(@RequestBody ScheduleDTO scheduleDTO) {
-    try {
-      ScheduleDTO createdSchedule = scheduleService.createSchedule(scheduleDTO);
-      return new ResponseEntity<>(createdSchedule, HttpStatus.CREATED);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-    }
+  public ResponseEntity<ScheduleDTO> createSchedule(@RequestBody ScheduleDTO scheduleDTO) {
+    ScheduleDTO createdSchedule = scheduleService.createSchedule(scheduleDTO);
+    return new ResponseEntity<>(createdSchedule, HttpStatus.CREATED);
   }
 
   @GetMapping("/all")
-  public ResponseEntity<?> getAllSchedules() {
-    try {
-      List<ScheduleDTO> schedules = scheduleService.getAllSchedules();
-      return new ResponseEntity<>(schedules, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
-    }
+  public ResponseEntity<List<ScheduleDTO>> getAllSchedules() {
+    List<ScheduleDTO> schedules = scheduleService.getAllSchedules();
+    return new ResponseEntity<>(schedules, HttpStatus.OK);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<?> getScheduleById(@PathVariable Long id) {
-    try {
-      ScheduleDTO schedule = scheduleService.getScheduleById(id);
-      return new ResponseEntity<>(schedule, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+  public ResponseEntity<ScheduleDTO> getScheduleById(@PathVariable Long id) {
+    ScheduleDTO schedule = scheduleService.getScheduleById(id);
+    return new ResponseEntity<>(schedule, HttpStatus.OK);
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deleteSchedule(@PathVariable Long id) {
+    scheduleService.deleteSchedule(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 }

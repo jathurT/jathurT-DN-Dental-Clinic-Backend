@@ -16,6 +16,5 @@ public class BookingDTO {
   private String contactNumber;
   private String email;
   private String address;
-  private LocalDateTime dateTime;
   private Long scheduleId;
 }

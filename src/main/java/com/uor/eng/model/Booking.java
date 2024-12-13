@@ -41,9 +41,6 @@ public class Booking {
   @NotBlank(message = "Address is required")
   private String address;
 
-  @NotNull(message = "Date and time are required")
-  private LocalDateTime dateTime;
-
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "schedule_id", nullable = false)
   @JsonBackReference
