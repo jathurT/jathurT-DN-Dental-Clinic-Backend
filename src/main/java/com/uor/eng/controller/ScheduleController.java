@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.ScheduleDTO;
-import com.uor.eng.service.ScheduleService;
+import com.uor.eng.service.IScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ import java.util.List;
 public class ScheduleController {
 
   @Autowired
-  private ScheduleService scheduleService;
+  private IScheduleService scheduleService;
 
   @PostMapping("/create")
   public ResponseEntity<?> createSchedule(@RequestBody ScheduleDTO scheduleDTO) {

@@ -3,7 +3,7 @@ import com.uor.eng.payload.FeedbackDTO;
 
 import java.util.List;
 
-public interface FeedbackService {
+public interface IFeedbackService {
   FeedbackDTO saveFeedback(FeedbackDTO FeedbackDTO);
 
   List<FeedbackDTO> getAllFeedback();

@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.BookingDTO;
-import com.uor.eng.service.BookingService;
+import com.uor.eng.service.IBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ import java.util.List;
 public class BookingController {
 
   @Autowired
-  private BookingService bookingService;
+  private IBookingService bookingService;
 
   @PostMapping("/create")
   public ResponseEntity<?> createBooking(@RequestBody BookingDTO bookingDTO) {
