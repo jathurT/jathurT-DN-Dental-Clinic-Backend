@@ -10,6 +10,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,10 +28,18 @@ public class ScheduleServiceImpl implements IScheduleService {
     if (scheduleDTO == null) {
       throw new BadRequestException("Schedule data cannot be null.");
     }
+    LocalDate date = scheduleDTO.getDate();
+    if (date != null) {
+      String dayOfWeek = date.getDayOfWeek().toString();
+      scheduleDTO.setDayOfWeek(dayOfWeek);
+    } else {
+      throw new BadRequestException("Schedule date cannot be null.");
+    }
     Schedule schedule = modelMapper.map(scheduleDTO, Schedule.class);
     Schedule savedSchedule = scheduleRepository.save(schedule);
     return modelMapper.map(savedSchedule, ScheduleDTO.class);
   }
+
 
   @Override
   public List<ScheduleDTO> getAllSchedules() {
