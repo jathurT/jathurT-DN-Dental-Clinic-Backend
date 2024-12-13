@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.BookingDTO;
-import com.uor.eng.service.BookingService;
+import com.uor.eng.service.IBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,56 +14,36 @@ import java.util.List;
 public class BookingController {
 
   @Autowired
-  private BookingService bookingService;
+  private IBookingService bookingService;
 
   @PostMapping("/create")
-  public ResponseEntity<?> createBooking(@RequestBody BookingDTO bookingDTO) {
-    try {
-      BookingDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
-      return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-    }
+  public ResponseEntity<BookingDTO> createBooking(@RequestBody BookingDTO bookingDTO) {
+    BookingDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
+    return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
   }
 
   @GetMapping("/all")
-  public ResponseEntity<?> getAllBookings() {
-    try {
-      List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
-      return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
-    }
+  public ResponseEntity<List<BookingDTO>> getAllBookings() {
+    List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
+    return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
   }
 
   @GetMapping("/{referenceId}/{contactNumber}")
-  public ResponseEntity<?> getBookingByReferenceIdAndContactNumber(@PathVariable Long referenceId,
+  public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable Long referenceId,
                                                                    @PathVariable String contactNumber) {
-    try {
-      BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
-      return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+    BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
+    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<?> deleteBooking(@PathVariable Long id) {
-    try {
-      bookingService.deleteBooking(id);
-      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+  public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+    bookingService.deleteBooking(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<?> getBookingById(@PathVariable Long id) {
-    try {
-      BookingDTO bookingDTO = bookingService.getBookingById(id);
-      return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+  public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id) {
+    BookingDTO bookingDTO = bookingService.getBookingById(id);
+    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
   }
 }

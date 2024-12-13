@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.ContactDTO;
-import com.uor.eng.service.ContactService;
+import com.uor.eng.service.IContactService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,45 +14,29 @@ import java.util.List;
 public class ContactController {
 
   @Autowired
-  private ContactService contactService;
+  private IContactService contactService;
 
   @PostMapping("/submit")
-  public ResponseEntity<?> submitContact(@RequestBody ContactDTO contactDTO) {
-    try {
-      ContactDTO savedContact = contactService.saveContact(contactDTO);
-      return new ResponseEntity<>(savedContact, HttpStatus.CREATED);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-    }
+  public ResponseEntity<ContactDTO> submitContact(@RequestBody ContactDTO contactDTO) {
+    ContactDTO savedContact = contactService.saveContact(contactDTO);
+    return new ResponseEntity<>(savedContact, HttpStatus.CREATED);
   }
 
   @GetMapping("/all")
-  public ResponseEntity<?> getAllContacts() {
-    try {
-      List<ContactDTO> contacts = contactService.getAllContacts();
-      return new ResponseEntity<>(contacts, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NO_CONTENT);
-    }
+  public ResponseEntity<List<ContactDTO>> getAllContacts() {
+    List<ContactDTO> contacts = contactService.getAllContacts();
+    return new ResponseEntity<>(contacts, HttpStatus.OK);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<?> getContactById(@PathVariable Long id) {
-    try {
-      ContactDTO contact = contactService.getContactById(id);
-      return new ResponseEntity<>(contact, HttpStatus.OK);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+  public ResponseEntity<ContactDTO> getContactById(@PathVariable Long id) {
+    ContactDTO contact = contactService.getContactById(id);
+    return new ResponseEntity<>(contact, HttpStatus.OK);
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<?> deleteContact(@PathVariable Long id) {
-    try {
-      contactService.deleteContact(id);
-      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    } catch (RuntimeException e) {
-      return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
+  public ResponseEntity<Void> deleteContact(@PathVariable Long id) {
+    contactService.deleteContact(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 }
