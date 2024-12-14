@@ -37,7 +37,7 @@ public class Schedule {
   @Column(nullable = false)
   private LocalTime endTime;
 
-  @Column(nullable = false)
+  @Column(nullable = true)
   private Long duration;
 
   @PrePersist
