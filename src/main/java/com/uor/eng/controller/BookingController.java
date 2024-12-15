@@ -13,37 +13,37 @@ import java.util.List;
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-  @Autowired
-  private IBookingService bookingService;
+    @Autowired
+    private IBookingService bookingService;
 
-  @PostMapping("/create")
-  public ResponseEntity<BookingDTO> createBooking(@RequestBody BookingDTO bookingDTO) {
-    BookingDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
-    return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
-  }
+    @PostMapping("/create")
+    public ResponseEntity<BookingDTO> createBooking(@RequestBody BookingDTO bookingDTO) {
+        BookingDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
+        return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
+    }
 
-  @GetMapping("/all")
-  public ResponseEntity<List<BookingDTO>> getAllBookings() {
-    List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
-    return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
-  }
+    @GetMapping("/all")
+    public ResponseEntity<List<BookingDTO>> getAllBookings() {
+        List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
+        return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
+    }
 
-  @GetMapping("/{referenceId}/{contactNumber}")
-  public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable Long referenceId,
-                                                                   @PathVariable String contactNumber) {
-    BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
-    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-  }
+    @GetMapping("/{referenceId}/{contactNumber}")
+    public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable Long referenceId,
+                                                                              @PathVariable String contactNumber) {
+        BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
+        return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+    }
 
-  @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
-    bookingService.deleteBooking(id);
-    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-  }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+        bookingService.deleteBooking(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 
-  @GetMapping("/{id}")
-  public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id) {
-    BookingDTO bookingDTO = bookingService.getBookingById(id);
-    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-  }
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id) {
+        BookingDTO bookingDTO = bookingService.getBookingById(id);
+        return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+    }
 }

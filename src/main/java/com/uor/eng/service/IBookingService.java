@@ -5,13 +5,13 @@ import com.uor.eng.payload.BookingDTO;
 import java.util.List;
 
 public interface IBookingService {
-  BookingDTO createBooking(BookingDTO bookingDTO);
+    BookingDTO createBooking(BookingDTO bookingDTO);
 
-  List<BookingDTO> getAllBookings();
+    List<BookingDTO> getAllBookings();
 
-  BookingDTO getBookingByReferenceIdAndContactNumber(Long referenceId, String contactNumber);
+    BookingDTO getBookingByReferenceIdAndContactNumber(Long referenceId, String contactNumber);
 
-  BookingDTO getBookingById(Long id);
+    BookingDTO getBookingById(Long id);
 
-  void deleteBooking(Long id);
+    void deleteBooking(Long id);
 }
