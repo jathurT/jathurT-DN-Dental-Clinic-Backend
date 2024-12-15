@@ -1,5 +1,6 @@
 package com.uor.eng.exceptions;
 
+import com.uor.eng.payload.APIResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,5 +70,12 @@ public class MyGlobalExceptionHandler {
     Map<String, String> response = new HashMap<>();
     response.put("error", "An unexpected error occurred: " + e.getMessage());
     return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  @ExceptionHandler(APIException.class)
+  public ResponseEntity<APIResponse> myAPIException(APIException e) {
+    String message = e.getMessage();
+    APIResponse apiResponse = new APIResponse(message, false);
+    return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
   }
 }
