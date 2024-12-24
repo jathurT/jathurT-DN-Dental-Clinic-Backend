@@ -1,6 +1,9 @@
 package com.uor.eng.repository;
 
 import com.uor.eng.model.User;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,4 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByUserName(String username);
 
     Boolean existsByEmail(String email);
+
+    Optional<Object> findByEmail(@NotBlank @Email @Size(max = 50) String email);
 }

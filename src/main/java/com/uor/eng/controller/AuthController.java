@@ -49,16 +49,16 @@ public class AuthController {
   private PasswordEncoder encoder;
 
   @PostMapping("/signin")
-  public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+  public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
     Authentication authentication;
     try {
       authentication = authenticationManager
-          .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+          .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
     } catch (AuthenticationException exception) {
       Map<String, Object> map = new HashMap<>();
       map.put("message", "Bad credentials");
       map.put("status", false);
-      return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
+      return new ResponseEntity<Object>(map, HttpStatus.UNAUTHORIZED);
     }
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -137,7 +137,7 @@ public class AuthController {
   }
 
   @GetMapping("/user")
-  public ResponseEntity<?> getUserDetails(Authentication authentication){
+  public ResponseEntity<?> getUserDetails(Authentication authentication) {
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
     List<String> roles = userDetails.getAuthorities().stream()
@@ -151,7 +151,7 @@ public class AuthController {
   }
 
   @GetMapping("/username")
-  public String currentUserName(Authentication authentication){
+  public String currentUserName(Authentication authentication) {
     if (authentication != null)
       return authentication.getName();
     else
