@@ -2,6 +2,8 @@ package com.uor.eng.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,18 +24,23 @@ public class Schedule {
   private Long id;
 
   @Column(nullable = false)
+  @NotNull(message = "Date is required")
   private LocalDate date;
 
   @Column(nullable = false)
+  @NotBlank(message = "Day is required")
   private String dayOfWeek;
 
   @Column(nullable = false)
-  private String status;
+  @Enumerated(EnumType.STRING)
+  private ScheduleStatus status;
 
   @Column(nullable = false)
+  @NotNull(message = "Start time is required")
   private LocalTime startTime;
 
   @Column(nullable = false)
+  @NotNull(message = "End time is required")
   private LocalTime endTime;
 
   @Column(nullable = false)

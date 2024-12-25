@@ -1,17 +1,18 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.BookingDTO;
+import com.uor.eng.payload.BookingResponseDTO;
+import com.uor.eng.payload.CreateBookingDTO;
 
 import java.util.List;
 
 public interface IBookingService {
-    BookingDTO createBooking(BookingDTO bookingDTO);
+    BookingResponseDTO createBooking(CreateBookingDTO bookingDTO);
 
-    List<BookingDTO> getAllBookings();
+    List<BookingResponseDTO> getAllBookings();
 
-    BookingDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber);
+    BookingResponseDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber);
 
-    BookingDTO getBookingById(String id);
+    BookingResponseDTO getBookingById(String id);
 
     void deleteBooking(String id);
 }

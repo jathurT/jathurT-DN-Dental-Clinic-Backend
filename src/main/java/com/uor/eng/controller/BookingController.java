@@ -1,11 +1,11 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.BookingDTO;
+import com.uor.eng.payload.BookingResponseDTO;
+import com.uor.eng.payload.CreateBookingDTO;
 import com.uor.eng.service.IBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,22 +18,22 @@ public class BookingController {
     private IBookingService bookingService;
 
     @PostMapping("/create")
-    public ResponseEntity<BookingDTO> createBooking(@RequestBody BookingDTO bookingDTO) {
-        BookingDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingDTO bookingDTO) {
+        BookingResponseDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
         return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
     }
 
 //    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<List<BookingDTO>> getAllBookings() {
-        List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+        List<BookingResponseDTO> bookingsDTO = bookingService.getAllBookings();
         return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
     }
 
     @GetMapping("/{referenceId}/{contactNumber}")
-    public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable String referenceId,
+    public ResponseEntity<BookingResponseDTO> getBookingByReferenceIdAndContactNumber(@PathVariable String referenceId,
                                                                               @PathVariable String contactNumber) {
-        BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
+        BookingResponseDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
         return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
     }
 
@@ -44,8 +44,8 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookingDTO> getBookingById(@PathVariable String id) {
-        BookingDTO bookingDTO = bookingService.getBookingById(id);
+    public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable String id) {
+        BookingResponseDTO bookingDTO = bookingService.getBookingById(id);
         return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
     }
 }

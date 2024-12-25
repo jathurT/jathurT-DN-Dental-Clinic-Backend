@@ -2,6 +2,7 @@ package com.uor.eng.service.impl;
 
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
+import com.uor.eng.model.ScheduleStatus;
 import com.uor.eng.payload.ScheduleDTO;
 import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.ScheduleRepository;
@@ -40,9 +41,22 @@ public class ScheduleServiceImpl implements IScheduleService {
     } else {
       throw new BadRequestException("Schedule date cannot be null.");
     }
+
     Long dentistId = scheduleDTO.getDentistId();
     Dentist dentist = dentistRepository.findById(dentistId)
         .orElseThrow(() -> new BadRequestException("Dentist with ID " + dentistId + " not found."));
+
+    ScheduleStatus status;
+    try {
+      status = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() + ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+    }
+
+    if (status == ScheduleStatus.FINISHED || status == ScheduleStatus.CANCELLED) {
+      throw new BadRequestException("Cannot create a schedule with status " + status + ". Allowed statuses: AVAILABLE, UNAVAILABLE, FULL.");
+    }
+    scheduleDTO.setStatus(String.valueOf(status));
 
     Schedule schedule = modelMapper.map(scheduleDTO, Schedule.class);
     schedule.setDentist(dentist);

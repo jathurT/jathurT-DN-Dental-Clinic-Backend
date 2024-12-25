@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 public class Booking {
 
   @Id
-  @Column(nullable = false,unique = true,length = 255)
+  @Column(nullable = false, unique = true, length = 255)
   private String referenceId;
 
   @NotBlank(message = "Name is required")
@@ -41,15 +42,37 @@ public class Booking {
   @NotBlank(message = "Address is required")
   private String address;
 
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private BookingStatus status;
+
+  @Column(nullable = false)
+  private LocalDate date;
+
+  @Column(nullable = false)
+  private String dayOfWeek;
+
+  @Column(nullable = false)
+  private LocalDateTime createdAt;
+
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "schedule_id", nullable = false)
   @JsonBackReference
   private Schedule schedule;
 
   @PrePersist
-  public void generateReferenceId() {
-    this.referenceId = generateRandomAlphanumeric(8);
+  public void prePersist() {
+    if (this.referenceId == null || this.referenceId.isEmpty()) {
+      this.referenceId = generateRandomAlphanumeric(8);
+    }
+    if (this.status == null) {
+      this.status = BookingStatus.PENDING;
+    }
+    this.date = LocalDate.now();
+    this.dayOfWeek = this.date.getDayOfWeek().toString();
+    this.createdAt = LocalDateTime.now();
   }
+
 
   private String generateRandomAlphanumeric(int length) {
     String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -59,7 +82,6 @@ public class Booking {
       int index = (int) (Math.random() * characters.length());
       referenceId.append(characters.charAt(index));
     }
-
     return referenceId.toString();
   }
 }
