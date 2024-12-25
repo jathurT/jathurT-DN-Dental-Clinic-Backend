@@ -1,7 +1,7 @@
 package com.uor.eng.model;
 
 public enum AppRole {
-    ROLE_DOCTOR,
+    ROLE_DENTIST,
     ROLE_ADMIN,
     ROLE_RECEPTIONIST
 }

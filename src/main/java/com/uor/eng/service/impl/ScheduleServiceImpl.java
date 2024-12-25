@@ -1,7 +1,9 @@
 package com.uor.eng.service.impl;
 
+import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.payload.ScheduleDTO;
+import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IScheduleService;
 import com.uor.eng.exceptions.ResourceNotFoundException;
@@ -23,6 +25,9 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Autowired
   private ModelMapper modelMapper;
 
+  @Autowired
+  private DentistRepository dentistRepository;
+
   @Override
   public ScheduleDTO createSchedule(ScheduleDTO scheduleDTO) {
     if (scheduleDTO == null) {
@@ -35,8 +40,14 @@ public class ScheduleServiceImpl implements IScheduleService {
     } else {
       throw new BadRequestException("Schedule date cannot be null.");
     }
+    Long dentistId = scheduleDTO.getDentistId();
+    Dentist dentist = dentistRepository.findById(dentistId)
+        .orElseThrow(() -> new BadRequestException("Dentist with ID " + dentistId + " not found."));
+
     Schedule schedule = modelMapper.map(scheduleDTO, Schedule.class);
+    schedule.setDentist(dentist);
     Schedule savedSchedule = scheduleRepository.save(schedule);
+
     return modelMapper.map(savedSchedule, ScheduleDTO.class);
   }
 
@@ -57,7 +68,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Override
   public ScheduleDTO getScheduleById(Long id) {
     Schedule schedule = scheduleRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
     return modelMapper.map(schedule, ScheduleDTO.class);
   }
 

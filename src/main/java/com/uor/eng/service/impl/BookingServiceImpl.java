@@ -56,14 +56,14 @@ public class BookingServiceImpl implements IBookingService {
     }
 
     @Override
-    public BookingDTO getBookingByReferenceIdAndContactNumber(Long referenceId, String contactNumber) {
+    public BookingDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber) {
         return bookingRepository.findByReferenceIdAndContactNumber(referenceId, contactNumber)
                 .map(value -> modelMapper.map(value, BookingDTO.class))
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference ID " + referenceId + " and contact number " + contactNumber + ". Please verify the details and try again."));
     }
 
     @Override
-    public BookingDTO getBookingById(Long id) {
+    public BookingDTO getBookingById(String id) {
         return bookingRepository.findById(id)
                 .map(booking -> {
                     modelMapper.getConfiguration().setPropertyCondition(Conditions.isNotNull());
@@ -73,7 +73,7 @@ public class BookingServiceImpl implements IBookingService {
     }
 
     @Override
-    public void deleteBooking(Long id) {
+    public void deleteBooking(String id) {
         Optional<Booking> booking = bookingRepository.findById(id);
         if (booking.isPresent()) {
             bookingRepository.deleteById(id);

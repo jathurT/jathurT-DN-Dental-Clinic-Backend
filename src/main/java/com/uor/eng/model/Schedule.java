@@ -14,7 +14,6 @@ import java.util.List;
 @Entity
 @Table(name = "schedules")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class Schedule {
 
@@ -37,7 +36,7 @@ public class Schedule {
   @Column(nullable = false)
   private LocalTime endTime;
 
-  @Column(nullable = true)
+  @Column(nullable = false)
   private Long duration;
 
   @PrePersist
@@ -51,5 +50,10 @@ public class Schedule {
   @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @JsonManagedReference
   private List<Booking> bookings;
+
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "dentist_id",nullable = false)
+  @JsonManagedReference
+  private Dentist dentist;
 
 }

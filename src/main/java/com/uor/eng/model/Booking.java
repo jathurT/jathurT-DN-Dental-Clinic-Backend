@@ -20,8 +20,8 @@ import java.time.LocalDateTime;
 public class Booking {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long referenceId;
+  @Column(nullable = false,unique = true,length = 255)
+  private String referenceId;
 
   @NotBlank(message = "Name is required")
   private String name;
@@ -45,4 +45,21 @@ public class Booking {
   @JoinColumn(name = "schedule_id", nullable = false)
   @JsonBackReference
   private Schedule schedule;
+
+  @PrePersist
+  public void generateReferenceId() {
+    this.referenceId = generateRandomAlphanumeric(8); // Change 8 to 7 if needed
+  }
+
+  private String generateRandomAlphanumeric(int length) {
+    String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    StringBuilder referenceId = new StringBuilder();
+
+    for (int i = 0; i < length; i++) {
+      int index = (int) (Math.random() * characters.length());
+      referenceId.append(characters.charAt(index));
+    }
+
+    return referenceId.toString();
+  }
 }

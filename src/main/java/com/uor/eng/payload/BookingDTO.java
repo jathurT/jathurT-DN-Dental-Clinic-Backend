@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingDTO {
-  private Long referenceId;
+  private String referenceId;
   private String name;
   private String nic;
   private String contactNumber;

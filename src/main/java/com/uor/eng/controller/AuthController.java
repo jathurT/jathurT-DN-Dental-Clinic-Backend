@@ -89,7 +89,6 @@ public class AuthController {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
     }
 
-    // Create new user's account
     User user = new User(signUpRequest.getUsername(),
         signUpRequest.getEmail(),
         encoder.encode(signUpRequest.getPassword()));
@@ -111,7 +110,7 @@ public class AuthController {
 
             break;
           case "doctor":
-            Role doctorRole = roleRepository.findByRoleName(AppRole.ROLE_DOCTOR)
+            Role doctorRole = roleRepository.findByRoleName(AppRole.ROLE_DENTIST)
                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(doctorRole);
 

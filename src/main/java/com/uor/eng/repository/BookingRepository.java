@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface BookingRepository extends JpaRepository<Booking, Long> {
-  Optional<Booking> findByReferenceIdAndContactNumber(Long referenceId, String contactNumber);
+public interface BookingRepository extends JpaRepository<Booking, String> {
+  Optional<Booking> findByReferenceIdAndContactNumber(String referenceId, String contactNumber);
 }

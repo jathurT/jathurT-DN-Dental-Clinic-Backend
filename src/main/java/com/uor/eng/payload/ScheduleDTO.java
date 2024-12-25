@@ -2,6 +2,7 @@ package com.uor.eng.payload;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.uor.eng.model.Dentist;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,5 +23,6 @@ public class ScheduleDTO {
   private List<BookingDTO> bookings;
   private LocalTime startTime;
   private LocalTime endTime;
-  private long duration;
+  private Long duration;
+  private Long dentistId;
 }

@@ -9,9 +9,9 @@ public interface IBookingService {
 
     List<BookingDTO> getAllBookings();
 
-    BookingDTO getBookingByReferenceIdAndContactNumber(Long referenceId, String contactNumber);
+    BookingDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber);
 
-    BookingDTO getBookingById(Long id);
+    BookingDTO getBookingById(String id);
 
-    void deleteBooking(Long id);
+    void deleteBooking(String id);
 }

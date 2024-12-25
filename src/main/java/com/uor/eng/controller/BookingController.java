@@ -5,6 +5,7 @@ import com.uor.eng.service.IBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class BookingController {
         return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
     }
 
+//    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
         List<BookingDTO> bookingsDTO = bookingService.getAllBookings();
@@ -29,20 +31,20 @@ public class BookingController {
     }
 
     @GetMapping("/{referenceId}/{contactNumber}")
-    public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable Long referenceId,
+    public ResponseEntity<BookingDTO> getBookingByReferenceIdAndContactNumber(@PathVariable String referenceId,
                                                                               @PathVariable String contactNumber) {
         BookingDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
         return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteBooking(@PathVariable String id) {
         bookingService.deleteBooking(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<BookingDTO> getBookingById(@PathVariable String id) {
         BookingDTO bookingDTO = bookingService.getBookingById(id);
         return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
     }
