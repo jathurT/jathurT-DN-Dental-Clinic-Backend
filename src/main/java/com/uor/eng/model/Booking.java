@@ -48,7 +48,7 @@ public class Booking {
 
   @PrePersist
   public void generateReferenceId() {
-    this.referenceId = generateRandomAlphanumeric(8); // Change 8 to 7 if needed
+    this.referenceId = generateRandomAlphanumeric(8);
   }
 
   private String generateRandomAlphanumeric(int length) {
