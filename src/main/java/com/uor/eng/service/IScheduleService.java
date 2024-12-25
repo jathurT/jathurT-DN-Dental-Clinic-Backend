@@ -1,15 +1,16 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.ScheduleDTO;
+import com.uor.eng.payload.CreateScheduleDTO;
+import com.uor.eng.payload.ScheduleResponseDTO;
 
 import java.util.List;
 
 public interface IScheduleService {
-  ScheduleDTO createSchedule(ScheduleDTO scheduleDTO);
+  ScheduleResponseDTO createSchedule(CreateScheduleDTO scheduleDTO);
 
-  List<ScheduleDTO> getAllSchedules();
+  List<ScheduleResponseDTO> getAllSchedules();
 
-  ScheduleDTO getScheduleById(Long id);
+  ScheduleResponseDTO getScheduleById(Long id);
 
   void deleteSchedule(Long id);
 }

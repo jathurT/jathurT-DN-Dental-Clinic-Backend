@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -46,10 +47,13 @@ public class Schedule {
   @Column(nullable = false)
   private Long duration;
 
+  @Column(nullable = false)
+  private LocalDateTime createdAt;
+
   @PrePersist
-  @PreUpdate
-  public void calculateDuration() {
-    if (startTime != null && endTime != null) {
+  public void prePersist() {
+    this.createdAt = LocalDateTime.now();
+    if (this.duration == null) {
       this.duration = Duration.between(startTime, endTime).toMinutes();
     }
   }
