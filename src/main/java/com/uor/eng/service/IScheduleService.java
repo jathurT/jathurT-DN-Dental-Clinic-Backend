@@ -15,4 +15,6 @@ public interface IScheduleService {
   void deleteSchedule(Long id);
 
   ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO);
+
+  List<ScheduleResponseDTO> getNextSevenSchedules();
 }

@@ -5,6 +5,7 @@ import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
+import com.uor.eng.payload.BookingResponseDTO;
 import com.uor.eng.payload.CreateScheduleDTO;
 import com.uor.eng.payload.ScheduleResponseDTO;
 import com.uor.eng.repository.DentistRepository;
@@ -141,5 +142,16 @@ public class ScheduleServiceImpl implements IScheduleService {
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
     return responseDTO;
+  }
+
+  @Override
+  public List<ScheduleResponseDTO> getNextSevenSchedules() {
+    LocalDate today = LocalDate.now();
+    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanEqualOrderByDateAsc(today);
+    return schedules.stream().map(schedule -> {
+      ScheduleResponseDTO scheduleDTO = modelMapper.map(schedule, ScheduleResponseDTO.class);
+      scheduleDTO.setNumberOfBookings(schedule.getBookings() != null ? schedule.getBookings().size() : 0);
+      return scheduleDTO;
+    }).collect(Collectors.toList());
   }
 }

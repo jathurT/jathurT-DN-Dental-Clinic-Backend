@@ -46,4 +46,10 @@ public class ScheduleController {
     ScheduleResponseDTO updatedSchedule = scheduleService.updateSchedule(id, scheduleDTO);
     return new ResponseEntity<>(updatedSchedule, HttpStatus.OK);
   }
+
+  @GetMapping("/getSeven")
+  public ResponseEntity<List<ScheduleResponseDTO>> getNextSevenSchedules() {
+    List<ScheduleResponseDTO> schedules = scheduleService.getNextSevenSchedules();
+    return new ResponseEntity<>(schedules, HttpStatus.OK);
+  }
 }
