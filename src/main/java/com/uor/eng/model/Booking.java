@@ -28,7 +28,7 @@ public class Booking {
   private String name;
 
   @NotBlank(message = "NIC is required")
-  @Pattern(regexp = "(\\d{12}|\\d{9}[A-Z]\\d{2})", message = "NIC should be 12 digits")
+  @Pattern(regexp = "^(\\d{9}[VXvx]|\\d{12})$", message = "NIC should be in the correct format: 9 digits followed by V or X, or 12 digits")
   private String nic;
 
   @NotBlank(message = "Contact number is required")

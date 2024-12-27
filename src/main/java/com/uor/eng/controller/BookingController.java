@@ -14,38 +14,38 @@ import java.util.List;
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-    @Autowired
-    private IBookingService bookingService;
+  @Autowired
+  private IBookingService bookingService;
 
-    @PostMapping("/create")
-    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingDTO bookingDTO) {
-        BookingResponseDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
-        return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
-    }
+  @PostMapping("/create")
+  public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody CreateBookingDTO bookingDTO) {
+    BookingResponseDTO createdBookingDTO = bookingService.createBooking(bookingDTO);
+    return new ResponseEntity<>(createdBookingDTO, HttpStatus.CREATED);
+  }
 
-//    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @GetMapping("/all")
-    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
-        List<BookingResponseDTO> bookingsDTO = bookingService.getAllBookings();
-        return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
-    }
+  //    @PreAuthorize("hasRole('ROLE_ADMIN')")
+  @GetMapping("/all")
+  public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+    List<BookingResponseDTO> bookingsDTO = bookingService.getAllBookings();
+    return new ResponseEntity<>(bookingsDTO, HttpStatus.OK);
+  }
 
-    @GetMapping("/{referenceId}/{contactNumber}")
-    public ResponseEntity<BookingResponseDTO> getBookingByReferenceIdAndContactNumber(@PathVariable String referenceId,
-                                                                              @PathVariable String contactNumber) {
-        BookingResponseDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
-        return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-    }
+  @GetMapping("/{referenceId}/{contactNumber}")
+  public ResponseEntity<BookingResponseDTO> getBookingByReferenceIdAndContactNumber(@PathVariable String referenceId,
+                                                                                    @PathVariable String contactNumber) {
+    BookingResponseDTO bookingDTO = bookingService.getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
+    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+  }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable String id) {
-        bookingService.deleteBooking(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deleteBooking(@PathVariable String id) {
+    bookingService.deleteBooking(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable String id) {
-        BookingResponseDTO bookingDTO = bookingService.getBookingById(id);
-        return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable String id) {
+    BookingResponseDTO bookingDTO = bookingService.getBookingById(id);
+    return new ResponseEntity<>(bookingDTO, HttpStatus.OK);
+  }
 }

@@ -1,8 +1,6 @@
 package com.uor.eng.payload;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +24,7 @@ public class ScheduleResponseDTO {
   private LocalTime endTime;
   private Long duration;
   private Long dentistId;
+  private Integer capacity;
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime createdAt;

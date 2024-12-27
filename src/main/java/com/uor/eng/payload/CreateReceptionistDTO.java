@@ -3,6 +3,7 @@ package com.uor.eng.payload;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,6 +36,7 @@ public class CreateReceptionistDTO {
 
   @NotBlank(message = "NIC is mandatory")
   @Size(min = 10, max = 12, message = "NIC must be between 10 and 12 characters")
+  @Pattern(regexp = "^(\\d{9}[VXvx]|\\d{12})$", message = "NIC should be in the correct format: 9 digits followed by V or X, or 12 digits")
   private String nic;
 
   @NotBlank(message = "Phone number is mandatory")
