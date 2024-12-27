@@ -148,6 +148,9 @@ public class ScheduleServiceImpl implements IScheduleService {
   public List<ScheduleResponseDTO> getNextSevenSchedules() {
     LocalDate today = LocalDate.now();
     List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanEqualOrderByDateAsc(today);
+    if (schedules.isEmpty()) {
+      throw new ResourceNotFoundException("No schedules found for the next 7 days.");
+    }
     return schedules.stream().map(schedule -> {
       ScheduleResponseDTO scheduleDTO = modelMapper.map(schedule, ScheduleResponseDTO.class);
       scheduleDTO.setNumberOfBookings(schedule.getBookings() != null ? schedule.getBookings().size() : 0);
