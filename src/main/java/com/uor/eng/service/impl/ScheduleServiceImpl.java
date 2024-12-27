@@ -106,4 +106,40 @@ public class ScheduleServiceImpl implements IScheduleService {
       throw new ResourceNotFoundException("Schedule with ID " + id + " not found. Unable to delete.");
     }
   }
+
+  @Override
+  public ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO) {
+    Schedule schedule = scheduleRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+    LocalDate date = scheduleDTO.getDate();
+    if (date != null) {
+      schedule.setDate(date);
+      schedule.setDayOfWeek(date.getDayOfWeek().toString());
+    }
+    ScheduleStatus updatedStatus;
+    try {
+      updatedStatus = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
+          ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+    }
+
+    if (updatedStatus == ScheduleStatus.FINISHED || updatedStatus == ScheduleStatus.CANCELLED) {
+      throw new BadRequestException("Cannot create a schedule with status " + updatedStatus +
+          ". Allowed statuses: AVAILABLE, UNAVAILABLE, FULL.");
+    }
+    if (scheduleDTO.getStartTime() != null) {
+      schedule.setStartTime(scheduleDTO.getStartTime());
+    }
+    if (scheduleDTO.getEndTime() != null) {
+      schedule.setEndTime(scheduleDTO.getEndTime());
+    }
+    if (scheduleDTO.getCapacity() != null) {
+      schedule.setCapacity(scheduleDTO.getCapacity());
+    }
+    Schedule updatedSchedule = scheduleRepository.save(schedule);
+    ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
+    responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
+    return responseDTO;
+  }
 }

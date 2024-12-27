@@ -85,4 +85,13 @@ public class BookingServiceImpl implements IBookingService {
       throw new ResourceNotFoundException("Booking with ID " + id + " does not exist. Unable to delete.");
     }
   }
+
+  @Override
+  public BookingResponseDTO updateBooking(String id, CreateBookingDTO bookingDTO) {
+    Booking booking = bookingRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
+    modelMapper.map(bookingDTO, booking);
+    Booking updatedBooking = bookingRepository.save(booking);
+    return modelMapper.map(updatedBooking, BookingResponseDTO.class);
+  }
 }
