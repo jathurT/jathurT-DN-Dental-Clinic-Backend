@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
-  List<Schedule> findTop7ByDateGreaterThanEqualOrderByDateAsc(LocalDate today);
+  List<Schedule> findTop7ByDateGreaterThanOrderByDateAsc(LocalDate today);
 }
