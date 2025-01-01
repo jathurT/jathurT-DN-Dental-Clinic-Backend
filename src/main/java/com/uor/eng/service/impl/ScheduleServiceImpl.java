@@ -101,10 +101,12 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   @Override
   public void deleteSchedule(Long id) {
-    if (scheduleRepository.existsById(id)) {
-      scheduleRepository.deleteById(id);
+    Schedule schedule = scheduleRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+    if (schedule.getBookings() != null && !schedule.getBookings().isEmpty()) {
+      throw new BadRequestException("Cannot delete schedule with ID " + id + " because it has bookings.");
     } else {
-      throw new ResourceNotFoundException("Schedule with ID " + id + " not found. Unable to delete.");
+      scheduleRepository.deleteById(id);
     }
   }
 
@@ -125,10 +127,7 @@ public class ScheduleServiceImpl implements IScheduleService {
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
 
-    if (updatedStatus == ScheduleStatus.FINISHED || updatedStatus == ScheduleStatus.CANCELLED) {
-      throw new BadRequestException("Cannot create a schedule with status " + updatedStatus +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE, FULL.");
-    }
+    schedule.setStatus(updatedStatus);
     if (scheduleDTO.getStartTime() != null) {
       schedule.setStartTime(scheduleDTO.getStartTime());
     }
