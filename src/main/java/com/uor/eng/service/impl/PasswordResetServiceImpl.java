@@ -1,6 +1,7 @@
 package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.APIException;
+import com.uor.eng.exceptions.EmailSendingException;
 import com.uor.eng.model.PasswordResetToken;
 import com.uor.eng.model.User;
 import com.uor.eng.payload.ForgotPasswordRequest;
@@ -15,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -49,19 +53,56 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   public void initiatePasswordReset(ForgotPasswordRequest request) {
     log.info("Initiating password reset for user with email: {}", request.getEmail());
 
-    User user = userRepository.findByEmail(request.getEmail())
-        .orElseThrow(() -> new APIException("User with the given email does not exist"));
-    tokenRepository.deleteByUser(user);
-    String token = UUID.randomUUID().toString();
-    PasswordResetToken passwordResetToken = new PasswordResetToken(
-        token,
-        user,
-        LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES)
-    );
+    User user;
+    try {
+      user = userRepository.findByEmail(request.getEmail())
+          .orElseThrow(() -> new APIException("User with the given email does not exist"));
+    } catch (APIException e) {
+      log.warn("Password reset requested for non-existent email: {}", request.getEmail());
+      throw new APIException("User with the given email does not exist");
+    } catch (Exception e) {
+      log.error("Unexpected error while retrieving user with email: {}", request.getEmail(), e);
+      throw new APIException("An unexpected error occurred. Please try again later.");
+    }
 
-    tokenRepository.save(passwordResetToken);
-    sendPasswordResetEmail(user.getEmail(), token);
+    String token = UUID.randomUUID().toString();
+    LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
+
+    PasswordResetToken passwordResetToken;
+    try {
+      Optional<PasswordResetToken> optionalToken = tokenRepository.findByUser(user);
+
+      if (optionalToken.isPresent()) {
+        passwordResetToken = optionalToken.get();
+        passwordResetToken.setToken(token);
+        passwordResetToken.setExpiryDate(expirationTime);
+        log.info("Updated existing password reset token for user: {}", user.getEmail());
+      } else {
+        passwordResetToken = new PasswordResetToken(token, user, expirationTime);
+        log.info("Created new password reset token for user: {}", user.getEmail());
+      }
+
+      tokenRepository.save(passwordResetToken);
+    } catch (DataIntegrityViolationException e) {
+      log.error("Data integrity violation while saving token for user: {}", user.getEmail(), e);
+      throw new APIException("A password reset is already in progress. Please check your email.");
+    } catch (Exception e) {
+      log.error("Unexpected error while saving token for user: {}", user.getEmail(), e);
+      throw new APIException("Unable to process password reset. Please try again later.");
+    }
+
+    try {
+      sendPasswordResetEmail(user.getEmail(), token);
+      log.info("Password reset email sent to user: {}", user.getEmail());
+    } catch (MailException e) {
+      log.error("Error sending password reset email to user: {}", user.getEmail(), e);
+      throw new EmailSendingException("Failed to send password reset email. Please try again later.");
+    } catch (Exception e) {
+      log.error("Unexpected error while sending password reset email to user: {}", user.getEmail(), e);
+      throw new APIException("An unexpected error occurred while sending the email. Please try again later.");
+    }
   }
+
 
   public void sendPasswordResetEmail(String toEmail, String token) {
     log.info("Sending password reset email to: {}", toEmail);
