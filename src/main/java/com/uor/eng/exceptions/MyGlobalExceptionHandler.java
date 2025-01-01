@@ -2,16 +2,14 @@
 
 package com.uor.eng.exceptions;
 
-import com.uor.eng.payload.APIResponse;
 import com.uor.eng.payload.ErrorResponse;
+import io.jsonwebtoken.JwtException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -35,7 +33,6 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return new ResponseEntity<>(errorResponse, status);
   }
 
-
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
     Map<String, String> errors = new HashMap<>();
@@ -54,13 +51,6 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return buildErrorResponse(HttpStatus.NOT_FOUND, "Resource Not Found", errors);
   }
 
-  @ExceptionHandler({UnauthorizedAccessException.class, AccessDeniedException.class})
-  public ResponseEntity<ErrorResponse> handleUnauthorizedAccessException(Exception ex) {
-    Map<String, String> errors = new HashMap<>();
-    errors.put("error", ex.getMessage());
-    return buildErrorResponse(HttpStatus.FORBIDDEN, "Access Denied", errors);
-  }
-
   @ExceptionHandler({BadRequestException.class, MethodArgumentTypeMismatchException.class})
   public ResponseEntity<ErrorResponse> handleBadRequestException(Exception ex) {
     Map<String, String> errors = new HashMap<>();
@@ -76,9 +66,10 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(APIException.class)
-  public ResponseEntity<APIResponse> handleAPIException(APIException ex) {
-    APIResponse apiResponse = new APIResponse(ex.getMessage(), false);
-    return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+  public ResponseEntity<ErrorResponse> handleAPIException(APIException ex) {
+    Map<String, String> errors = new HashMap<>();
+    errors.put("error", ex.getMessage());
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, "API Exception", errors);
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
@@ -104,18 +95,12 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return buildErrorResponse(HttpStatus.BAD_REQUEST, "Data Integrity Violation", errors);
   }
 
-  @ExceptionHandler(AuthenticationException.class)
-  public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+  @ExceptionHandler(JwtException.class)
+  public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex) {
+    log.error("JWT Exception: {}", ex.getMessage());
     Map<String, String> errors = new HashMap<>();
-    errors.put("error", ex.getMessage());
-    return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Authentication Failed", errors);
-  }
-
-  @ExceptionHandler(EmailSendingException.class)
-  public ResponseEntity<ErrorResponse> handleEmailSendingException(EmailSendingException ex) {
-    Map<String, String> errors = new HashMap<>();
-    errors.put("error", ex.getMessage());
-    return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Email Sending Failed", errors);
+    errors.put("error", "Invalid or expired JWT token");
+    return buildErrorResponse(HttpStatus.UNAUTHORIZED, "JWT Error", errors);
   }
 
   @ExceptionHandler(Exception.class)
