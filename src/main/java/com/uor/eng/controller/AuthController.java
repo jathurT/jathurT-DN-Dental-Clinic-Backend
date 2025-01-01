@@ -3,6 +3,8 @@ package com.uor.eng.controller;
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Role;
 import com.uor.eng.model.User;
+import com.uor.eng.payload.ForgotPasswordRequest;
+import com.uor.eng.payload.ResetPasswordRequest;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
 import com.uor.eng.security.jwt.JwtUtils;
@@ -11,6 +13,7 @@ import com.uor.eng.security.request.SignupRequest;
 import com.uor.eng.security.response.MessageResponse;
 import com.uor.eng.security.response.UserInfoResponse;
 import com.uor.eng.security.services.UserDetailsImpl;
+import com.uor.eng.service.PasswordResetService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +50,9 @@ public class AuthController {
 
   @Autowired
   private PasswordEncoder encoder;
+
+  @Autowired
+  private PasswordResetService passwordResetService;
 
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -150,10 +156,22 @@ public class AuthController {
   }
 
   @GetMapping("/username")
-  public String currentUserName(Authentication authentication) {
+  public ResponseEntity<String> currentUserName(Authentication authentication) {
     if (authentication != null)
-      return authentication.getName();
+      return ResponseEntity.ok(authentication.getName());
     else
-      return "";
+      return ResponseEntity.ok("anonymousUser");
+  }
+
+  @PostMapping("/forgot-password")
+  public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+    passwordResetService.initiatePasswordReset(forgotPasswordRequest);
+    return new ResponseEntity<>(new MessageResponse("Password reset link sent to your email."), HttpStatus.OK);
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    passwordResetService.resetPassword(request);
+    return ResponseEntity.ok(new MessageResponse("Password has been reset successfully."));
   }
 }
