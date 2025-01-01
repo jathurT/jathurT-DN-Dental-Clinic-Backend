@@ -5,7 +5,6 @@ import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
-import com.uor.eng.payload.BookingResponseDTO;
 import com.uor.eng.payload.CreateScheduleDTO;
 import com.uor.eng.payload.ScheduleResponseDTO;
 import com.uor.eng.repository.DentistRepository;
@@ -126,8 +125,8 @@ public class ScheduleServiceImpl implements IScheduleService {
       throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
-
     schedule.setStatus(updatedStatus);
+
     if (scheduleDTO.getStartTime() != null) {
       schedule.setStartTime(scheduleDTO.getStartTime());
     }
