@@ -31,6 +31,10 @@ public class CreateDentistDTO  {
 
   @NotBlank(message = "Password is mandatory")
   @Size(min = 6, max = 120, message = "Password must be between 6 and 120 characters")
+  @Pattern(
+      regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,40}$",
+      message = "Password must be 6-40 characters long, contain at least one digit, one lowercase letter, one uppercase letter, and one special character"
+  )
   private String password;
 
   @NotBlank(message = "First name is mandatory")

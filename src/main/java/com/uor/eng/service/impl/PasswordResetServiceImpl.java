@@ -107,7 +107,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   public void sendPasswordResetEmail(String toEmail, String token) {
     log.info("Sending password reset email to: {}", toEmail);
 
-    String resetLink = "https://localhost:5173/reset-password?token=" + token;
+    String resetLink = "http://localhost:5173/reset-password?token=" + token;
 
     try {
       ClassPathResource templateResource = new ClassPathResource("templates/passwordReset.html");

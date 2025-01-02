@@ -20,6 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -143,17 +144,19 @@ public class AuthController {
 
   @GetMapping("/user")
   public ResponseEntity<?> getUserDetails(Authentication authentication) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+      throw new AuthenticationCredentialsNotFoundException("No user is currently authenticated");
+    }
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
     List<String> roles = userDetails.getAuthorities().stream()
         .map(item -> item.getAuthority())
         .collect(Collectors.toList());
-
     UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
         userDetails.getUsername(), roles);
 
     return ResponseEntity.ok().body(response);
   }
+
 
   @GetMapping("/username")
   public ResponseEntity<String> currentUserName(Authentication authentication) {
