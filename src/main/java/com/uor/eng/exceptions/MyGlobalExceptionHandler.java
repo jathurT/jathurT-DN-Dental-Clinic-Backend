@@ -124,7 +124,6 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<ErrorResponse> handleAuthenticationCredentialsNotFoundException(
       AuthenticationCredentialsNotFoundException ex) {
     log.error("AuthenticationCredentialsNotFoundException: {}", ex.getMessage());
-
     Map<String, String> errors = new HashMap<>();
     errors.put("error", ex.getMessage());
     return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Authentication Required", errors);
