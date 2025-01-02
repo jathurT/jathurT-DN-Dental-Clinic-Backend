@@ -77,6 +77,12 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/test/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 .requestMatchers("/images/**").permitAll()
+                .requestMatchers("/api/bookings/create").permitAll()
+                .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
+                .requestMatchers("/api/schedules/{id}").permitAll()
+                .requestMatchers("/api/schedules/getSeven").permitAll()
+                .requestMatchers("/api/feedback/submit").permitAll()
+                .requestMatchers("/api/contacts/submit").permitAll()
 //                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
         );
