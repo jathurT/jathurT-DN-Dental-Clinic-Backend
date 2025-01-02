@@ -15,6 +15,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mail.MailException;
@@ -35,6 +36,9 @@ import java.util.UUID;
 public class PasswordResetServiceImpl implements PasswordResetService {
 
   private static final int EXPIRATION_MINUTES = 30;
+
+  @Value("${app.reset-password-link}")
+  private String resetPasswordLink;
 
   @Autowired
   private PasswordResetTokenRepository tokenRepository;
@@ -107,7 +111,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   public void sendPasswordResetEmail(String toEmail, String token) {
     log.info("Sending password reset email to: {}", toEmail);
 
-    String resetLink = "http://localhost:5173/reset-password?token=" + token;
+    String resetLink = resetPasswordLink + token;
 
     try {
       ClassPathResource templateResource = new ClassPathResource("templates/passwordReset.html");
