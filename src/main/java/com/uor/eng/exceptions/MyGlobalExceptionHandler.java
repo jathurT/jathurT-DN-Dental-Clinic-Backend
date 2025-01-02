@@ -11,10 +11,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ import java.util.Map;
 
 @ControllerAdvice
 @Slf4j
-public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
+public class MyGlobalExceptionHandler {
 
   private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String error, Map<String, String> details) {
     ErrorResponse errorResponse = new ErrorResponse(
@@ -127,6 +127,17 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
     Map<String, String> errors = new HashMap<>();
     errors.put("error", ex.getMessage());
     return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Authentication Required", errors);
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+    Map<String, String> errors = new HashMap<>();
+    ex.getBindingResult().getFieldErrors().forEach(fieldError -> {
+      String fieldName = fieldError.getField();
+      String message = fieldError.getDefaultMessage();
+      errors.put(fieldName, message);
+    });
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Error", errors);
   }
 
 }
