@@ -10,6 +10,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -118,4 +119,15 @@ public class MyGlobalExceptionHandler extends ResponseEntityExceptionHandler {
     errors.put("error", "Database error occurred");
     return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Database Error", errors);
   }
+
+  @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationCredentialsNotFoundException(
+      AuthenticationCredentialsNotFoundException ex) {
+    log.error("AuthenticationCredentialsNotFoundException: {}", ex.getMessage());
+
+    Map<String, String> errors = new HashMap<>();
+    errors.put("error", ex.getMessage());
+    return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Authentication Required", errors);
+  }
+
 }
