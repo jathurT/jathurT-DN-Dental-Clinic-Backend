@@ -75,7 +75,6 @@ public class WebSecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
                 .requestMatchers("/images/**").permitAll()
                 .requestMatchers("/api/bookings/create").permitAll()
                 .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
