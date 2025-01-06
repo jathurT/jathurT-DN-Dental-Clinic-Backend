@@ -49,13 +49,13 @@ public class BookingServiceImpl implements IBookingService {
       Booking booking = modelMapper.map(bookingDTO, Booking.class);
       Booking savedBooking = bookingRepository.save(booking);
 
-      schedule.setCapacity(schedule.getCapacity() - 1);
-      if (schedule.getCapacity() == 0) {
+      schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
+      if (schedule.getAvailableSlots() == 0) {
         schedule.setStatus(ScheduleStatus.FULL);
       }
       scheduleRepository.save(schedule);
 
-      return modelMapper.map(savedBooking, BookingResponseDTO.class);
+      return mapToResponse(savedBooking);
     } catch (OptimisticLockingFailureException e) {
       throw new BadRequestException("Unable to create booking due to high demand. Please try again.");
     } catch (Exception e) {
@@ -71,14 +71,14 @@ public class BookingServiceImpl implements IBookingService {
     }
 
     return bookings.stream()
-        .map(booking -> modelMapper.map(booking, BookingResponseDTO.class))
+        .map(this::mapToResponse)
         .collect(Collectors.toList());
   }
 
   @Override
   public BookingResponseDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber) {
     return bookingRepository.findByReferenceIdAndContactNumber(referenceId, contactNumber)
-        .map(value -> modelMapper.map(value, BookingResponseDTO.class))
+        .map(this::mapToResponse)
         .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference ID " + referenceId + " and contact number " + contactNumber + ". Please verify the details and try again."));
   }
 
@@ -87,7 +87,7 @@ public class BookingServiceImpl implements IBookingService {
     return bookingRepository.findById(id)
         .map(booking -> {
           modelMapper.getConfiguration().setPropertyCondition(Conditions.isNotNull());
-          return modelMapper.map(booking, BookingResponseDTO.class);
+          return mapToResponse(booking);
         })
         .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
   }
@@ -108,6 +108,24 @@ public class BookingServiceImpl implements IBookingService {
         .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
     modelMapper.map(bookingDTO, booking);
     Booking updatedBooking = bookingRepository.save(booking);
-    return modelMapper.map(updatedBooking, BookingResponseDTO.class);
+    return mapToResponse(updatedBooking);
+  }
+
+  private Schedule getSchedule(Long scheduleId) {
+    return scheduleRepository.findById(scheduleId)
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
+  }
+
+  private BookingResponseDTO mapToResponse(Booking booking) {
+    BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
+    Long scheduleId = booking.getSchedule().getId();
+    Schedule schedule = getSchedule(scheduleId);
+    bookingResponseDTO.setScheduleDate(schedule.getDate());
+    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
+    bookingResponseDTO.setDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
+    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    return bookingResponseDTO;
   }
 }

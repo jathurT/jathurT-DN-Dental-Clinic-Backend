@@ -2,6 +2,7 @@ package com.uor.eng.payload;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.uor.eng.model.BookingStatus;
+import com.uor.eng.model.ScheduleStatus;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Data
 @NoArgsConstructor
@@ -23,7 +25,12 @@ public class BookingResponseDTO {
   private String email;
   private String address;
   private Long scheduleId;
-  private String status;
+  private LocalDate scheduleDate;
+  private String scheduleDayOfWeek;
+  private ScheduleStatus scheduleStatus;
+  private LocalTime scheduleStartTime;
+  private String doctorName;
+  private BookingStatus status;
   private LocalDate date;
   private String dayOfWeek;
 

@@ -53,6 +53,10 @@ public class Schedule {
   @NotNull(message = "Capacity is required")
   private Integer capacity;
 
+  @Column(nullable = false)
+  @NotNull(message = "Available slots is required")
+  private Integer AvailableSlots;
+
   @PrePersist
   public void prePersist() {
     this.createdAt = LocalDateTime.now();
