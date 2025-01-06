@@ -1,4 +1,4 @@
-package com.uor.eng.payload;
+package com.uor.eng.payload.booking;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

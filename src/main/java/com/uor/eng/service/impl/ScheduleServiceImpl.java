@@ -5,8 +5,9 @@ import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
-import com.uor.eng.payload.CreateScheduleDTO;
-import com.uor.eng.payload.ScheduleResponseDTO;
+import com.uor.eng.payload.schedule.CreateScheduleDTO;
+import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
+import com.uor.eng.payload.schedule.ScheduleResponseDTO;
 import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IScheduleService;
@@ -154,6 +155,23 @@ public class ScheduleServiceImpl implements IScheduleService {
       ScheduleResponseDTO scheduleDTO = modelMapper.map(schedule, ScheduleResponseDTO.class);
       scheduleDTO.setNumberOfBookings(schedule.getBookings() != null ? schedule.getBookings().size() : 0);
       return scheduleDTO;
+    }).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom() {
+    LocalDate today = LocalDate.now();
+    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanOrderByDateAsc(today);
+    if (schedules.isEmpty()) {
+      throw new ResourceNotFoundException("No schedules found for the next 7 days.");
+    }
+    List<Schedule> availableSchedule = schedules.stream().filter(schedule -> schedule.getStatus() == ScheduleStatus.AVAILABLE).toList();
+    return availableSchedule.stream().map(schedule -> {
+      ScheduleGetSevenCustomResponse scheduleGetSevenCustomResponse = new ScheduleGetSevenCustomResponse();
+      scheduleGetSevenCustomResponse.setDate(schedule.getDate());
+      scheduleGetSevenCustomResponse.setDayOfWeek(schedule.getDayOfWeek());
+      scheduleGetSevenCustomResponse.setStartTime(schedule.getStartTime());
+      return scheduleGetSevenCustomResponse;
     }).collect(Collectors.toList());
   }
 }

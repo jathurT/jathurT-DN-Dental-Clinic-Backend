@@ -1,8 +1,8 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.PatientLogRequest;
-import com.uor.eng.payload.PatientLogResponse;
-import com.uor.eng.payload.PatientLogUpdateRequest;
+import com.uor.eng.payload.patient.PatientLogRequest;
+import com.uor.eng.payload.patient.PatientLogResponse;
+import com.uor.eng.payload.patient.PatientLogUpdateRequest;
 import jakarta.validation.Valid;
 
 import java.util.List;

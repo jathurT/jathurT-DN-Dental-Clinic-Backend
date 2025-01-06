@@ -1,6 +1,5 @@
-package com.uor.eng.payload;
+package com.uor.eng.payload.receiptionist;
 
-import com.uor.eng.model.AppRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -9,13 +8,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
-
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class CreateDentistDTO  {
-
+@AllArgsConstructor
+public class CreateReceptionistDTO {
   @NotBlank(message = "Username is mandatory")
   @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
   private String userName;
@@ -31,23 +27,11 @@ public class CreateDentistDTO  {
 
   @NotBlank(message = "Password is mandatory")
   @Size(min = 6, max = 120, message = "Password must be between 6 and 120 characters")
-  @Pattern(
-      regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,40}$",
-      message = "Password must be 6-40 characters long, contain at least one digit, one lowercase letter, one uppercase letter, and one special character"
-  )
   private String password;
 
   @NotBlank(message = "First name is mandatory")
   @Size(min = 2, max = 30, message = "First name must be between 2 and 30 characters")
   private String firstName;
-
-  @NotBlank(message = "Specialization is mandatory")
-  @Size(min = 3, max = 50, message = "Specialization must be between 3 and 50 characters")
-  private String specialization;
-
-  @NotBlank(message = "License number is mandatory")
-  @Size(min = 6, max = 10, message = "License number must be between 6 and 10 characters")
-  private String licenseNumber;
 
   @NotBlank(message = "NIC is mandatory")
   @Size(min = 10, max = 12, message = "NIC must be between 10 and 12 characters")
@@ -57,5 +41,9 @@ public class CreateDentistDTO  {
   @NotBlank(message = "Phone number is mandatory")
   @Size(min = 10, max = 10, message = "Phone number must be 10 characters")
   private String phoneNumber;
+
+  @NotBlank(message = "Shift timing is mandatory")
+  @Size(min = 2, max = 30, message = "Shift timing must be between 2 and 30 characters")
+  private String shiftTiming;
 
 }

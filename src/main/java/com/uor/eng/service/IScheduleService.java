@@ -1,7 +1,8 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.CreateScheduleDTO;
-import com.uor.eng.payload.ScheduleResponseDTO;
+import com.uor.eng.payload.schedule.CreateScheduleDTO;
+import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
+import com.uor.eng.payload.schedule.ScheduleResponseDTO;
 
 import java.util.List;
 
@@ -17,4 +18,6 @@ public interface IScheduleService {
   ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO);
 
   List<ScheduleResponseDTO> getNextSevenSchedules();
+
+  List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom();
 }

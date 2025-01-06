@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.CreatePatientRequest;
-import com.uor.eng.payload.PatientResponse;
+import com.uor.eng.payload.patient.CreatePatientRequest;
+import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.service.IPatientService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,7 +1,7 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.BookingResponseDTO;
-import com.uor.eng.payload.CreateBookingDTO;
+import com.uor.eng.payload.booking.BookingResponseDTO;
+import com.uor.eng.payload.booking.CreateBookingDTO;
 
 import java.util.List;
 

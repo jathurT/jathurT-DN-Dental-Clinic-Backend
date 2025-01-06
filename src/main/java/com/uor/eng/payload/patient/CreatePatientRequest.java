@@ -1,4 +1,4 @@
-package com.uor.eng.payload;
+package com.uor.eng.payload.patient;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;

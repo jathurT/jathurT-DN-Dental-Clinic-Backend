@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.CreateReceptionistDTO;
-import com.uor.eng.payload.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
+import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
 import com.uor.eng.service.IReceptionistService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
