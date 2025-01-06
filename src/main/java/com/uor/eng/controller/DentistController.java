@@ -1,7 +1,8 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.CreateDentistDTO;
-import com.uor.eng.payload.DentistResponseDTO;
+import com.uor.eng.payload.dentist.CreateDentistDTO;
+import com.uor.eng.payload.dentist.DentistResponseDTO;
+import com.uor.eng.payload.dentist.UpdateDentistRequest;
 import com.uor.eng.service.IDentistService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,5 +49,12 @@ public class DentistController {
     dentistService.deleteDentist(id);
     return ResponseEntity.noContent().build();
   }
+
+  @PutMapping("/edit/{id}")
+  public ResponseEntity<DentistResponseDTO> editDentist(@PathVariable Long id, @Validated @RequestBody UpdateDentistRequest updateDentistDTO) {
+    DentistResponseDTO updatedDentist = dentistService.editDentist(id, updateDentistDTO);
+    return ResponseEntity.ok(updatedDentist);
+  }
+
 
 }

@@ -1,8 +1,8 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.CreateScheduleDTO;
-import com.uor.eng.payload.ScheduleGetSevenCustomResponse;
-import com.uor.eng.payload.ScheduleResponseDTO;
+import com.uor.eng.payload.schedule.CreateScheduleDTO;
+import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
+import com.uor.eng.payload.schedule.ScheduleResponseDTO;
 
 import java.util.List;
 

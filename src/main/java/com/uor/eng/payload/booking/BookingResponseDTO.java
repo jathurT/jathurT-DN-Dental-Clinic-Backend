@@ -1,10 +1,8 @@
-package com.uor.eng.payload;
+package com.uor.eng.payload.booking;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.uor.eng.model.BookingStatus;
 import com.uor.eng.model.ScheduleStatus;
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

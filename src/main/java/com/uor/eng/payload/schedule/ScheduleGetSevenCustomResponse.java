@@ -1,4 +1,4 @@
-package com.uor.eng.payload;
+package com.uor.eng.payload.schedule;
 
 import lombok.Data;
 

@@ -1,8 +1,8 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.CreateScheduleDTO;
-import com.uor.eng.payload.ScheduleGetSevenCustomResponse;
-import com.uor.eng.payload.ScheduleResponseDTO;
+import com.uor.eng.payload.schedule.CreateScheduleDTO;
+import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
+import com.uor.eng.payload.schedule.ScheduleResponseDTO;
 import com.uor.eng.service.IScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

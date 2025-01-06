@@ -1,7 +1,7 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.CreateReceptionistDTO;
-import com.uor.eng.payload.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
+import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
 import jakarta.validation.Valid;
 
 import java.util.List;

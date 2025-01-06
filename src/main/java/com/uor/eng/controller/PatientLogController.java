@@ -1,8 +1,8 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.PatientLogRequest;
-import com.uor.eng.payload.PatientLogResponse;
-import com.uor.eng.payload.PatientLogUpdateRequest;
+import com.uor.eng.payload.patient.PatientLogRequest;
+import com.uor.eng.payload.patient.PatientLogResponse;
+import com.uor.eng.payload.patient.PatientLogUpdateRequest;
 import com.uor.eng.service.PatientLogService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

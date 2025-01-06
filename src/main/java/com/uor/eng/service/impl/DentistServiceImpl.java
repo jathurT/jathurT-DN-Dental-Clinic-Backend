@@ -4,11 +4,10 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Dentist;
-import com.uor.eng.model.Receptionist;
 import com.uor.eng.model.Role;
-import com.uor.eng.payload.CreateDentistDTO;
-import com.uor.eng.payload.DentistResponseDTO;
-import com.uor.eng.payload.ReceptionistResponseDTO;
+import com.uor.eng.payload.dentist.CreateDentistDTO;
+import com.uor.eng.payload.dentist.DentistResponseDTO;
+import com.uor.eng.payload.dentist.UpdateDentistRequest;
 import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
@@ -122,6 +121,33 @@ public class DentistServiceImpl implements IDentistService {
     Dentist dentist = dentistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id + " to delete."));
     dentistRepository.delete(dentist);
+  }
+
+  @Override
+  public DentistResponseDTO editDentist(Long id, UpdateDentistRequest updateDentistDTO) {
+    Dentist existingDentist = dentistRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+
+    if (!existingDentist.getUserName().equals(updateDentistDTO.getUserName()) &&
+        userRepository.existsByUserName(updateDentistDTO.getUserName())) {
+      throw new BadRequestException("Username is already taken!");
+    }
+
+    if (!existingDentist.getEmail().equals(updateDentistDTO.getEmail()) &&
+        userRepository.existsByEmail(updateDentistDTO.getEmail())) {
+      throw new BadRequestException("Email is already in use!");
+    }
+
+    existingDentist.setUserName(updateDentistDTO.getUserName());
+    existingDentist.setEmail(updateDentistDTO.getEmail());
+    existingDentist.setGender(updateDentistDTO.getGender());
+    existingDentist.setFirstName(updateDentistDTO.getFirstName());
+    existingDentist.setSpecialization(updateDentistDTO.getSpecialization());
+    existingDentist.setLicenseNumber(updateDentistDTO.getLicenseNumber());
+
+    Dentist updatedDentist = dentistRepository.save(existingDentist);
+    DentistResponseDTO dentistResponseDTO = modelMapper.map(updatedDentist, DentistResponseDTO.class);
+    return getDentistResponseDTO(updatedDentist, dentistResponseDTO);
   }
 
   private static DentistResponseDTO getDentistResponseDTO(Dentist dentist, DentistResponseDTO dto) {
