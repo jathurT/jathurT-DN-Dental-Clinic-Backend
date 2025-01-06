@@ -19,6 +19,7 @@ import java.time.LocalTime;
 public class BookingResponseDTO {
 
   private String referenceId;
+  private Integer appointmentNumber;
   private String name;
   private String nic;
   private String contactNumber;
