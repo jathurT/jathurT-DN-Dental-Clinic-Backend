@@ -1,6 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.CreateScheduleDTO;
+import com.uor.eng.payload.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.ScheduleResponseDTO;
 import com.uor.eng.service.IScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,4 +53,11 @@ public class ScheduleController {
     List<ScheduleResponseDTO> schedules = scheduleService.getNextSevenSchedules();
     return new ResponseEntity<>(schedules, HttpStatus.OK);
   }
+
+  @GetMapping("/getSevenCustom")
+  public ResponseEntity<List<ScheduleGetSevenCustomResponse>> getNextSevenSchedulesCustom() {
+    List<ScheduleGetSevenCustomResponse> schedules = scheduleService.getNextSevenSchedulesCustom();
+    return new ResponseEntity<>(schedules, HttpStatus.OK);
+  }
+
 }
