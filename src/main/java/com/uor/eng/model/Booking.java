@@ -24,6 +24,10 @@ public class Booking {
   @Column(nullable = false, unique = true, length = 255)
   private String referenceId;
 
+  @Column(nullable = false)
+  @NotNull(message = "Appointment number is required")
+  private Integer appointmentNumber;
+
   @NotBlank(message = "Name is required")
   private String name;
 

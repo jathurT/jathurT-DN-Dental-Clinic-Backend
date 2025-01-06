@@ -25,6 +25,7 @@ public class ScheduleResponseDTO {
   private Long duration;
   private Long dentistId;
   private Integer capacity;
+  private Integer availableSlots;
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime createdAt;

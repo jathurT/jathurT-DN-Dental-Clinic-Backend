@@ -67,6 +67,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     schedule.setEndTime(scheduleDTO.getEndTime());
     schedule.setDentist(dentist);
     schedule.setCapacity(scheduleDTO.getCapacity());
+    schedule.setAvailableSlots(scheduleDTO.getCapacity());
 
     Schedule savedSchedule = scheduleRepository.save(schedule);
     ScheduleResponseDTO responseDTO = modelMapper.map(savedSchedule, ScheduleResponseDTO.class);
