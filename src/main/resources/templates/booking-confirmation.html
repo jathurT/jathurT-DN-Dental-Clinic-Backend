@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Confirmation</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            color: #333333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: auto;
+        }
+        .header {
+            background-color: #007E85;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-table th, .details-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #dddddd;
+        }
+        .details-table th {
+            background-color: #f2f2f2;
+            width: 40%;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007E85;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+            margin-top: 20px;
+        }
+        a {
+            color: #007E85;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Appointment Confirmation</h1>
+    </div>
+    <div class="content">
+        <p>Dear {{name}},</p>
+        <p>Thank you for booking an appointment with us. Below are your appointment details:</p>
+        <table class="details-table">
+            <tr>
+                <th>Reference ID:</th>
+                <td>{{referenceId}}</td>
+            </tr>
+            <tr>
+                <th>Appointment Number:</th>
+                <td>{{appointmentNumber}}</td>
+            </tr>
+            <tr>
+                <th>Schedule Date:</th>
+                <td>{{scheduleDate}} ({{scheduleDayOfWeek}})</td>
+            </tr>
+            <tr>
+                <th>Time:</th>
+                <td>{{scheduleStartTime}}</td>
+            </tr>
+            <tr>
+                <th>Doctor:</th>
+                <td>{{doctorName}}</td>
+            </tr>
+            <tr>
+                <th>Status:</th>
+                <td>{{status}}</td>
+            </tr>
+            <tr>
+                <th>Booking Date:</th>
+                <td>{{bookingDate}}</td>
+            </tr>
+        </table>
+        <p>If you have any questions or need to reschedule, please contact us at <a href="mailto:support@yourcompany.com">support@yourcompany.com</a> or call us at (123) 456-7890.</p>
+        <a href="https://yourcompany.com" class="button">Visit Our Website</a>
+    </div>
+    <div class="footer">
+        <p>&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
+        <p>Your Company Address | Phone: (123) 456-7890 | <a href="mailto:support@yourcompany.com">support@yourcompany.com</a></p>
+        <p>
+            <a href="https://facebook.com/yourcompany" style="margin-right: 10px;">Facebook</a> |
+            <a href="https://twitter.com/yourcompany" style="margin-left: 10px;">Twitter</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

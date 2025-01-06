@@ -10,6 +10,7 @@ import com.uor.eng.payload.booking.CreateBookingDTO;
 import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IBookingService;
+import com.uor.eng.util.EmailService;
 import org.springframework.transaction.annotation.Transactional;
 import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
@@ -33,6 +34,9 @@ public class BookingServiceImpl implements IBookingService {
   @Autowired
   private ScheduleRepository scheduleRepository;
 
+  @Autowired
+  private EmailService emailService;
+
   @Override
   @Transactional
   public BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
@@ -55,7 +59,9 @@ public class BookingServiceImpl implements IBookingService {
       Booking savedBooking = bookingRepository.save(booking);
       scheduleRepository.save(schedule);
 
-      return mapToResponse(savedBooking);
+      BookingResponseDTO bookingResponseDTO = mapToResponse(savedBooking);
+      emailService.sendBookingConfirmation(bookingResponseDTO);
+      return bookingResponseDTO;
     } catch (OptimisticLockingFailureException e) {
       throw new BadRequestException("Unable to create booking due to high demand. Please try again.");
     } catch (Exception e) {
