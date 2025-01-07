@@ -7,9 +7,11 @@ import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
+import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IScheduleService;
+import com.uor.eng.util.EmailService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,12 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   @Autowired
   private DentistRepository dentistRepository;
+
+  @Autowired
+  private EmailService emailService;
+
+  @Autowired
+  private BookingRepository bookingRepository;
 
   @Override
   public ScheduleResponseDTO createSchedule(CreateScheduleDTO scheduleDTO) {
@@ -54,9 +62,9 @@ public class ScheduleServiceImpl implements IScheduleService {
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
 
-    if (status == ScheduleStatus.FINISHED || status == ScheduleStatus.CANCELLED) {
+    if (status == ScheduleStatus.FINISHED || status == ScheduleStatus.CANCELLED || status == ScheduleStatus.FULL) {
       throw new BadRequestException("Cannot create a schedule with status " + status +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE, FULL.");
+          ". Allowed statuses: AVAILABLE, UNAVAILABLE");
     }
 
     Schedule schedule = new Schedule();
@@ -133,11 +141,22 @@ public class ScheduleServiceImpl implements IScheduleService {
       schedule.setAvailableSlots(0);
       bookings.forEach(booking -> {
         booking.setStatus(BookingStatus.CANCELLED);
+        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+        emailService.sendBookingCancellation(bookingResponseDTO);
       });
     } else if (updatedStatus == ScheduleStatus.FINISHED) {
       schedule.setAvailableSlots(0);
       bookings.forEach(booking -> {
         booking.setStatus(BookingStatus.FINISHED);
+      });
+    } else if (updatedStatus == ScheduleStatus.FULL) {
+      schedule.setAvailableSlots(0);
+    } else if (updatedStatus == ScheduleStatus.ON_GOING) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.ACTIVE);
+        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+        emailService.sendBookingActivation(bookingResponseDTO);
       });
     } else {
       schedule.setAvailableSlots(scheduleDTO.getCapacity() - bookings.size());
@@ -187,5 +206,23 @@ public class ScheduleServiceImpl implements IScheduleService {
       scheduleGetSevenCustomResponse.setStartTime(schedule.getStartTime());
       return scheduleGetSevenCustomResponse;
     }).collect(Collectors.toList());
+  }
+
+  private Schedule getSchedule(Long scheduleId) {
+    return scheduleRepository.findById(scheduleId)
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
+  }
+
+  private BookingResponseDTO mapToResponse(Booking booking) {
+    BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
+    Long scheduleId = booking.getSchedule().getId();
+    Schedule schedule = getSchedule(scheduleId);
+    bookingResponseDTO.setScheduleDate(schedule.getDate());
+    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
+    bookingResponseDTO.setDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
+    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    return bookingResponseDTO;
   }
 }
