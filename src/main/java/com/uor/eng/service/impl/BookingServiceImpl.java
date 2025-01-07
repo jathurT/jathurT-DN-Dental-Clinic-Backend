@@ -52,8 +52,11 @@ public class BookingServiceImpl implements IBookingService {
 
       Booking booking = modelMapper.map(bookingDTO, Booking.class);
       schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
-
       booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
+
+      if (schedule.getAvailableSlots() == 0) {
+        schedule.setStatus(ScheduleStatus.FULL);
+      }
       Booking savedBooking = bookingRepository.save(booking);
       scheduleRepository.save(schedule);
 

@@ -1,5 +1,7 @@
 package com.uor.eng.util;
 
+import com.uor.eng.exceptions.EmailSendingException;
+import com.uor.eng.model.Booking;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -9,6 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,10 +30,21 @@ public class EmailService {
   @Value("${spring.mail.username}")
   private String fromEmail;
 
-  public void sendBookingConfirmation(BookingResponseDTO bookingDetails) throws MessagingException {
-    try {
-      String template = loadTemplate("templates/booking-confirmation.html");
+  public void sendBookingConfirmation(BookingResponseDTO bookingDetails) {
+    sendEmail("templates/booking-confirmation.html", "Appointment Confirmation - Reference ID: " + bookingDetails.getReferenceId(), bookingDetails);
+  }
 
+  public void sendBookingCancellation(BookingResponseDTO bookingDetails) {
+    sendEmail("templates/booking-cancellation.html", "Appointment Cancellation - Reference ID: " + bookingDetails.getReferenceId(), bookingDetails);
+  }
+
+  public void sendBookingActivation(BookingResponseDTO bookingDetails) {
+    sendEmail("templates/booking-activation.html", "Appointment Activation - Reference ID: " + bookingDetails.getReferenceId(), bookingDetails);
+  }
+
+  private void sendEmail(String templatePath, String subject, BookingResponseDTO bookingDetails) {
+    try {
+      String template = loadTemplate(templatePath);
       String htmlContent = populateTemplate(template, bookingDetails);
 
       MimeMessage message = mailSender.createMimeMessage();
@@ -38,12 +52,14 @@ public class EmailService {
 
       helper.setFrom(fromEmail);
       helper.setTo(bookingDetails.getEmail());
-      helper.setSubject("Appointment Confirmation - Reference ID: " + bookingDetails.getReferenceId());
+      helper.setSubject(subject);
       helper.setText(htmlContent, true);
 
       mailSender.send(message);
+      System.out.println("Email sent successfully to " + bookingDetails.getEmail() + " with subject: " + subject);
     } catch (MessagingException | IOException e) {
-      System.err.println("Failed to send booking confirmation email: " + e.getMessage());
+      System.err.println("Failed to send email (" + subject + ") to " + bookingDetails.getEmail() + ": " + e.getMessage());
+      throw new EmailSendingException("Failed to send email to " + bookingDetails.getEmail());
     }
   }
 
@@ -71,7 +87,7 @@ public class EmailService {
     placeholders.put("{{doctorName}}", bookingDetails.getDoctorName());
     placeholders.put("{{status}}", bookingDetails.getStatus().toString());
     placeholders.put("{{bookingDate}}", bookingDetails.getDate().toString());
-    placeholders.put("{{currentYear}}", LocalDate.now().getYear() + "");
+    placeholders.put("{{currentYear}}", String.valueOf(LocalDate.now().getYear()));
 
     for (Map.Entry<String, String> entry : placeholders.entrySet()) {
       template = template.replace(entry.getKey(), entry.getValue());
