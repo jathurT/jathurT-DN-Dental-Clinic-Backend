@@ -2,7 +2,7 @@ package com.uor.eng.service.impl;
 
 import com.uor.eng.model.Feedback;
 import com.uor.eng.repository.FeedbackRepository;
-import com.uor.eng.payload.FeedbackDTO;
+import com.uor.eng.payload.other.FeedbackDTO;
 import com.uor.eng.service.IFeedbackService;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.exceptions.BadRequestException;

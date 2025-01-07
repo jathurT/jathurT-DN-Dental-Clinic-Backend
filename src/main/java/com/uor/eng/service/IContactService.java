@@ -1,6 +1,6 @@
 package com.uor.eng.service;
 
-import com.uor.eng.payload.ContactDTO;
+import com.uor.eng.payload.other.ContactDTO;
 
 import java.util.List;
 

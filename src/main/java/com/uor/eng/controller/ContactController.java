@@ -1,6 +1,6 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.ContactDTO;
+import com.uor.eng.payload.other.ContactDTO;
 import com.uor.eng.service.IContactService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

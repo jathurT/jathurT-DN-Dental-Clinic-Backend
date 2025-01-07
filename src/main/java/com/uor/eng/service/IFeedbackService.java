@@ -1,5 +1,5 @@
 package com.uor.eng.service;
-import com.uor.eng.payload.FeedbackDTO;
+import com.uor.eng.payload.other.FeedbackDTO;
 
 import java.util.List;
 
