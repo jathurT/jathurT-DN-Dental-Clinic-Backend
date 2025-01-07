@@ -1,7 +1,7 @@
 package com.uor.eng.service.impl;
 
 import com.uor.eng.model.Contact;
-import com.uor.eng.payload.ContactDTO;
+import com.uor.eng.payload.other.ContactDTO;
 import com.uor.eng.repository.ContactRepository;
 import com.uor.eng.service.IContactService;
 import com.uor.eng.exceptions.ResourceNotFoundException;

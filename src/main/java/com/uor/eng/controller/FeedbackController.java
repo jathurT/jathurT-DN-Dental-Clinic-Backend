@@ -1,6 +1,6 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.FeedbackDTO;
+import com.uor.eng.payload.other.FeedbackDTO;
 import com.uor.eng.service.IFeedbackService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

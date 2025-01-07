@@ -2,7 +2,7 @@
 
 package com.uor.eng.exceptions;
 
-import com.uor.eng.payload.ErrorResponse;
+import com.uor.eng.payload.other.ErrorResponse;
 import io.jsonwebtoken.JwtException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
