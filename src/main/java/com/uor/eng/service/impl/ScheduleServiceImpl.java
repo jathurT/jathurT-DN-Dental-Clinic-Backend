@@ -2,9 +2,8 @@ package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
-import com.uor.eng.model.Dentist;
-import com.uor.eng.model.Schedule;
-import com.uor.eng.model.ScheduleStatus;
+import com.uor.eng.model.*;
+import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
@@ -128,6 +127,21 @@ public class ScheduleServiceImpl implements IScheduleService {
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
     schedule.setStatus(updatedStatus);
+
+    List<Booking> bookings = schedule.getBookings();
+    if (updatedStatus == ScheduleStatus.CANCELLED) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.CANCELLED);
+      });
+    } else if (updatedStatus == ScheduleStatus.FINISHED) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.FINISHED);
+      });
+    } else {
+      schedule.setAvailableSlots(scheduleDTO.getCapacity() - bookings.size());
+    }
 
     if (scheduleDTO.getStartTime() != null) {
       schedule.setStartTime(scheduleDTO.getStartTime());
