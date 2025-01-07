@@ -171,6 +171,11 @@ public class ScheduleServiceImpl implements IScheduleService {
     if (scheduleDTO.getCapacity() != null) {
       schedule.setCapacity(scheduleDTO.getCapacity());
     }
+    if (scheduleDTO.getDentistId() != null) {
+      Dentist dentist = dentistRepository.findById(scheduleDTO.getDentistId())
+          .orElseThrow(() -> new BadRequestException("Dentist with ID " + scheduleDTO.getDentistId() + " not found."));
+      schedule.setDentist(dentist);
+    }
     Schedule updatedSchedule = scheduleRepository.save(schedule);
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
