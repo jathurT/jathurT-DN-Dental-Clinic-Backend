@@ -1,6 +1,7 @@
 package com.uor.eng.payload.schedule;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.uor.eng.model.Booking;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class ScheduleResponseDTO {
   private String dayOfWeek;
   private String status;
   private Integer numberOfBookings;
-  private List<BookingResponseDTO> bookings;
+  private List<Booking> bookings;
   private LocalTime startTime;
   private LocalTime endTime;
   private Long duration;

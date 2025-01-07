@@ -44,7 +44,7 @@ public class BookingServiceImpl implements IBookingService {
       Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
           .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule."));
 
-      if (schedule.getCapacity() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
+      if (schedule.getAvailableSlots() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
         throw new BadRequestException("Cannot create booking. The selected schedule is currently full.");
       } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE || schedule.getStatus() == ScheduleStatus.CANCELLED) {
         throw new BadRequestException("Cannot create booking. The selected schedule is currently unavailable.");
@@ -52,9 +52,7 @@ public class BookingServiceImpl implements IBookingService {
 
       Booking booking = modelMapper.map(bookingDTO, Booking.class);
       schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
-      if (schedule.getAvailableSlots() == 0) {
-        schedule.setStatus(ScheduleStatus.FULL);
-      }
+
       booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
       Booking savedBooking = bookingRepository.save(booking);
       scheduleRepository.save(schedule);
