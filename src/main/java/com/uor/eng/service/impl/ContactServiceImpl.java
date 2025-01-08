@@ -9,6 +9,7 @@ import com.uor.eng.exceptions.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ public class ContactServiceImpl implements IContactService {
   private ModelMapper modelMapper;
 
   @Override
+  @Transactional
   public ContactDTO saveContact(ContactDTO contactDTO) {
     if (contactDTO == null) {
       throw new BadRequestException("Contact data cannot be null.");
@@ -52,6 +54,7 @@ public class ContactServiceImpl implements IContactService {
   }
 
   @Override
+  @Transactional
   public void deleteContact(Long id) {
     if (!contactRepository.existsById(id)) {
       throw new ResourceNotFoundException("Contact with ID " + id + " does not exist. Unable to delete.");

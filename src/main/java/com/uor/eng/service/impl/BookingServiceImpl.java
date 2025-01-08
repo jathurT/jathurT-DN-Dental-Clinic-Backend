@@ -46,7 +46,12 @@ public class BookingServiceImpl implements IBookingService {
 
       if (schedule.getAvailableSlots() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
         throw new BadRequestException("Cannot create booking. The selected schedule is currently full.");
-      } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE || schedule.getStatus() == ScheduleStatus.CANCELLED) {
+      } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE ||
+          schedule.getStatus() == ScheduleStatus.CANCELLED ||
+          schedule.getStatus() == ScheduleStatus.FINISHED ||
+          schedule.getStatus() == ScheduleStatus.ON_GOING ||
+          schedule.getStatus() == ScheduleStatus.ACTIVE
+      ) {
         throw new BadRequestException("Cannot create booking. The selected schedule is currently unavailable.");
       }
 
@@ -100,6 +105,7 @@ public class BookingServiceImpl implements IBookingService {
   }
 
   @Override
+  @Transactional
   public void deleteBooking(String id) {
     Optional<Booking> booking = bookingRepository.findById(id);
     if (booking.isPresent()) {
@@ -110,6 +116,7 @@ public class BookingServiceImpl implements IBookingService {
   }
 
   @Override
+  @Transactional
   public BookingResponseDTO updateBooking(String id, CreateBookingDTO bookingDTO) {
     Booking booking = bookingRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
