@@ -1,5 +1,6 @@
 package com.uor.eng.payload.patient;
 
+import com.uor.eng.payload.patient.logs.PatientLogResponse;
 import lombok.Data;
 
 import java.util.List;

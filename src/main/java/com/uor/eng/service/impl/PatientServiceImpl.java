@@ -4,7 +4,7 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Patient;
 import com.uor.eng.payload.patient.CreatePatientRequest;
-import com.uor.eng.payload.patient.PatientLogResponse;
+import com.uor.eng.payload.patient.logs.PatientLogResponse;
 import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.repository.PatientRepository;
 import com.uor.eng.service.IPatientService;

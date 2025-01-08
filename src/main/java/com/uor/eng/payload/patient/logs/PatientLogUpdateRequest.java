@@ -1,4 +1,4 @@
-package com.uor.eng.payload.patient;
+package com.uor.eng.payload.patient.logs;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;

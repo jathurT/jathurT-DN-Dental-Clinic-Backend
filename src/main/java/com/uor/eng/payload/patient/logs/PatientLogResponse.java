@@ -1,4 +1,4 @@
-package com.uor.eng.payload.patient;
+package com.uor.eng.payload.patient.logs;
 
 import lombok.Data;
 

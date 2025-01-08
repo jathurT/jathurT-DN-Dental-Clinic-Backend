@@ -1,21 +1,17 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.patient.PatientLogRequest;
-import com.uor.eng.payload.patient.PatientLogResponse;
-import com.uor.eng.payload.patient.PatientLogUpdateRequest;
+import com.uor.eng.payload.patient.logs.*;
 import com.uor.eng.service.PatientLogService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/patients")
-@Validated
 public class PatientLogController {
 
   @Autowired
@@ -23,7 +19,7 @@ public class PatientLogController {
 
   @PostMapping("/{patientId}/logs")
   public ResponseEntity<PatientLogResponse> createPatientLog(
-      @PathVariable Long patientId, @Valid PatientLogRequest request) {
+      @PathVariable Long patientId, @Valid PatientLogRequestNoPhotos request) {
     PatientLogResponse response = patientLogService.createPatientLog(patientId, request);
     return new ResponseEntity<>(response, HttpStatus.CREATED);
   }
@@ -57,5 +53,22 @@ public class PatientLogController {
       @PathVariable Long logId) {
     patientLogService.deletePatientLog(patientId, logId);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @PostMapping("/{patientId}/logs/{logId}/photos")
+  public ResponseEntity<List<PatientLogPhotoResponse>> associatePhotos(
+      @PathVariable Long patientId,
+      @PathVariable Long logId,
+      @RequestBody AssociatePhotosRequest request) {
+    List<PatientLogPhotoResponse> responses = patientLogService.associatePhotosWithLog(patientId, logId, request);
+    return new ResponseEntity<>(responses, HttpStatus.OK);
+  }
+
+  @GetMapping("/{patientId}/logs/{logId}/photos")
+  public ResponseEntity<List<PatientLogPhotoResponse>> getPhotos(
+      @PathVariable Long patientId,
+      @PathVariable Long logId) {
+    List<PatientLogPhotoResponse> responses = patientLogService.getPhotos(patientId, logId);
+    return new ResponseEntity<>(responses, HttpStatus.OK);
   }
 }
