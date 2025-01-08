@@ -15,6 +15,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +41,7 @@ public class ReceptionistServiceImpl implements IReceptionistService {
   private RoleRepository roleRepository;
 
   @Override
+  @Transactional
   public ReceptionistResponseDTO createReceptionist(CreateReceptionistDTO createReceptionistDTO) {
     if (userRepository.existsByUserName(createReceptionistDTO.getUserName())) {
       throw new BadRequestException("Username is already taken!");
@@ -84,6 +86,7 @@ public class ReceptionistServiceImpl implements IReceptionistService {
   }
 
   @Override
+  @Transactional
   public ReceptionistResponseDTO updateReceptionist(Long id, CreateReceptionistDTO updateReceptionistDTO) {
     Receptionist existingReceptionist = receptionistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id));
@@ -114,6 +117,7 @@ public class ReceptionistServiceImpl implements IReceptionistService {
   }
 
   @Override
+  @Transactional
   public void deleteReceptionist(Long id) {
     Receptionist receptionist = receptionistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id + " to delete."));

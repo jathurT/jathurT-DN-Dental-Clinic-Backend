@@ -12,15 +12,20 @@ import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IScheduleService;
 import com.uor.eng.util.EmailService;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ScheduleServiceImpl implements IScheduleService {
 
   @Autowired
@@ -39,6 +44,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   private BookingRepository bookingRepository;
 
   @Override
+  @Transactional
   public ScheduleResponseDTO createSchedule(CreateScheduleDTO scheduleDTO) {
     if (scheduleDTO == null) {
       throw new BadRequestException("Schedule data cannot be null.");
@@ -108,6 +114,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   }
 
   @Override
+  @Transactional
   public void deleteSchedule(Long id) {
     Schedule schedule = scheduleRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
@@ -119,6 +126,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   }
 
   @Override
+  @Transactional
   public ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO) {
     Schedule schedule = scheduleRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
@@ -151,7 +159,7 @@ public class ScheduleServiceImpl implements IScheduleService {
       });
     } else if (updatedStatus == ScheduleStatus.FULL) {
       schedule.setAvailableSlots(0);
-    } else if (updatedStatus == ScheduleStatus.ON_GOING) {
+    } else if (updatedStatus == ScheduleStatus.ACTIVE) {
       schedule.setAvailableSlots(0);
       bookings.forEach(booking -> {
         booking.setStatus(BookingStatus.ACTIVE);
@@ -212,6 +220,29 @@ public class ScheduleServiceImpl implements IScheduleService {
       scheduleGetSevenCustomResponse.setId(schedule.getId());
       return scheduleGetSevenCustomResponse;
     }).collect(Collectors.toList());
+  }
+
+  @Override
+  @Transactional
+  @Scheduled(cron = "0 0/15 * * * ?")
+  public void initialUpdaterScheduleOnStartup() {
+    LocalDate today = LocalDate.now();
+    LocalTime nowTime = LocalTime.now();
+    List<ScheduleStatus> excludedStatuses = List.of(ScheduleStatus.ON_GOING, ScheduleStatus.FULL);
+
+    log.info("Updating schedule statuses for date: {} and time: {}", today, nowTime);
+    List<Schedule> schedulesToFinish = scheduleRepository.findSchedulesToFinish(today, nowTime, excludedStatuses);
+
+    if (!schedulesToFinish.isEmpty()) {
+      for (Schedule schedule : schedulesToFinish) {
+        schedule.setStatus(ScheduleStatus.FINISHED);
+        log.info("Schedule ID {} marked as FINISHED", schedule.getId());
+      }
+      scheduleRepository.saveAll(schedulesToFinish);
+      log.info("Updated {} schedules to FINISHED", schedulesToFinish.size());
+    } else {
+      log.info("No schedules to update at this time.");
+    }
   }
 
   private Schedule getSchedule(Long scheduleId) {

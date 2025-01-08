@@ -20,4 +20,6 @@ public interface IScheduleService {
   List<ScheduleResponseDTO> getNextSevenSchedules();
 
   List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom();
+
+  void initialUpdaterScheduleOnStartup();
 }

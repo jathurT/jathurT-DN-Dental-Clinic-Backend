@@ -16,6 +16,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +42,7 @@ public class DentistServiceImpl implements IDentistService {
   private RoleRepository roleRepository;
 
   @Override
+  @Transactional
   public DentistResponseDTO createDentist(CreateDentistDTO createDentistDTO) {
     if (userRepository.existsByUserName(createDentistDTO.getUserName())) {
       throw new BadRequestException("Username is already taken!");
@@ -77,6 +79,7 @@ public class DentistServiceImpl implements IDentistService {
   }
 
   @Override
+  @Transactional
   public DentistResponseDTO updateDentist(Long id, CreateDentistDTO updateDentistDTO) {
     Dentist existingDentist = dentistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
@@ -124,6 +127,7 @@ public class DentistServiceImpl implements IDentistService {
   }
 
   @Override
+  @Transactional
   public DentistResponseDTO editDentist(Long id, UpdateDentistRequest updateDentistDTO) {
     Dentist existingDentist = dentistRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
