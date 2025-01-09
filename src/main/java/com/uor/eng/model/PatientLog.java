@@ -39,4 +39,8 @@ public class PatientLog {
   @OneToMany(mappedBy = "patientLog", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<PatientLogPhoto> patientLogPhotos;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "dentist_id", nullable = false)
+  private Dentist dentist;
+
 }

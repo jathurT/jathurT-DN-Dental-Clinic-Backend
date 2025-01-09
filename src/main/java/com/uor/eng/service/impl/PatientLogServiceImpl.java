@@ -1,10 +1,12 @@
 package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.ResourceNotFoundException;
+import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Patient;
 import com.uor.eng.model.PatientLog;
 import com.uor.eng.model.PatientLogPhoto;
 import com.uor.eng.payload.patient.logs.*;
+import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.PatientLogPhotoRepository;
 import com.uor.eng.repository.PatientLogRepository;
 import com.uor.eng.repository.PatientRepository;
@@ -34,6 +36,9 @@ public class PatientLogServiceImpl implements PatientLogService {
   private PatientLogPhotoRepository patientLogPhotoRepository;
 
   @Autowired
+  private DentistRepository dentistRepository;
+
+  @Autowired
   private S3Service s3Service;
 
   @Transactional
@@ -42,8 +47,12 @@ public class PatientLogServiceImpl implements PatientLogService {
     Patient patient = patientRepository.findById(patientId)
         .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
+    Dentist dentist = dentistRepository.findById(request.getDentistId())
+        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + request.getDentistId()));
+
     PatientLog patientLog = new PatientLog();
     patientLog.setPatient(patient);
+    patientLog.setDentist(dentist);
     patientLog.setActionType(request.getActionType());
     patientLog.setDescription(request.getDescription());
     patientLog.setTimestamp(LocalDateTime.now());
@@ -238,7 +247,7 @@ public class PatientLogServiceImpl implements PatientLogService {
     response.setActionType(log.getActionType());
     response.setDescription(log.getDescription());
     response.setTimestamp(log.getTimestamp());
-
+    response.setDentistName(log.getDentist().getFirstName());
 
     List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
     if (log.getPatientLogPhotos() != null && !log.getPatientLogPhotos().isEmpty()) {
