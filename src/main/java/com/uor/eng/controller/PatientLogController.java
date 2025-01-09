@@ -19,7 +19,7 @@ public class PatientLogController {
 
   @PostMapping("/{patientId}/logs")
   public ResponseEntity<PatientLogResponse> createPatientLog(
-      @PathVariable Long patientId, @Valid PatientLogRequestNoPhotos request) {
+      @PathVariable Long patientId, @Valid @RequestBody PatientLogRequestNoPhotos request) {
     PatientLogResponse response = patientLogService.createPatientLog(patientId, request);
     return new ResponseEntity<>(response, HttpStatus.CREATED);
   }

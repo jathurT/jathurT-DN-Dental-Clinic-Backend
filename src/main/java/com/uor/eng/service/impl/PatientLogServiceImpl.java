@@ -44,11 +44,7 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   @Override
   public PatientLogResponse createPatientLog(Long patientId, @Valid PatientLogRequestNoPhotos request) {
-    if (request.getDentistId() == null) {
-      throw new IllegalArgumentException("Dentist ID is required for creating a patient log.");
-    } else if (request.getActionType() == null || request.getActionType().isBlank()) {
-      throw new IllegalArgumentException("Action type is required for creating a patient log.");
-    }
+
     Patient patient = patientRepository.findById(patientId)
         .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 

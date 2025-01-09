@@ -3,11 +3,15 @@ package com.uor.eng.service.impl;
 import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Patient;
+import com.uor.eng.model.PatientLog;
+import com.uor.eng.model.PatientLogPhoto;
 import com.uor.eng.payload.patient.CreatePatientRequest;
+import com.uor.eng.payload.patient.logs.PatientLogPhotoResponse;
 import com.uor.eng.payload.patient.logs.PatientLogResponse;
 import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.repository.PatientRepository;
 import com.uor.eng.service.IPatientService;
+import com.uor.eng.util.S3Service;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +30,9 @@ public class PatientServiceImpl implements IPatientService {
 
   @Autowired
   private PatientRepository patientRepository;
+
+  @Autowired
+  private S3Service s3Service;
 
   @Override
   @Transactional
@@ -118,10 +125,34 @@ public class PatientServiceImpl implements IPatientService {
     List<PatientLogResponse> patientLogResponses = Optional.ofNullable(patient.getPatientLogs())
         .orElseGet(ArrayList::new)
         .stream()
-        .map(log -> modelMapper.map(log, PatientLogResponse.class))
+        .map(log -> {
+          List<PatientLogPhoto> photos = log.getPatientLogPhotos();
+          List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
+          for (PatientLogPhoto photo : photos) {
+            PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
+            photoResponse.setId(photo.getId());
+            photoResponse.setUrl(s3Service.getFileUrl(photo.getS3Key()));
+            photoResponse.setDescription(photo.getDescription());
+            photoResponse.setTimestamp(photo.getTimestamp());
+            photoResponses.add(photoResponse);
+          }
+          PatientLogResponse logResponse = mapLogToResponse(log);
+          logResponse.setPhotos(photoResponses);
+          return logResponse;
+        })
         .collect(Collectors.toList());
 
     response.setLogs(patientLogResponses);
+    return response;
+  }
+
+  private PatientLogResponse mapLogToResponse(PatientLog log) {
+    PatientLogResponse response = new PatientLogResponse();
+    response.setId(log.getId());
+    response.setActionType(log.getActionType());
+    response.setDescription(log.getDescription());
+    response.setTimestamp(log.getTimestamp());
+    response.setDentistName(log.getDentist().getFirstName());
     return response;
   }
 }
