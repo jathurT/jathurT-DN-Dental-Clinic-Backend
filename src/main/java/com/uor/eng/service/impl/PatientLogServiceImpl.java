@@ -1,18 +1,18 @@
 package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.ResourceNotFoundException;
+import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Patient;
 import com.uor.eng.model.PatientLog;
 import com.uor.eng.model.PatientLogPhoto;
-import com.uor.eng.payload.patient.PatientLogPhotoResponse;
-import com.uor.eng.payload.patient.PatientLogRequest;
-import com.uor.eng.payload.patient.PatientLogResponse;
-import com.uor.eng.payload.patient.PatientLogUpdateRequest;
+import com.uor.eng.payload.patient.logs.*;
+import com.uor.eng.repository.DentistRepository;
 import com.uor.eng.repository.PatientLogPhotoRepository;
 import com.uor.eng.repository.PatientLogRepository;
 import com.uor.eng.repository.PatientRepository;
 import com.uor.eng.service.PatientLogService;
 import com.uor.eng.util.S3Service;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,31 +36,28 @@ public class PatientLogServiceImpl implements PatientLogService {
   private PatientLogPhotoRepository patientLogPhotoRepository;
 
   @Autowired
+  private DentistRepository dentistRepository;
+
+  @Autowired
   private S3Service s3Service;
 
   @Transactional
   @Override
-  public PatientLogResponse createPatientLog(Long patientId, PatientLogRequest request) {
+  public PatientLogResponse createPatientLog(Long patientId, @Valid PatientLogRequestNoPhotos request) {
     Patient patient = patientRepository.findById(patientId)
         .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
+    Dentist dentist = dentistRepository.findById(request.getDentistId())
+        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + request.getDentistId()));
+
     PatientLog patientLog = new PatientLog();
     patientLog.setPatient(patient);
+    patientLog.setDentist(dentist);
     patientLog.setActionType(request.getActionType());
     patientLog.setDescription(request.getDescription());
     patientLog.setTimestamp(LocalDateTime.now());
     patientLog = patientLogRepository.save(patientLog);
-
-    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
-    if (request.getPhotos() != null && !request.getPhotos().isEmpty()) {
-      for (MultipartFile file : request.getPhotos()) {
-        MapToPhotoResponse(patientLog, photoResponses, file);
-      }
-    }
-
-    PatientLogResponse response = mapToResponse(patientLog);
-    response.getPhotos().addAll(photoResponses);
-    return response;
+    return mapToResponse(patientLog);
   }
 
   @Override
@@ -176,13 +173,81 @@ public class PatientLogServiceImpl implements PatientLogService {
     return response;
   }
 
+  @Override
+  @Transactional
+  public List<PatientLogPhotoResponse> associatePhotosWithLog(Long patientId, Long logId, AssociatePhotosRequest request) {
+    Patient patient = patientRepository.findById(patientId)
+        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+
+    PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
+        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+
+    List<String> s3Keys = request.getS3Keys();
+    List<String> descriptions = request.getDescriptions();
+
+    if (s3Keys == null || s3Keys.isEmpty()) {
+      throw new IllegalArgumentException("No S3 keys provided for photo association.");
+    }
+
+    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
+
+    for (int i = 0; i < s3Keys.size(); i++) {
+      String s3Key = s3Keys.get(i);
+      String description = (descriptions != null && i < descriptions.size()) ? descriptions.get(i) : "";
+
+      PatientLogPhoto photo = new PatientLogPhoto();
+      photo.setPatientLog(patientLog);
+      photo.setS3Key(s3Key);
+      photo.setDescription(description);
+      photo.setTimestamp(LocalDateTime.now());
+
+      patientLogPhotoRepository.save(photo);
+
+      PatientLogPhotoResponse response = new PatientLogPhotoResponse();
+      response.setId(photo.getId());
+      response.setUrl(s3Service.getFileUrl(s3Key));
+      response.setDescription(photo.getDescription());
+      response.setTimestamp(photo.getTimestamp());
+
+      photoResponses.add(response);
+    }
+
+    patientLog.setTimestamp(LocalDateTime.now());
+    patientLogRepository.save(patientLog);
+
+    return photoResponses;
+  }
+
+  @Override
+  @Transactional
+  public List<PatientLogPhotoResponse> getPhotos(Long patientId, Long logId) {
+    Patient patient = patientRepository.findById(patientId)
+        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+
+    PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
+        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+
+    List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientLogId(patientLog.getId());
+    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
+    for (PatientLogPhoto photo : photos) {
+      PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
+      photoResponse.setId(photo.getId());
+      photoResponse.setUrl(s3Service.getFileUrl(photo.getS3Key()));
+      photoResponse.setDescription(photo.getDescription());
+      photoResponse.setTimestamp(photo.getTimestamp());
+      photoResponses.add(photoResponse);
+    }
+
+    return photoResponses;
+  }
+
   private PatientLogResponse mapToResponse(PatientLog log) {
     PatientLogResponse response = new PatientLogResponse();
     response.setId(log.getId());
     response.setActionType(log.getActionType());
     response.setDescription(log.getDescription());
     response.setTimestamp(log.getTimestamp());
-
+    response.setDentistName(log.getDentist().getFirstName());
 
     List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
     if (log.getPatientLogPhotos() != null && !log.getPatientLogPhotos().isEmpty()) {

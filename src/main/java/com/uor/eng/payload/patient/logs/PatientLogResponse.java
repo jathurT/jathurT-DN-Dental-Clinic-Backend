@@ -1,4 +1,4 @@
-package com.uor.eng.payload.patient;
+package com.uor.eng.payload.patient.logs;
 
 import lombok.Data;
 
@@ -11,5 +11,6 @@ public class PatientLogResponse {
   private String actionType;
   private String description;
   private LocalDateTime timestamp;
+  private String dentistName;
   private List<PatientLogPhotoResponse> photos;
 }

@@ -1,12 +1,22 @@
 package com.uor.eng.util;
+
 import com.uor.eng.exceptions.FileStorageException;
+import com.uor.eng.payload.patient.logs.PresignedUrlRequest;
+import com.uor.eng.payload.patient.logs.PresignedUrlResponse;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -14,6 +24,8 @@ import java.util.UUID;
 public class S3Service {
 
   private final S3Client s3Client;
+
+  private S3Presigner presigner;
 
   @Value("${aws.s3.bucket}")
   private String bucketName;
@@ -62,8 +74,43 @@ public class S3Service {
     return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
   }
 
-  private String generateUniqueKey(String originalFilename) {
+  public String generateUniqueKey(String originalFilename) {
     String uuid = UUID.randomUUID().toString();
     return uuid + "_" + originalFilename.replace(" ", "_");
+  }
+
+  @PostConstruct
+  private void initializePresigner() {
+    this.presigner = S3Presigner.builder()
+        .region(Region.of(region))
+        .credentialsProvider(DefaultCredentialsProvider.create())
+        .build();
+  }
+
+  private String generatePresignedUploadUrl(String fileName, String contentType) {
+    String key = generateUniqueKey(fileName);
+
+    PutObjectRequest objectRequest = PutObjectRequest.builder()
+        .bucket(bucketName)
+        .key(key)
+        .contentType(contentType)
+        .build();
+
+    PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+        .signatureDuration(Duration.ofMinutes(10))
+        .putObjectRequest(objectRequest)
+        .build();
+
+    PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
+    return presignedRequest.url().toString();
+  }
+
+  public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
+    String url = generatePresignedUploadUrl(request.getFileName(), request.getContentType());
+    PresignedUrlResponse response = new PresignedUrlResponse();
+    response.setUrl(url);
+    response.setKey(generateUniqueKey(request.getFileName()));
+
+    return response;
   }
 }
