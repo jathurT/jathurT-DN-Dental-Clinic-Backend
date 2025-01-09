@@ -3,6 +3,7 @@ package com.uor.eng.payload.patient.logs;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -17,6 +18,6 @@ public class PatientLogRequestNoPhotos {
   private String description;
 
   @Column(name = "dentist_id")
-  @NotBlank(message = "Dentist ID is required")
+  @NotNull(message = "Dentist ID is required")
   private Long dentistId;
 }
