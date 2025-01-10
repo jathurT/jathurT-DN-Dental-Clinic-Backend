@@ -193,7 +193,9 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Override
   public List<ScheduleResponseDTO> getNextSevenSchedules() {
     LocalDate today = LocalDate.now();
-    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanOrderByDateAsc(today);
+    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
+        today, ScheduleStatus.AVAILABLE
+    );
     if (schedules.isEmpty()) {
       throw new ResourceNotFoundException("No schedules found for the next 7 days.");
     }
@@ -207,7 +209,9 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Override
   public List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom() {
     LocalDate today = LocalDate.now();
-    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanOrderByDateAsc(today);
+    List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
+        today, ScheduleStatus.AVAILABLE
+    );
     if (schedules.isEmpty()) {
       throw new ResourceNotFoundException("No schedules found for the next 7 days.");
     }
