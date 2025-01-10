@@ -15,7 +15,7 @@ public class PatientLogUpdateRequest {
   @Size(max = 500, message = "Description must be at most 500 characters")
   private String description;
 
-  private List<MultipartFile> newPhotos;
+  private List<String> newPhotoKeys;
 
   private List<Long> photosToDelete;
 }

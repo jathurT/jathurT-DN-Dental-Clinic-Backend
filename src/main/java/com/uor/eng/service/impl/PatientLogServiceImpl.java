@@ -160,17 +160,32 @@ public class PatientLogServiceImpl implements PatientLogService {
     }
 
     List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
-    if (request.getNewPhotos() != null && !request.getNewPhotos().isEmpty()) {
-      for (MultipartFile file : request.getNewPhotos()) {
-        MapToPhotoResponse(log, photoResponses, file);
+    if (request.getNewPhotoKeys() != null && !request.getNewPhotoKeys().isEmpty()) {
+      for (String s3Key : request.getNewPhotoKeys()) {
+        PatientLogPhoto photo = new PatientLogPhoto();
+        photo.setS3Key(s3Key);
+        photo.setPatientLog(log);
+        photo.setTimestamp(LocalDateTime.now());
+        photo.setDescription("");
+        photo.setUrl(s3Service.getFileUrl(s3Key));
+        patientLogPhotoRepository.save(photo);
+        photoResponses.add(mapToPhotoResponse(photo));
       }
     }
-
     log.setTimestamp(LocalDateTime.now());
     patientLogRepository.save(log);
     PatientLogResponse response = mapToResponse(log);
     response.getPhotos().addAll(photoResponses);
 
+    return response;
+  }
+
+  private PatientLogPhotoResponse mapToPhotoResponse(PatientLogPhoto photo) {
+    PatientLogPhotoResponse response = new PatientLogPhotoResponse();
+    response.setId(photo.getId());
+    response.setUrl(photo.getUrl());
+    response.setDescription(photo.getDescription());
+    response.setTimestamp(photo.getTimestamp());
     return response;
   }
 
@@ -267,7 +282,7 @@ public class PatientLogServiceImpl implements PatientLogService {
     return response;
   }
 
-  private void MapToPhotoResponse(PatientLog patientLog, List<PatientLogPhotoResponse> photoResponses, MultipartFile file) {
+  public void MapToPhotoResponse(PatientLog patientLog, List<PatientLogPhotoResponse> photoResponses, MultipartFile file) {
     if (!file.isEmpty()) {
       String s3Key = s3Service.uploadFile(file);
 
