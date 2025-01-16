@@ -6,9 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 public class ScheduleGetSevenCustomResponse {
   private Long id;
   private LocalDate date;
