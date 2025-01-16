@@ -22,4 +22,6 @@ public interface IScheduleService {
   List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom();
 
   void initialUpdaterScheduleOnStartup();
+
+  ScheduleResponseDTO updateScheduleStatus(Long id, String status);
 }

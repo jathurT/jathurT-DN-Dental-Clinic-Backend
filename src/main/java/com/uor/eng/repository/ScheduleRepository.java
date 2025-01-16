@@ -13,11 +13,11 @@ import java.util.List;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
-  List<Schedule> findTop7ByDateGreaterThanOrderByDateAsc(LocalDate today);
-
   @Query(nativeQuery = true, value = "SELECT * FROM schedules WHERE date <= :today AND end_time < :nowTime AND status NOT IN (:excludedStatuses)")
   List<Schedule> findSchedulesToFinish(@Param("today") LocalDate today,
                                        @Param("nowTime") LocalTime nowTime,
                                        @Param("excludedStatuses") List<ScheduleStatus> excludedStatuses);
+
+  List<Schedule> findTop7ByDateGreaterThanAndStatusOrderByDateAsc(LocalDate today, ScheduleStatus scheduleStatus);
 }
 

@@ -54,4 +54,10 @@ public class BookingController {
     BookingResponseDTO updatedBooking = bookingService.updateBooking(id, bookingDTO);
     return new ResponseEntity<>(updatedBooking, HttpStatus.OK);
   }
+
+  @PutMapping("/updateStatus/{id}")
+  public ResponseEntity<BookingResponseDTO> updateBookingStatus(@PathVariable String id, @RequestParam String status) {
+    BookingResponseDTO updatedBooking = bookingService.updateBookingStatus(id, status);
+    return new ResponseEntity<>(updatedBooking, HttpStatus.OK);
+  }
 }

@@ -17,4 +17,6 @@ public interface IBookingService {
   void deleteBooking(String id);
 
   BookingResponseDTO updateBooking(String id, CreateBookingDTO bookingDTO);
+
+  BookingResponseDTO updateBookingStatus(String id, String status);
 }

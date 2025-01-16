@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -16,7 +15,6 @@ import java.util.List;
 @Entity
 @Table(name = "schedules")
 @Data
-@NoArgsConstructor
 public class Schedule {
 
   @Id
@@ -55,7 +53,7 @@ public class Schedule {
 
   @Column(nullable = false)
   @NotNull(message = "Available slots is required")
-  private Integer AvailableSlots;
+  private Integer availableSlots;
 
   @PrePersist
   public void prePersist() {
