@@ -3,6 +3,7 @@ package com.uor.eng.service.impl;
 import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Booking;
+import com.uor.eng.model.BookingStatus;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
 import com.uor.eng.payload.booking.BookingResponseDTO;
@@ -121,6 +122,22 @@ public class BookingServiceImpl implements IBookingService {
     Booking booking = bookingRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
     modelMapper.map(bookingDTO, booking);
+    Booking updatedBooking = bookingRepository.save(booking);
+    return mapToResponse(updatedBooking);
+  }
+
+  @Override
+  @Transactional
+  public BookingResponseDTO updateBookingStatus(String id, String status) {
+    Booking booking = bookingRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
+    BookingStatus updatedStatus;
+    try {
+      updatedStatus = BookingStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new BadRequestException("Invalid status. Please select a valid status.");
+    }
+    booking.setStatus(updatedStatus);
     Booking updatedBooking = bookingRepository.save(booking);
     return mapToResponse(updatedBooking);
   }

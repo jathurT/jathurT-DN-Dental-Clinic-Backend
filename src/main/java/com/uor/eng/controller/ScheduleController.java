@@ -60,4 +60,10 @@ public class ScheduleController {
     return new ResponseEntity<>(schedules, HttpStatus.OK);
   }
 
+  @PutMapping("/updateStatus/{id}")
+  public ResponseEntity<ScheduleResponseDTO> updateScheduleStatus(@PathVariable Long id, @RequestParam String status) {
+    ScheduleResponseDTO updatedSchedule = scheduleService.updateScheduleStatus(id, status);
+    return new ResponseEntity<>(updatedSchedule, HttpStatus.OK);
+  }
+
 }

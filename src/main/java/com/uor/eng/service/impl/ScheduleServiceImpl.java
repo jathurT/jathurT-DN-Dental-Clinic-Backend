@@ -74,7 +74,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
 
     Schedule schedule = new Schedule();
-    schedule.setDate(scheduleDTO.getDate());
+    schedule.setDate(date);
     schedule.setDayOfWeek(dayOfWeek);
     schedule.setStatus(status);
     schedule.setStartTime(scheduleDTO.getStartTime());
@@ -91,7 +91,6 @@ public class ScheduleServiceImpl implements IScheduleService {
 
     return responseDTO;
   }
-
 
   @Override
   public List<ScheduleResponseDTO> getAllSchedules() {
@@ -218,10 +217,12 @@ public class ScheduleServiceImpl implements IScheduleService {
     List<Schedule> availableSchedule = schedules.stream().filter(schedule -> schedule.getStatus() == ScheduleStatus.AVAILABLE).toList();
     return availableSchedule.stream().map(schedule -> {
       ScheduleGetSevenCustomResponse scheduleGetSevenCustomResponse = new ScheduleGetSevenCustomResponse();
-      scheduleGetSevenCustomResponse.setDate(schedule.getDate());
-      scheduleGetSevenCustomResponse.setDayOfWeek(schedule.getDayOfWeek());
-      scheduleGetSevenCustomResponse.setStartTime(schedule.getStartTime());
-      scheduleGetSevenCustomResponse.setId(schedule.getId());
+      ScheduleGetSevenCustomResponse.builder()
+          .date(schedule.getDate())
+          .dayOfWeek(schedule.getDayOfWeek())
+          .startTime(schedule.getStartTime())
+          .id(schedule.getId())
+          .build();
       return scheduleGetSevenCustomResponse;
     }).collect(Collectors.toList());
   }
@@ -249,6 +250,25 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
   }
 
+  @Override
+  @Transactional
+  public ScheduleResponseDTO updateScheduleStatus(Long id, String status) {
+    Schedule schedule = scheduleRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+    ScheduleStatus updatedStatus;
+    try {
+      updatedStatus = ScheduleStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new BadRequestException("Invalid schedule status: " + status +
+          ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+    }
+    schedule.setStatus(updatedStatus);
+    Schedule updatedSchedule = scheduleRepository.save(schedule);
+    ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
+    responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
+    return responseDTO;
+  }
+
   private Schedule getSchedule(Long scheduleId) {
     return scheduleRepository.findById(scheduleId)
         .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
@@ -258,12 +278,16 @@ public class ScheduleServiceImpl implements IScheduleService {
     BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
     Long scheduleId = booking.getSchedule().getId();
     Schedule schedule = getSchedule(scheduleId);
-    bookingResponseDTO.setScheduleDate(schedule.getDate());
-    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
-    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
-    bookingResponseDTO.setDayOfWeek(schedule.getDayOfWeek());
-    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
-    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    BookingResponseDTO.builder()
+        .scheduleId(scheduleId)
+        .scheduleDate(schedule.getDate())
+        .scheduleDayOfWeek(schedule.getDayOfWeek())
+        .scheduleStartTime(schedule.getStartTime())
+        .doctorName(schedule.getDentist().getFirstName())
+        .scheduleStatus(schedule.getStatus())
+        .dayOfWeek(schedule.getDayOfWeek())
+        .status(booking.getStatus())
+        .build();
     return bookingResponseDTO;
   }
 }
