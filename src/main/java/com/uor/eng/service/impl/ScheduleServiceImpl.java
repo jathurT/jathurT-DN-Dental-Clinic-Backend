@@ -222,6 +222,7 @@ public class ScheduleServiceImpl implements IScheduleService {
       scheduleGetSevenCustomResponse.setStartTime(schedule.getStartTime());
       scheduleGetSevenCustomResponse.setId(schedule.getId());
       return scheduleGetSevenCustomResponse;
+
     }).collect(Collectors.toList());
   }
 
