@@ -217,12 +217,10 @@ public class ScheduleServiceImpl implements IScheduleService {
     List<Schedule> availableSchedule = schedules.stream().filter(schedule -> schedule.getStatus() == ScheduleStatus.AVAILABLE).toList();
     return availableSchedule.stream().map(schedule -> {
       ScheduleGetSevenCustomResponse scheduleGetSevenCustomResponse = new ScheduleGetSevenCustomResponse();
-      ScheduleGetSevenCustomResponse.builder()
-          .date(schedule.getDate())
-          .dayOfWeek(schedule.getDayOfWeek())
-          .startTime(schedule.getStartTime())
-          .id(schedule.getId())
-          .build();
+      scheduleGetSevenCustomResponse.setDate(schedule.getDate());
+      scheduleGetSevenCustomResponse.setDayOfWeek(schedule.getDayOfWeek());
+      scheduleGetSevenCustomResponse.setStartTime(schedule.getStartTime());
+      scheduleGetSevenCustomResponse.setId(schedule.getId());
       return scheduleGetSevenCustomResponse;
     }).collect(Collectors.toList());
   }
