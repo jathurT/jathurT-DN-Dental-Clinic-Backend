@@ -141,33 +141,7 @@ public class ScheduleServiceImpl implements IScheduleService {
       throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
-    schedule.setStatus(updatedStatus);
-
-    List<Booking> bookings = schedule.getBookings();
-    if (updatedStatus == ScheduleStatus.CANCELLED) {
-      schedule.setAvailableSlots(0);
-      bookings.forEach(booking -> {
-        booking.setStatus(BookingStatus.CANCELLED);
-        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
-        emailService.sendBookingCancellation(bookingResponseDTO);
-      });
-    } else if (updatedStatus == ScheduleStatus.FINISHED) {
-      schedule.setAvailableSlots(0);
-      bookings.forEach(booking -> {
-        booking.setStatus(BookingStatus.FINISHED);
-      });
-    } else if (updatedStatus == ScheduleStatus.FULL) {
-      schedule.setAvailableSlots(0);
-    } else if (updatedStatus == ScheduleStatus.ACTIVE) {
-      schedule.setAvailableSlots(0);
-      bookings.forEach(booking -> {
-        booking.setStatus(BookingStatus.ACTIVE);
-        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
-        emailService.sendBookingActivation(bookingResponseDTO);
-      });
-    } else {
-      schedule.setAvailableSlots(scheduleDTO.getCapacity() - bookings.size());
-    }
+    scheduleUpdateTriggerActions(schedule, updatedStatus, scheduleDTO.getCapacity());
 
     if (scheduleDTO.getStartTime() != null) {
       schedule.setStartTime(scheduleDTO.getStartTime());
@@ -260,11 +234,41 @@ public class ScheduleServiceImpl implements IScheduleService {
       throw new BadRequestException("Invalid schedule status: " + status +
           ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
-    schedule.setStatus(updatedStatus);
+    scheduleUpdateTriggerActions(schedule, updatedStatus, schedule.getCapacity());
     Schedule updatedSchedule = scheduleRepository.save(schedule);
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
     return responseDTO;
+  }
+
+  private void scheduleUpdateTriggerActions(Schedule schedule, ScheduleStatus updatedStatus, Integer capacity) {
+    schedule.setStatus(updatedStatus);
+
+    List<Booking> bookings = schedule.getBookings();
+    if (updatedStatus == ScheduleStatus.CANCELLED) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.CANCELLED);
+        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+        emailService.sendBookingCancellation(bookingResponseDTO);
+      });
+    } else if (updatedStatus == ScheduleStatus.FINISHED) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.FINISHED);
+      });
+    } else if (updatedStatus == ScheduleStatus.FULL) {
+      schedule.setAvailableSlots(0);
+    } else if (updatedStatus == ScheduleStatus.ACTIVE) {
+      schedule.setAvailableSlots(0);
+      bookings.forEach(booking -> {
+        booking.setStatus(BookingStatus.ACTIVE);
+        BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+        emailService.sendBookingActivation(bookingResponseDTO);
+      });
+    } else {
+      schedule.setAvailableSlots(capacity - bookings.size());
+    }
   }
 
   private Schedule getSchedule(Long scheduleId) {
