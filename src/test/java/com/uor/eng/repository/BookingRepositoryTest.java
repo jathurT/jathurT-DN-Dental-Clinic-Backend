@@ -1,13 +1,12 @@
 package com.uor.eng.repository;
 
 import com.uor.eng.model.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -19,8 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Transactional
-@Rollback
 public class BookingRepositoryTest {
 
   @Autowired
@@ -33,13 +30,14 @@ public class BookingRepositoryTest {
   private ScheduleRepository scheduleRepository;
 
   @Test
+  @DisplayName("Test find by reference id and contact number")
   @Order(1)
   public void testFindByReferenceIdAndContactNumber() {
     // Arrange
     Dentist dentist = createDentist();
     dentist = dentistRepository.save(dentist);
 
-    Schedule schedule = createSchedule( dentist);
+    Schedule schedule = createSchedule(dentist);
     scheduleRepository.save(schedule);
 
     Booking booking = Booking.builder()
@@ -65,6 +63,7 @@ public class BookingRepositoryTest {
   }
 
   @Test
+  @DisplayName("Test find by schedule id")
   @Order(2)
   public void testFindByScheduleId() {
     // Arrange
