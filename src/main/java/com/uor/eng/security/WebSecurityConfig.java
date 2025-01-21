@@ -70,19 +70,21 @@ public class WebSecurityConfig {
         .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth ->
-            auth.requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("/images/**").permitAll()
-                .requestMatchers("/api/bookings/create").permitAll()
-                .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
-                .requestMatchers("/api/schedules/{id}").permitAll()
-                .requestMatchers("/api/schedules/getSeven").permitAll()
-                .requestMatchers("/api/feedback/submit").permitAll()
-                .requestMatchers("/api/contacts/submit").permitAll()
+                auth.requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/v3/api-docs/**").permitAll()
+                    .requestMatchers("/swagger-ui/**").permitAll()
+                    .requestMatchers("/api/test/**").permitAll()
+                    .requestMatchers("/images/**").permitAll()
+                    .requestMatchers("/api/bookings/create").permitAll()
+                    .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
+                    .requestMatchers("/api/schedules/{id}").permitAll()
+                    .requestMatchers("/api/schedules/getSeven").permitAll()
+                    .requestMatchers("/api/feedback/submit").permitAll()
+                    .requestMatchers("/api/contacts/submit").permitAll()
+                    .requestMatchers("/h2-console/**").permitAll()
+
 //                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .anyRequest().authenticated()
+                    .anyRequest().authenticated()
         );
 
     http.authenticationProvider(authenticationProvider());

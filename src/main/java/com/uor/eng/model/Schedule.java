@@ -15,6 +15,9 @@ import java.util.List;
 @Entity
 @Table(name = "schedules")
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Schedule {
 
   @Id

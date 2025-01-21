@@ -42,11 +42,13 @@ public class User {
   @Size(min = 6, max = 120)
   private String password;
 
+  @Builder
   public User(String userName, String email, String password) {
     this.userName = userName;
     this.email = email;
     this.password = password;
   }
+
 
   @Getter
   @Setter
