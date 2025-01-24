@@ -213,6 +213,14 @@ public class ScheduleServiceImpl implements IScheduleService {
     if (!schedulesToFinish.isEmpty()) {
       for (Schedule schedule : schedulesToFinish) {
         schedule.setStatus(ScheduleStatus.FINISHED);
+        List<Booking> bookings = schedule.getBookings();
+        if (bookings != null && !bookings.isEmpty()) {
+          bookings.forEach(booking -> {
+            booking.setStatus(BookingStatus.FINISHED);
+            bookingRepository.save(booking);
+            log.info("Booking ID {} marked as FINISHED", booking.getReferenceId());
+          });
+        }
         log.info("Schedule ID {} marked as FINISHED", schedule.getId());
       }
       scheduleRepository.saveAll(schedulesToFinish);
