@@ -67,7 +67,7 @@ public class Schedule {
   @JsonManagedReference
   private List<Booking> bookings;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.EAGER ,cascade = CascadeType.ALL)
   @JoinColumn(name = "dentist_id",nullable = false)
   @JsonManagedReference
   private Dentist dentist;

@@ -256,7 +256,9 @@ public class ScheduleServiceImpl implements IScheduleService {
       bookings.forEach(booking -> {
         booking.setStatus(BookingStatus.CANCELLED);
         BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
-        emailService.sendBookingCancellation(bookingResponseDTO);
+        if (validateBookingDetails(bookingResponseDTO)) {
+          emailService.sendBookingCancellation(bookingResponseDTO);
+        }
       });
     } else if (updatedStatus == ScheduleStatus.FINISHED) {
       schedule.setAvailableSlots(0);
@@ -270,11 +272,48 @@ public class ScheduleServiceImpl implements IScheduleService {
       bookings.forEach(booking -> {
         booking.setStatus(BookingStatus.ACTIVE);
         BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
-        emailService.sendBookingActivation(bookingResponseDTO);
+        if (validateBookingDetails(bookingResponseDTO)) {
+          emailService.sendBookingActivation(bookingResponseDTO);
+        }
       });
+    } else if (updatedStatus == ScheduleStatus.AVAILABLE) {
+      if (bookings != null && !bookings.isEmpty()) {
+        bookings.forEach(booking -> {
+          booking.setStatus(BookingStatus.ACTIVE);
+          BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+          emailService.sendBookingActivation(bookingResponseDTO);
+        });
+      }
+      schedule.setAvailableSlots(capacity);
+
+    } else if (updatedStatus == ScheduleStatus.UNAVAILABLE) {
+      schedule.setAvailableSlots(0);
     } else {
       schedule.setAvailableSlots(capacity - bookings.size());
     }
+  }
+
+  private boolean validateBookingDetails(BookingResponseDTO bookingDetails) {
+    System.out.println("Booking details: " + bookingDetails);
+    if (bookingDetails.getEmail() == null || bookingDetails.getEmail().isEmpty()) {
+      throw new IllegalArgumentException("Recipient email is missing.");
+    }
+    if (bookingDetails.getReferenceId() == null || bookingDetails.getReferenceId().isEmpty()) {
+      throw new IllegalArgumentException("Booking reference ID is missing.");
+    }
+    if (bookingDetails.getScheduleId() == null) {
+      throw new IllegalArgumentException("Schedule ID is missing.");
+    }
+    if (bookingDetails.getScheduleDate() == null) {
+      throw new IllegalArgumentException("Schedule date is missing.");
+    }
+    if (bookingDetails.getScheduleStartTime() == null) {
+      throw new IllegalArgumentException("Schedule start time is missing.");
+    }
+    if (bookingDetails.getDoctorName() == null || bookingDetails.getDoctorName().isEmpty()) {
+      throw new IllegalArgumentException("Doctor name is missing.");
+    }
+    return true;
   }
 
   private Schedule getSchedule(Long scheduleId) {
@@ -284,18 +323,15 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   private BookingResponseDTO mapToResponse(Booking booking) {
     BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
-    Long scheduleId = booking.getSchedule().getId();
-    Schedule schedule = getSchedule(scheduleId);
-    BookingResponseDTO.builder()
-        .scheduleId(scheduleId)
-        .scheduleDate(schedule.getDate())
-        .scheduleDayOfWeek(schedule.getDayOfWeek())
-        .scheduleStartTime(schedule.getStartTime())
-        .doctorName(schedule.getDentist().getFirstName())
-        .scheduleStatus(schedule.getStatus())
-        .dayOfWeek(schedule.getDayOfWeek())
-        .status(booking.getStatus())
-        .build();
+    Schedule schedule = booking.getSchedule();
+    bookingResponseDTO.setScheduleId(schedule.getId());
+    bookingResponseDTO.setScheduleDate(schedule.getDate());
+    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
+    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
+    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    bookingResponseDTO.setStatus(booking.getStatus());
+
     return bookingResponseDTO;
   }
 }

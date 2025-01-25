@@ -1,5 +1,6 @@
 package com.uor.eng.repository;
 
+import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,5 +20,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
                                        @Param("excludedStatuses") List<ScheduleStatus> excludedStatuses);
 
   List<Schedule> findTop7ByDateGreaterThanAndStatusOrderByDateAsc(LocalDate today, ScheduleStatus scheduleStatus);
+
+
 }
 
