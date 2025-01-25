@@ -1,6 +1,7 @@
 package com.uor.eng.repository;
 
 import com.uor.eng.model.User;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,11 @@ class UserRepositoryTest {
         .password("password123")
         .build();
     userRepository.save(testUser);
+  }
+
+  @AfterEach
+  void tearDown() {
+    userRepository.deleteAll();
   }
 
   @Test
