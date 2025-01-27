@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
+import java.util.Set;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -56,15 +57,15 @@ public class Dentist extends User {
   private List<Schedule> schedules;
 
   @Builder(builderMethodName = "dentistBuilder")
-  public Dentist(String userName, String email, String password, String firstName, String nic, String phoneNumber,
-      String gender, String specialization, String licenseNumber, List<Schedule> schedules) {
-    super(userName, email, password);
+  public Dentist(String userName, String email, String password, Set<Role> roles, String firstName, String nic, String phoneNumber,
+                 String gender, String specialization, String licenseNumber, List<Schedule> schedules) {
+    super(userName, email, password, roles);
     this.firstName = firstName;
     this.nic = nic;
     this.phoneNumber = phoneNumber;
     this.licenseNumber = licenseNumber;
-    this.gender=gender;
-    this.specialization=specialization;
+    this.gender = gender;
+    this.specialization = specialization;
     this.schedules = schedules;
   }
 }
