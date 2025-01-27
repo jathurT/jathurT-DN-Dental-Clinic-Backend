@@ -3,9 +3,7 @@ package com.uor.eng.repository;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
@@ -17,6 +15,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ScheduleRepositoryTest {
 
   @Autowired
@@ -57,6 +56,7 @@ public class ScheduleRepositoryTest {
 
   @Test
   @DisplayName("Test find schedules to finish")
+  @Order(1)
   void testFindSchedulesToFinish_ShouldReturnSchedules() {
     List<Schedule> schedules = scheduleRepository.findSchedulesToFinish(
         LocalDate.now(),
@@ -71,6 +71,7 @@ public class ScheduleRepositoryTest {
 
   @Test
   @DisplayName("Test find schedules to finish with empty list")
+  @Order(2)
   void testFindSchedulesToFinish_ShouldReturnEmptyList() {
     List<Schedule> schedules = scheduleRepository.findSchedulesToFinish(
         LocalDate.now().minusDays(1),
@@ -83,6 +84,7 @@ public class ScheduleRepositoryTest {
 
   @Test
   @DisplayName("Test find top 7 by date greater than and status order by date ascending")
+  @Order(3)
   void testFindTop7ByDateGreaterThanAndStatusOrderByDateAsc_ShouldReturnSchedules() {
     List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
         LocalDate.now().minusDays(1), ScheduleStatus.AVAILABLE);
@@ -94,6 +96,7 @@ public class ScheduleRepositoryTest {
 
   @Test
   @DisplayName("Test find top 7 by date greater than and status order by date ascending with empty list")
+  @Order(4)
   void testFindTop7ByDateGreaterThanAndStatusOrderByDateAsc_ShouldReturnEmptyList() {
     List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
         LocalDate.now().plusDays(1), ScheduleStatus.FINISHED);

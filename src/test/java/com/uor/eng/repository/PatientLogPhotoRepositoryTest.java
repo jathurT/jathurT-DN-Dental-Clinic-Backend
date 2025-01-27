@@ -16,6 +16,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PatientLogPhotoRepositoryTest {
 
   @Autowired

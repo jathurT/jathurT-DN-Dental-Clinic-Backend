@@ -1,10 +1,7 @@
 package com.uor.eng.repository;
 
 import com.uor.eng.model.Patient;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
@@ -14,6 +11,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PatientRepositoryTest {
 
   @Autowired
@@ -49,6 +47,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test find the patient by email")
+  @Order(1)
   void testFindByEmail() {
     Optional<Patient> foundPatient = patientRepository.findByEmail("johndoe@example.com");
     assertThat(foundPatient).isPresent();
@@ -57,6 +56,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test user exists by email")
+  @Order(2)
   void testExistsByEmail() {
     boolean exists = patientRepository.existsByEmail("janedoe@example.com");
     assertThat(exists).isTrue();
@@ -64,6 +64,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test find the patient by NIC")
+  @Order(3)
   void testFindByNic() {
     Optional<Patient> foundPatient = patientRepository.findByNic("987654321V");
     assertThat(foundPatient).isPresent();
@@ -72,6 +73,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test user exists by NIC")
+  @Order(4)
   void testExistsByNic() {
     boolean exists = patientRepository.existsByNic("123456789V");
     assertThat(exists).isTrue();
@@ -79,6 +81,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test find all patients")
+  @Order(5)
   void testFindAll() {
     List<Patient> patients = patientRepository.findAll();
     assertThat(patients).hasSize(2);
@@ -86,6 +89,7 @@ public class PatientRepositoryTest {
 
   @Test
   @DisplayName("Test delete patient")
+  @Order(6)
   void testDeletePatient() {
     patientRepository.delete(patient1);
     Optional<Patient> deletedPatient = patientRepository.findByEmail("johndoe@example.com");

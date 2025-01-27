@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PasswordResetTokenRepositoryTest {
 
   @Autowired

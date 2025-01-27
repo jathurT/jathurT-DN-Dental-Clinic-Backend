@@ -2,10 +2,7 @@ package com.uor.eng.repository;
 
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Role;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
@@ -14,6 +11,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RoleRepositoryTest {
 
   @Autowired
@@ -41,6 +39,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test find by role name - Dentist")
+  @Order(1)
   void testFindByRoleName_Dentist() {
     Optional<Role> foundRole = roleRepository.findByRoleName(AppRole.ROLE_DENTIST);
     assertThat(foundRole).isPresent();
@@ -49,6 +48,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test find by role name - Admin")
+  @Order(2)
   void testFindByRoleName_Admin() {
     Optional<Role> foundRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN);
     assertThat(foundRole).isPresent();
@@ -57,6 +57,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test find by role name - Receptionist")
+  @Order(3)
   void testFindByRoleName_Receptionist() {
     Optional<Role> foundRole = roleRepository.findByRoleName(AppRole.ROLE_RECEPTIONIST);
     assertThat(foundRole).isPresent();
@@ -65,6 +66,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test find by role name - Not Found")
+  @Order(4)
   void testFindByRoleName_NotFound() {
     Optional<Role> foundRole = roleRepository.findByRoleName(null);
     assertThat(foundRole).isEmpty();
@@ -72,6 +74,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test save role")
+  @Order(5)
   void testSaveRole() {
     Role newRole = new Role(AppRole.ROLE_RECEPTIONIST);
     Role savedRole = roleRepository.save(newRole);
@@ -82,6 +85,7 @@ public class RoleRepositoryTest {
 
   @Test
   @DisplayName("Test delete role")
+  @Order(6)
   void testDeleteRole() {
     roleRepository.delete(adminRole);
     Optional<Role> deletedRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN);
