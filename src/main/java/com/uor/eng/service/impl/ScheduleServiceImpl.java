@@ -286,18 +286,15 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   private BookingResponseDTO mapToResponse(Booking booking) {
     BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
-    Long scheduleId = booking.getSchedule().getId();
-    Schedule schedule = getSchedule(scheduleId);
-    BookingResponseDTO.builder()
-        .scheduleId(scheduleId)
-        .scheduleDate(schedule.getDate())
-        .scheduleDayOfWeek(schedule.getDayOfWeek())
-        .scheduleStartTime(schedule.getStartTime())
-        .doctorName(schedule.getDentist().getFirstName())
-        .scheduleStatus(schedule.getStatus())
-        .dayOfWeek(schedule.getDayOfWeek())
-        .status(booking.getStatus())
-        .build();
+    Schedule schedule = booking.getSchedule();
+    bookingResponseDTO.setScheduleId(schedule.getId());
+    bookingResponseDTO.setScheduleDate(schedule.getDate());
+    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
+    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
+    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    bookingResponseDTO.setStatus(booking.getStatus());
+
     return bookingResponseDTO;
   }
 }
