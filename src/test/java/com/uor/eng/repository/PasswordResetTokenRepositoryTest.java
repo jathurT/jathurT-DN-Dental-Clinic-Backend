@@ -53,6 +53,8 @@ public class PasswordResetTokenRepositoryTest {
   }
 
   @Test
+  @DisplayName("Test find by user")
+  @Order(2)
   void testFindByUser() {
     var retrievedToken = passwordResetTokenRepository.findByUser(testUser);
 
@@ -62,6 +64,8 @@ public class PasswordResetTokenRepositoryTest {
   }
 
   @Test
+  @DisplayName("Test delete by user")
+  @Order(3)
   void testDeleteByUser() {
     passwordResetTokenRepository.deleteByUser(testUser);
 
