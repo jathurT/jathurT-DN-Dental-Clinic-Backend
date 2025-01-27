@@ -66,6 +66,7 @@ class ContactServiceImplTest {
   @Order(2)
   void saveContact_shouldThrowBadRequestExceptionWhenNull() {
     assertThrows(BadRequestException.class, () -> contactService.saveContact(null));
+    verify(contactRepository, never()).save(any());
   }
 
   @Test
@@ -91,6 +92,7 @@ class ContactServiceImplTest {
     when(contactRepository.findAll()).thenReturn(new ArrayList<>());
 
     assertThrows(ResourceNotFoundException.class, () -> contactService.getAllContacts());
+    verify(contactRepository, times(1)).findAll();
   }
 
   @Test
@@ -114,6 +116,7 @@ class ContactServiceImplTest {
     when(contactRepository.findById(1L)).thenReturn(Optional.empty());
 
     assertThrows(ResourceNotFoundException.class, () -> contactService.getContactById(1L));
+    verify(contactRepository, times(1)).findById(1L);
   }
 
   @Test
@@ -134,5 +137,6 @@ class ContactServiceImplTest {
     when(contactRepository.existsById(1L)).thenReturn(false);
 
     assertThrows(ResourceNotFoundException.class, () -> contactService.deleteContact(1L));
+    verify(contactRepository, times(1)).existsById(1L);
   }
 }
