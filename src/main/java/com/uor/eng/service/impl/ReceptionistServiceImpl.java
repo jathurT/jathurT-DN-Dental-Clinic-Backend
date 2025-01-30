@@ -66,10 +66,12 @@ public class ReceptionistServiceImpl implements IReceptionistService {
 
   @Override
   public List<ReceptionistResponseDTO> getAllReceptionists() {
-    if (receptionistRepository.findAll().isEmpty()) {
+
+    List<Receptionist> receptionists = receptionistRepository.findAll();
+    if (receptionists.isEmpty()) {
       throw new ResourceNotFoundException("No receptionists found.");
     }
-    return receptionistRepository.findAll().stream()
+    return receptionists.stream()
         .map(receptionist -> {
           ReceptionistResponseDTO dto = modelMapper.map(receptionist, ReceptionistResponseDTO.class);
           return getReceptionistResponseDTO(receptionist, dto);
