@@ -1,9 +1,6 @@
 package com.uor.eng.payload.dentist;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +29,7 @@ public class CreateDentistDTO  {
       regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{6,40}$",
       message = "Password must be 6-40 characters long, contain at least one digit, one lowercase letter, one uppercase letter, and one special character"
   )
+  @NotNull(message = "Password cannot be null")
   private String password;
 
   @NotBlank(message = "First name is mandatory")

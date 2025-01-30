@@ -27,7 +27,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension .class)
+@ExtendWith(MockitoExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DentistServiceImplTest {
 
@@ -53,6 +53,7 @@ class DentistServiceImplTest {
   private CreateDentistDTO createDentistDTO;
   private UpdateDentistRequest updateDentistRequest;
   private DentistResponseDTO dentistResponseDTO;
+  private CreateDentistDTO updateDentistDTO;
   private Role role;
 
   @BeforeEach
@@ -105,6 +106,17 @@ class DentistServiceImplTest {
         .roles(Set.of(AppRole.ROLE_DENTIST.name()))
         .build();
 
+    updateDentistDTO = new CreateDentistDTO(
+        "existingUsername",
+        "updated.email@example.com",
+        "Female",
+        "NewPassword@123",
+        "Jane",
+        "Periodontics",
+        "DENT5678",
+        "987654321V",
+        "0777654321"
+    );
     role = new Role();
     role.setRoleName(AppRole.ROLE_DENTIST);
   }
@@ -236,5 +248,85 @@ class DentistServiceImplTest {
     assertNotNull(result);
     assertEquals(updateDentistRequest.getUserName(), result.getUserName());
     verify(dentistRepository, times(1)).save(any(Dentist.class));
+  }
+
+  @Test
+  @DisplayName("Update Dentist - Success")
+  @Order(11)
+  void updateDentist_ShouldUpdateAndReturnDentistResponseDTO() {
+    // Arrange
+    Long dentistId = 1L;
+
+    Dentist updatedDentist = Dentist.dentistBuilder()
+        .userName(updateDentistDTO.getUserName())
+        .email(updateDentistDTO.getEmail())
+        .password(passwordEncoder.encode(updateDentistDTO.getPassword()))
+        .firstName(updateDentistDTO.getFirstName())
+        .nic(updateDentistDTO.getNic())
+        .phoneNumber(updateDentistDTO.getPhoneNumber())
+        .specialization(updateDentistDTO.getSpecialization())
+        .licenseNumber(updateDentistDTO.getLicenseNumber())
+        .roles(Set.of())
+        .build();
+
+    DentistResponseDTO updatedDentistResponseDTO = DentistResponseDTO.builder()
+        .id(dentistId)
+        .userName(updateDentistDTO.getUserName())
+        .email(updateDentistDTO.getEmail())
+        .gender(updateDentistDTO.getGender())
+        .firstName(updateDentistDTO.getFirstName())
+        .specialization(updateDentistDTO.getSpecialization())
+        .licenseNumber(updateDentistDTO.getLicenseNumber())
+        .nic(updateDentistDTO.getNic())
+        .phoneNumber(updateDentistDTO.getPhoneNumber())
+        .roles(Set.of(AppRole.ROLE_DENTIST.name()))
+        .build();
+
+    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
+    when(userRepository.existsByUserName(updateDentistDTO.getUserName())).thenReturn(false);
+    when(userRepository.existsByEmail(updateDentistDTO.getEmail())).thenReturn(false);
+    when(passwordEncoder.encode(updateDentistDTO.getPassword())).thenReturn("newEncodedPassword");
+    when(dentistRepository.save(any(Dentist.class))).thenReturn(updatedDentist);
+    when(modelMapper.map(updatedDentist, DentistResponseDTO.class)).thenReturn(updatedDentistResponseDTO);
+
+    // Act
+    DentistResponseDTO result = dentistService.updateDentist(dentistId, updateDentistDTO);
+
+    // Assert
+    assertNotNull(result);
+    assertEquals(updateDentistDTO.getUserName(), result.getUserName());
+    assertEquals(updateDentistDTO.getEmail(), result.getEmail());
+    assertEquals(updateDentistDTO.getFirstName(), result.getFirstName());
+    assertEquals(updateDentistDTO.getSpecialization(), result.getSpecialization());
+    assertEquals(updateDentistDTO.getLicenseNumber(), result.getLicenseNumber());
+    assertEquals(updateDentistDTO.getNic(), result.getNic());
+    assertEquals(updateDentistDTO.getPhoneNumber(), result.getPhoneNumber());
+    verify(dentistRepository, times(1)).save(any(Dentist.class));
+  }
+
+  @Test
+  @DisplayName("Update Dentist - Username Exists - BadRequest")
+  @Order(12)
+  void updateDentist_ShouldThrowBadRequest_WhenUsernameExists() {
+    Long dentistId = 1L;
+
+    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
+    when(userRepository.existsByUserName(updateDentistDTO.getUserName())).thenReturn(true);
+
+    assertThrows(BadRequestException.class, () -> dentistService.updateDentist(dentistId, updateDentistDTO));
+    verify(dentistRepository, never()).save(any(Dentist.class));
+  }
+
+  @Test
+  @DisplayName("Update Dentist - Email Exists - BadRequest")
+  @Order(13)
+  void updateDentist_ShouldThrowBadRequest_WhenEmailExists() {
+    Long dentistId = 1L;
+
+    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
+    when(userRepository.existsByEmail(updateDentistDTO.getEmail())).thenReturn(true);
+
+    assertThrows(BadRequestException.class, () -> dentistService.updateDentist(dentistId, updateDentistDTO));
+    verify(dentistRepository, never()).save(any(Dentist.class));
   }
 }

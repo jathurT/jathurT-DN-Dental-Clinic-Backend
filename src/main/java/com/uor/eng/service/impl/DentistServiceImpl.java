@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,9 +71,8 @@ public class DentistServiceImpl implements IDentistService {
 
     validateUniqueUsernameAndEmailForUpdate(existingDentist, updateDentistDTO.getUserName(), updateDentistDTO.getEmail());
 
-    updateDentistDetails(existingDentist, updateDentistDTO);
-    Dentist updatedDentist = dentistRepository.save(existingDentist);
-
+    Dentist updatedDentist = updateDentistDetailsByAdmin(existingDentist, updateDentistDTO);
+    updatedDentist = dentistRepository.save(updatedDentist);
     return mapToDentistResponseDTO(updatedDentist);
   }
 
@@ -97,7 +95,7 @@ public class DentistServiceImpl implements IDentistService {
 
     validateUniqueUsernameAndEmailForUpdate(existingDentist, updateDentistDTO.getUserName(), updateDentistDTO.getEmail());
 
-    updateDentistDetails(existingDentist, updateDentistDTO);
+    updateDentistDetailsByDoctor(existingDentist, updateDentistDTO);
     Dentist updatedDentist = dentistRepository.save(existingDentist);
 
     return mapToDentistResponseDTO(updatedDentist);
@@ -126,19 +124,20 @@ public class DentistServiceImpl implements IDentistService {
     }
   }
 
-  private void updateDentistDetails(Dentist dentist, CreateDentistDTO dto) {
+  private Dentist updateDentistDetailsByAdmin(Dentist dentist, CreateDentistDTO dto) {
     dentist.setUserName(dto.getUserName());
     dentist.setEmail(dto.getEmail());
     dentist.setGender(dto.getGender());
     dentist.setFirstName(dto.getFirstName());
     dentist.setSpecialization(dto.getSpecialization());
     dentist.setLicenseNumber(dto.getLicenseNumber());
-    if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-      dentist.setPassword(passwordEncoder.encode(dto.getPassword()));
-    }
+    dentist.setPhoneNumber(dto.getPhoneNumber());
+    dentist.setNic(dto.getNic());
+    dentist.setPassword(passwordEncoder.encode(dto.getPassword()));
+    return dentist;
   }
 
-  private void updateDentistDetails(Dentist dentist, UpdateDentistRequest dto) {
+  private void updateDentistDetailsByDoctor(Dentist dentist, UpdateDentistRequest dto) {
     dentist.setUserName(dto.getUserName());
     dentist.setEmail(dto.getEmail());
     dentist.setGender(dto.getGender());
