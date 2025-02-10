@@ -78,15 +78,15 @@ public class EmailService {
 
   private String populateTemplate(String template, BookingResponseDTO bookingDetails) {
     Map<String, String> placeholders = new HashMap<>();
-    placeholders.put("{{name}}", bookingDetails.getName());
-    placeholders.put("{{referenceId}}", bookingDetails.getReferenceId());
-    placeholders.put("{{appointmentNumber}}", String.valueOf(bookingDetails.getAppointmentNumber()));
-    placeholders.put("{{scheduleDate}}", bookingDetails.getScheduleDate().toString());
-    placeholders.put("{{scheduleDayOfWeek}}", bookingDetails.getScheduleDayOfWeek());
-    placeholders.put("{{scheduleStartTime}}", bookingDetails.getScheduleStartTime().toString());
-    placeholders.put("{{doctorName}}", bookingDetails.getDoctorName());
-    placeholders.put("{{status}}", bookingDetails.getStatus().toString());
-    placeholders.put("{{bookingDate}}", bookingDetails.getDate().toString());
+    placeholders.put("{{name}}", bookingDetails.getName() != null ? bookingDetails.getName() : "Guest");
+    placeholders.put("{{referenceId}}", bookingDetails.getReferenceId() != null ? bookingDetails.getReferenceId() : "N/A");
+    placeholders.put("{{appointmentNumber}}", bookingDetails.getAppointmentNumber() != null ? String.valueOf(bookingDetails.getAppointmentNumber()) : "N/A");
+    placeholders.put("{{scheduleDate}}", bookingDetails.getScheduleDate() != null ? bookingDetails.getScheduleDate().toString() : "N/A");
+    placeholders.put("{{scheduleDayOfWeek}}", bookingDetails.getScheduleDayOfWeek() != null ? bookingDetails.getScheduleDayOfWeek() : "N/A");
+    placeholders.put("{{scheduleStartTime}}", bookingDetails.getScheduleStartTime() != null ? bookingDetails.getScheduleStartTime().toString() : "N/A");
+    placeholders.put("{{doctorName}}", bookingDetails.getDoctorName() != null ? bookingDetails.getDoctorName() : "N/A");
+    placeholders.put("{{status}}", bookingDetails.getStatus() != null ? bookingDetails.getStatus().toString() : "N/A");
+    placeholders.put("{{bookingDate}}", bookingDetails.getDate() != null ? bookingDetails.getDate().toString() : "N/A");
     placeholders.put("{{currentYear}}", String.valueOf(LocalDate.now().getYear()));
 
     for (Map.Entry<String, String> entry : placeholders.entrySet()) {
@@ -95,4 +95,5 @@ public class EmailService {
 
     return template;
   }
+
 }
