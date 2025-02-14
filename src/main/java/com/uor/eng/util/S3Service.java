@@ -44,7 +44,6 @@ public class S3Service {
       PutObjectRequest putObjectRequest = PutObjectRequest.builder()
           .bucket(bucketName)
           .key(key)
-//          .acl(ObjectCannedACL.PUBLIC_READ)
           .contentType(file.getContentType())
           .build();
 
@@ -58,38 +57,7 @@ public class S3Service {
     return key;
   }
 
-  public void deleteFile(String key) {
-    try {
-      DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-          .bucket(bucketName)
-          .key(key)
-          .build();
-      s3Client.deleteObject(deleteObjectRequest);
-    } catch (S3Exception e) {
-      throw new FileStorageException("Failed to delete file from S3: " + e.awsErrorDetails().errorMessage(), e);
-    }
-  }
-
-  public String getFileUrl(String key) {
-    return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
-  }
-
-  public String generateUniqueKey(String originalFilename) {
-    String uuid = UUID.randomUUID().toString();
-    return uuid + "_" + originalFilename.replace(" ", "_");
-  }
-
-  @PostConstruct
-  private void initializePresigner() {
-    this.presigner = S3Presigner.builder()
-        .region(Region.of(region))
-        .credentialsProvider(DefaultCredentialsProvider.create())
-        .build();
-  }
-
-  private String generatePresignedUploadUrl(String fileName, String contentType) {
-    String key = generateUniqueKey(fileName);
-
+  private String generatePresignedUploadUrl(String key, String contentType) {
     PutObjectRequest objectRequest = PutObjectRequest.builder()
         .bucket(bucketName)
         .key(key)
@@ -106,11 +74,43 @@ public class S3Service {
   }
 
   public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
-    String url = generatePresignedUploadUrl(request.getFileName(), request.getContentType());
+    String key = generateUniqueKey(request.getFileName());
+
+    String url = generatePresignedUploadUrl(key, request.getContentType());
+
     PresignedUrlResponse response = new PresignedUrlResponse();
     response.setUrl(url);
-    response.setKey(generateUniqueKey(request.getFileName()));
+    response.setKey(key);
 
     return response;
+  }
+
+  public String generateUniqueKey(String originalFilename) {
+    String uuid = UUID.randomUUID().toString();
+    return uuid + "_" + originalFilename.replace(" ", "_");
+  }
+
+  @PostConstruct
+  private void initializePresigner() {
+    this.presigner = S3Presigner.builder()
+        .region(Region.of(region))
+        .credentialsProvider(DefaultCredentialsProvider.create())
+        .build();
+  }
+
+  public String getFileUrl(String key) {
+    return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+  }
+
+  public void deleteFile(String key) {
+    try {
+      DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+          .bucket(bucketName)
+          .key(key)
+          .build();
+      s3Client.deleteObject(deleteObjectRequest);
+    } catch (S3Exception e) {
+      throw new FileStorageException("Failed to delete file from S3: " + e.awsErrorDetails().errorMessage(), e);
+    }
   }
 }
