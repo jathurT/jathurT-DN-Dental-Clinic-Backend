@@ -42,6 +42,14 @@ public class User {
   @Size(min = 6, max = 120)
   private String password;
 
+  @Builder
+  public User(String userName, String email, String password, Set<Role> roles) {
+    this.userName = userName;
+    this.email = email;
+    this.password = password;
+    this.roles = roles;
+  }
+
   public User(String userName, String email, String password) {
     this.userName = userName;
     this.email = email;

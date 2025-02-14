@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,121 +43,119 @@ public class DentistServiceImpl implements IDentistService {
   @Override
   @Transactional
   public DentistResponseDTO createDentist(CreateDentistDTO createDentistDTO) {
-    if (userRepository.existsByUserName(createDentistDTO.getUserName())) {
-      throw new BadRequestException("Username is already taken!");
-    }
-
-    if (userRepository.existsByEmail(createDentistDTO.getEmail())) {
-      throw new BadRequestException("Email is already in use!");
-    }
+    validateUniqueUsernameAndEmail(createDentistDTO.getUserName(), createDentistDTO.getEmail());
 
     Dentist dentist = modelMapper.map(createDentistDTO, Dentist.class);
     dentist.setPassword(passwordEncoder.encode(createDentistDTO.getPassword()));
-
-    Role role = roleRepository.findByRoleName(AppRole.ROLE_DENTIST)
-        .orElseThrow(() -> new ResourceNotFoundException("Role ROLE_DENTIST not found."));
-    dentist.setRoles(Collections.singleton(role));
+    dentist.setRoles(Collections.singleton(getRole(AppRole.ROLE_DENTIST)));
 
     Dentist savedDentist = dentistRepository.save(dentist);
-    DentistResponseDTO dentistResponseDTO = modelMapper.map(savedDentist, DentistResponseDTO.class);
-    return getDentistResponseDTO(savedDentist, dentistResponseDTO);
+    return mapToDentistResponseDTO(savedDentist);
   }
 
   @Override
   public List<DentistResponseDTO> getAllDentists() {
-    if (dentistRepository.findAll().isEmpty()) {
+    List<Dentist> dentists = dentistRepository.findAll();
+    if (dentists.isEmpty()) {
       throw new ResourceNotFoundException("No dentists found.");
     }
-    return dentistRepository.findAll().stream()
-        .map(dentist ->
-        {
-          DentistResponseDTO dentistResponseDTO = modelMapper.map(dentist, DentistResponseDTO.class);
-          return getDentistResponseDTO(dentist, dentistResponseDTO);
-        })
+    return dentists.stream()
+        .map((dentist) -> mapToDentistResponseDTO(dentist))
         .collect(Collectors.toList());
   }
 
   @Override
   @Transactional
   public DentistResponseDTO updateDentist(Long id, CreateDentistDTO updateDentistDTO) {
-    Dentist existingDentist = dentistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+    Dentist existingDentist = findDentistById(id);
 
-    if (!existingDentist.getUserName().equals(updateDentistDTO.getUserName()) &&
-        userRepository.existsByUserName(updateDentistDTO.getUserName())) {
-      throw new BadRequestException("Username is already taken!");
-    }
+    validateUniqueUsernameAndEmailForUpdate(existingDentist, updateDentistDTO.getUserName(), updateDentistDTO.getEmail());
 
-    if (!existingDentist.getEmail().equals(updateDentistDTO.getEmail()) &&
-        userRepository.existsByEmail(updateDentistDTO.getEmail())) {
-      throw new BadRequestException("Email is already in use!");
-    }
-
-    existingDentist.setUserName(updateDentistDTO.getUserName());
-    existingDentist.setEmail(updateDentistDTO.getEmail());
-    existingDentist.setGender(updateDentistDTO.getGender());
-
-    if (updateDentistDTO.getPassword() != null && !updateDentistDTO.getPassword().isEmpty()) {
-      existingDentist.setPassword(passwordEncoder.encode(updateDentistDTO.getPassword()));
-    }
-
-    existingDentist.setFirstName(updateDentistDTO.getFirstName());
-    existingDentist.setSpecialization(updateDentistDTO.getSpecialization());
-    existingDentist.setLicenseNumber(updateDentistDTO.getLicenseNumber());
-
-    Dentist updatedDentist = dentistRepository.save(existingDentist);
-    DentistResponseDTO dentistResponseDTO = modelMapper.map(updatedDentist, DentistResponseDTO.class);
-    return getDentistResponseDTO(updatedDentist, dentistResponseDTO);
+    Dentist updatedDentist = updateDentistDetailsByAdmin(existingDentist, updateDentistDTO);
+    updatedDentist = dentistRepository.save(updatedDentist);
+    return mapToDentistResponseDTO(updatedDentist);
   }
 
   @Override
   public DentistResponseDTO getDentistById(Long id) {
-    Dentist dentist = dentistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
-    DentistResponseDTO dentistResponseDTO = modelMapper.map(dentist, DentistResponseDTO.class);
-    return getDentistResponseDTO(dentist, dentistResponseDTO);
+    Dentist dentist = findDentistById(id);
+    return mapToDentistResponseDTO(dentist);
   }
 
   @Override
   public void deleteDentist(Long id) {
-    Dentist dentist = dentistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id + " to delete."));
+    Dentist dentist = findDentistById(id);
     dentistRepository.delete(dentist);
   }
 
   @Override
   @Transactional
   public DentistResponseDTO editDentist(Long id, UpdateDentistRequest updateDentistDTO) {
-    Dentist existingDentist = dentistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+    Dentist existingDentist = findDentistById(id);
 
-    if (!existingDentist.getUserName().equals(updateDentistDTO.getUserName()) &&
-        userRepository.existsByUserName(updateDentistDTO.getUserName())) {
-      throw new BadRequestException("Username is already taken!");
-    }
+    validateUniqueUsernameAndEmailForUpdate(existingDentist, updateDentistDTO.getUserName(), updateDentistDTO.getEmail());
 
-    if (!existingDentist.getEmail().equals(updateDentistDTO.getEmail()) &&
-        userRepository.existsByEmail(updateDentistDTO.getEmail())) {
-      throw new BadRequestException("Email is already in use!");
-    }
-
-    existingDentist.setUserName(updateDentistDTO.getUserName());
-    existingDentist.setEmail(updateDentistDTO.getEmail());
-    existingDentist.setGender(updateDentistDTO.getGender());
-    existingDentist.setFirstName(updateDentistDTO.getFirstName());
-    existingDentist.setSpecialization(updateDentistDTO.getSpecialization());
-    existingDentist.setLicenseNumber(updateDentistDTO.getLicenseNumber());
-
+    updateDentistDetailsByDoctor(existingDentist, updateDentistDTO);
     Dentist updatedDentist = dentistRepository.save(existingDentist);
-    DentistResponseDTO dentistResponseDTO = modelMapper.map(updatedDentist, DentistResponseDTO.class);
-    return getDentistResponseDTO(updatedDentist, dentistResponseDTO);
+
+    return mapToDentistResponseDTO(updatedDentist);
   }
 
-  private static DentistResponseDTO getDentistResponseDTO(Dentist dentist, DentistResponseDTO dto) {
-    Set<String> roles = dentist.getRoles().stream()
-        .map(roleEntity -> roleEntity.getRoleName().name())
-        .collect(Collectors.toSet());
-    dto.setRoles(roles);
+  private Dentist findDentistById(Long id) {
+    return dentistRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+  }
+
+  private void validateUniqueUsernameAndEmail(String username, String email) {
+    if (userRepository.existsByUserName(username)) {
+      throw new BadRequestException("Username is already taken!");
+    }
+    if (userRepository.existsByEmail(email)) {
+      throw new BadRequestException("Email is already in use!");
+    }
+  }
+
+  private void validateUniqueUsernameAndEmailForUpdate(Dentist existingDentist, String newUsername, String newEmail) {
+    if (!existingDentist.getUserName().equals(newUsername) && userRepository.existsByUserName(newUsername)) {
+      throw new BadRequestException("Username is already taken!");
+    }
+    if (!existingDentist.getEmail().equals(newEmail) && userRepository.existsByEmail(newEmail)) {
+      throw new BadRequestException("Email is already in use!");
+    }
+  }
+
+  private Dentist updateDentistDetailsByAdmin(Dentist dentist, CreateDentistDTO dto) {
+    dentist.setUserName(dto.getUserName());
+    dentist.setEmail(dto.getEmail());
+    dentist.setGender(dto.getGender());
+    dentist.setFirstName(dto.getFirstName());
+    dentist.setSpecialization(dto.getSpecialization());
+    dentist.setLicenseNumber(dto.getLicenseNumber());
+    dentist.setPhoneNumber(dto.getPhoneNumber());
+    dentist.setNic(dto.getNic());
+    dentist.setPassword(passwordEncoder.encode(dto.getPassword()));
+    return dentist;
+  }
+
+  private void updateDentistDetailsByDoctor(Dentist dentist, UpdateDentistRequest dto) {
+    dentist.setUserName(dto.getUserName());
+    dentist.setEmail(dto.getEmail());
+    dentist.setGender(dto.getGender());
+    dentist.setFirstName(dto.getFirstName());
+    dentist.setSpecialization(dto.getSpecialization());
+    dentist.setLicenseNumber(dto.getLicenseNumber());
+  }
+
+  private Role getRole(AppRole roleName) {
+    return roleRepository.findByRoleName(roleName)
+        .orElseThrow(() -> new ResourceNotFoundException("Role " + roleName + " not found."));
+  }
+
+  private DentistResponseDTO mapToDentistResponseDTO(Dentist dentist) {
+    DentistResponseDTO dto = modelMapper.map(dentist, DentistResponseDTO.class);
+    dto.setRoles(dentist.getRoles().stream()
+        .map(role -> role.getRoleName().name())
+        .collect(Collectors.toSet()));
     return dto;
   }
 }

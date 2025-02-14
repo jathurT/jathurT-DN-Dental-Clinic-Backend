@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
+import java.util.Set;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -57,4 +55,17 @@ public class Dentist extends User {
   @OneToMany(mappedBy = "dentist", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @JsonBackReference
   private List<Schedule> schedules;
+
+  @Builder(builderMethodName = "dentistBuilder")
+  public Dentist(String userName, String email, String password, Set<Role> roles, String firstName, String nic, String phoneNumber,
+                 String gender, String specialization, String licenseNumber, List<Schedule> schedules) {
+    super(userName, email, password, roles);
+    this.firstName = firstName;
+    this.nic = nic;
+    this.phoneNumber = phoneNumber;
+    this.licenseNumber = licenseNumber;
+    this.gender = gender;
+    this.specialization = specialization;
+    this.schedules = schedules;
+  }
 }
