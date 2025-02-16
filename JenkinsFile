@@ -1,0 +1,126 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3.8.6'
+        jdk 'JDK 17'
+    }
+
+    environment {
+            AWS_CREDENTIALS = credentials('aws-credentials')
+            MAIL_CREDENTIALS = credentials('mail-credentials')
+            JWT_SECRET = credentials('jwt-secret')
+            DB_CREDENTIALS = credentials('db-credentials')
+            DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
+            DOCKER_IMAGE = "jathurt/myapp-backend"
+        }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './mvnw clean package -DskipTests'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh './mvnw test'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh './mvnw sonar:sonar'
+                }
+            }
+        }
+
+        stage('Prepare .env File') {
+            steps {
+                script {
+                    // Create .env file with all required environment variables
+                    sh '''
+                    cat > .env << EOL
+SPRING_APPLICATION_NAME=myapp
+SERVER_PORT=8081
+SPRING_JPA_HIBERNATE_DDL_AUTO=update
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental-clinic-db
+SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
+SPRING_DATASOURCE_PASSWORD=${DB_CREDENTIALS_PSW}
+SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+SPRING_JPA_SHOW_SQL=false
+APP_CORS_ALLOWED_ORIGINS=*
+APP_RESET_PASSWORD_LINK=http://myapp.com/reset-password
+SPRING_APP_JWTSECRET=${JWT_SECRET}
+SPRING_APP_JWTEXPIRATIONMS=86400000
+SPRING_APP_JWTCOOKIENAME=dn-dental-clinic
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=${MAIL_CREDENTIALS_USR}
+SPRING_MAIL_PASSWORD=${MAIL_CREDENTIALS_PSW}
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT=5000
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT=5000
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT=5000
+AWS_ACCESSKEYID=${AWS_CREDENTIALS_USR}
+AWS_SECRETKEY=${AWS_CREDENTIALS_PSW}
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=my-application-bucket
+EOL
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                sh 'echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin'
+                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                sh "docker push ${DOCKER_IMAGE}:latest"
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ec2-user@your-ec2-instance-ip '
+                            docker pull ${DOCKER_IMAGE}:latest
+                            docker-compose down
+                            docker-compose up -d
+                        '
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout'
+            sh 'rm -f .env'
+            cleanWs()
+        }
+    }
+}
