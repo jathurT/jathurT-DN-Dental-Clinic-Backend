@@ -25,7 +25,10 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests'
+                sh 'rm -rf ~/.m2/repository/org/hibernate'
+                retry(3) {
+                    sh './mvnw clean package -DskipTests --no-transfer-progress'
+                }
             }
         }
 
@@ -57,7 +60,7 @@ pipeline {
 SPRING_APPLICATION_NAME=myapp
 SERVER_PORT=8081
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
-SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental-clinic-db
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
 SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
 SPRING_DATASOURCE_PASSWORD=${DB_CREDENTIALS_PSW}
 SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
