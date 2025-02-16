@@ -123,6 +123,7 @@
     </dependencies>
 
     <build>
+        <finalName>dn-dental-clinic</finalName>
         <plugins>
             <!-- Maven Compiler Plugin -->
             <plugin>
