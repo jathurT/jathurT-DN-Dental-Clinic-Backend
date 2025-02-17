@@ -40,7 +40,7 @@ pipeline {
         DOCKER_IMAGE = "jathurt/myapp-backend"
         EC2_HOST = credentials('ec2-host')
         EC2_USER = 'ubuntu'  // Fixed for Ubuntu EC2 instances
-        DEPLOY_ENV = params.DEPLOY_ENV ?: 'staging'
+        DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
     }
 
     stages {
