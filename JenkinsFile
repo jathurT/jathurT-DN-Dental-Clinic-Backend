@@ -22,17 +22,17 @@ pipeline {
             }
         }
 
-     stage('Build') {
-         steps {
-             timeout(time: 20, unit: 'MINUTES') {
-                 sh 'chmod +x mvnw'
-                 sh 'rm -rf ~/.m2/repository/org/hibernate'
-                 retry(3) {
-                     sh './mvnw clean package -DskipTests --no-transfer-progress'
-                 }
-             }
-         }
-     }
+       stage('Build') {
+           steps {
+               timeout(time: 20, unit: 'MINUTES') {
+                   sh 'chmod +x mvnw'
+                   sh 'rm -rf ~/.m2/repository/org/hibernate'
+                   retry(3) {
+                       sh './mvnw clean package -DskipTests --no-transfer-progress'
+                   }
+               }
+           }
+       }
 
         stage('Test') {
             steps {
@@ -84,8 +84,8 @@ SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT=5000
 SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT=5000
 AWS_ACCESSKEYID=${AWS_CREDENTIALS_USR}
 AWS_SECRETKEY=${AWS_CREDENTIALS_PSW}
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=my-application-bucket
+AWS_REGION=eu-north-1
+AWS_S3_BUCKET=patient-logbook-photos
 EOL
                     '''
                 }
