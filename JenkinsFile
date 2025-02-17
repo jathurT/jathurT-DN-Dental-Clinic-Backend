@@ -1,19 +1,41 @@
+// Function to cancel previous builds to avoid resource contention
+@NonCPS
+def cancelPreviousBuilds() {
+    def jobName = env.JOB_NAME
+    def buildNumber = env.BUILD_NUMBER.toInteger()
+    def currentJob = Jenkins.instance.getItemByFullName(jobName)
+
+    for (def build : currentJob.builds) {
+        def exec = build.getExecutor()
+        if (build.isBuilding() && build.number.toInteger() != buildNumber && exec != null) {
+            exec.interrupt(
+                Result.ABORTED,
+                new CauseOfInterruption.UserInterruption("Aborted by #${currentBuild.number}")
+            )
+            println("Aborted previously running build #${build.number}")
+        }
+    }
+}
+
 pipeline {
+    // Using any available agent - consider specifying a label for more control
     agent any
 
+    // Tool versions are explicitly defined
     tools {
         maven 'Maven 3.8.6'
         jdk 'JDK 17'
     }
 
+    // Sensitive credentials are properly managed using Jenkins credentials
     environment {
-            AWS_CREDENTIALS = credentials('aws-credentials')
-            MAIL_CREDENTIALS = credentials('mail-credentials')
-            JWT_SECRET = credentials('jwt-secret')
-            DB_CREDENTIALS = credentials('db-credentials')
-            DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
-            DOCKER_IMAGE = "jathurt/myapp-backend"
-        }
+        AWS_CREDENTIALS = credentials('aws-credentials')
+        MAIL_CREDENTIALS = credentials('mail-credentials')
+        JWT_SECRET = credentials('jwt-secret')
+        DB_CREDENTIALS = credentials('db-credentials')
+        DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_IMAGE = "jathurt/myapp-backend"
+    }
 
     stages {
         stage('Checkout') {
@@ -22,22 +44,33 @@ pipeline {
             }
         }
 
-       stage('Build') {
-           steps {
-               timeout(time: 20, unit: 'MINUTES') {
-                   sh 'chmod +x mvnw'
-                   sh 'rm -rf ~/.m2/repository/org/hibernate'
-                   retry(3) {
-                       sh './mvnw clean package -DskipTests --no-transfer-progress'
-                   }
-               }
-           }
-       }
+        stage('Init') {
+            // Consider removing 'master' label for better agent flexibility
+            agent { label 'master' }
+            steps {
+                script {
+                    cancelPreviousBuilds()
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Good practice: timeout and retry mechanisms
+                timeout(time: 20, unit: 'MINUTES') {
+                    sh 'chmod +x mvnw'
+                    retry(3) {
+                        sh './mvnw clean package -DskipTests --no-transfer-progress'
+                    }
+                }
+            }
+        }
 
         stage('Test') {
             steps {
                 sh './mvnw test'
             }
+            // Good practice: Always publish test results
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
@@ -56,10 +89,10 @@ pipeline {
         stage('Prepare .env File') {
             steps {
                 script {
-                    // Create .env file with all required environment variables
+                    // Security consideration: .env file is created and later cleaned up
                     sh '''
                     cat > .env << EOL
-SPRING_APPLICATION_NAME=myapp
+SPRING_APPLICATION_NAME=backend
 SERVER_PORT=8081
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
@@ -94,6 +127,7 @@ EOL
 
         stage('Build Docker Image') {
             steps {
+                // Good practice: Versioning both with build number and latest
                 sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
                 sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
             }
@@ -101,6 +135,7 @@ EOL
 
         stage('Push to Docker Hub') {
             steps {
+                // Security: Proper Docker login/logout handling
                 sh 'echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin'
                 sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                 sh "docker push ${DOCKER_IMAGE}:latest"
@@ -110,6 +145,7 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 sshagent(['ec2-ssh-key']) {
+                    // Consider using environment variables for the EC2 instance IP
                     sh '''
                         ssh -o StrictHostKeyChecking=no ec2-user@your-ec2-instance-ip '
                             docker pull ${DOCKER_IMAGE}:latest
@@ -122,6 +158,7 @@ EOL
         }
     }
 
+    // Good practice: Cleanup in post actions
     post {
         always {
             sh 'docker logout'

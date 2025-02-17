@@ -25,7 +25,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Environment variables with defaults
-ENV SPRING_APPLICATION_NAME=myapp
+ENV SPRING_APPLICATION_NAME=backend
 ENV SERVER_PORT=8081
 ENV SPRING_JPA_HIBERNATE_DDL_AUTO=update
 ENV SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
