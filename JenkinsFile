@@ -22,15 +22,17 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                sh 'chmod +x mvnw'
-                sh 'rm -rf ~/.m2/repository/org/hibernate'
-                retry(3) {
-                    sh './mvnw clean package -DskipTests --no-transfer-progress'
-                }
-            }
-        }
+     stage('Build') {
+         steps {
+             timeout(time: 20, unit: 'MINUTES') {
+                 sh 'chmod +x mvnw'
+                 sh 'rm -rf ~/.m2/repository/org/hibernate'
+                 retry(3) {
+                     sh './mvnw clean package -DskipTests --no-transfer-progress'
+                 }
+             }
+         }
+     }
 
         stage('Test') {
             steps {
