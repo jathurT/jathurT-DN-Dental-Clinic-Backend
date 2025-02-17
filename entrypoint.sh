@@ -6,4 +6,4 @@ if [ -f .env ]; then
 fi
 
 # Start the application
-exec java -jar app.jar
+exec java -jar dn-dental-clinic.jar
