@@ -1,22 +1,3 @@
-// Function to cancel previous builds to avoid resource contention
-@NonCPS
-def cancelPreviousBuilds() {
-    def jobName = env.JOB_NAME
-    def buildNumber = env.BUILD_NUMBER.toInteger()
-    def currentJob = Jenkins.instance.getItemByFullName(jobName)
-
-    for (def build : currentJob.builds) {
-        def exec = build.getExecutor()
-        if (build.isBuilding() && build.number.toInteger() != buildNumber && exec != null) {
-            exec.interrupt(
-                Result.ABORTED,
-                new CauseOfInterruption.UserInterruption("Aborted by #${currentBuild.number}")
-            )
-            println("Aborted previously running build #${build.number}")
-        }
-    }
-}
-
 pipeline {
     agent any
 
@@ -52,9 +33,7 @@ pipeline {
 
         stage('Init') {
             steps {
-                script {
-                    cancelPreviousBuilds()
-                }
+                milestone(ordinal: 1)  // This will automatically cancel older builds
             }
         }
 
