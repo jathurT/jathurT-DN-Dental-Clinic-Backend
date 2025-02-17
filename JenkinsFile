@@ -39,12 +39,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                timeout(time: 20, unit: 'MINUTES') {
-                    sh 'chmod +x mvnw'
-                    retry(3) {
-                        sh './mvnw clean package -DskipTests --no-transfer-progress'
-                    }
-                }
+                sh 'chmod +x mvnw'
+                sh './mvnw clean package -DskipTests --no-transfer-progress'
             }
         }
 
