@@ -6,7 +6,6 @@ pipeline {
         jdk 'JDK 17'
     }
 
-    // Parameters that can be set during build
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Select deployment environment')
         string(name: 'EC2_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
@@ -20,8 +19,9 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
         DOCKER_IMAGE = "jathurt/myapp-backend"
         EC2_HOST = credentials('ec2-host')
-        EC2_USER = 'ubuntu'  // Fixed for Ubuntu EC2 instances
+        EC2_USER = 'ubuntu'
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
+        MAVEN_OPTS = "-Dmaven.repo.local=.m2/repository"
     }
 
     stages {
@@ -31,22 +31,38 @@ pipeline {
             }
         }
 
+        stage('Cache Setup') {
+            steps {
+                cache(path: '.m2/repository', key: "maven-${hashFiles('**/pom.xml')}", restoreKeys: ['maven-']) {
+                    echo "Maven cache restored"
+                }
+
+                cache(path: '.sonar/cache', key: "sonar-${hashFiles('**/pom.xml')}", restoreKeys: ['sonar-']) {
+                    echo "SonarQube cache restored"
+                }
+
+                cache(path: '/var/lib/docker', key: "docker-${hashFiles('Dockerfile')}", restoreKeys: ['docker-']) {
+                    echo "Docker layer cache restored"
+                }
+            }
+        }
+
         stage('Init') {
             steps {
-                milestone(ordinal: 1)  // This will automatically cancel older builds
+                milestone(ordinal: 1)
             }
         }
 
         stage('Build') {
             steps {
                 sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests --no-transfer-progress'
+                sh './mvnw clean package -DskipTests --no-transfer-progress -Dmaven.repo.local=.m2/repository'
             }
         }
 
         stage('Test') {
             steps {
-                sh './mvnw test'
+                sh './mvnw test -Dmaven.repo.local=.m2/repository'
             }
             post {
                 always {
@@ -58,7 +74,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh './mvnw sonar:sonar'
+                    sh './mvnw sonar:sonar -Dsonar.userHome=.sonar/cache'
                 }
             }
         }
@@ -103,7 +119,12 @@ EOL
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                sh """
+                    docker build \
+                        --cache-from ${DOCKER_IMAGE}:latest \
+                        --build-arg BUILDKIT_INLINE_CACHE=1 \
+                        -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                """
                 sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
             }
         }
@@ -119,7 +140,6 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 script {
-                    // Create deployment script
                     writeFile file: 'deploy.sh', text: '''
                         #!/bin/bash
                         set -e
@@ -154,10 +174,8 @@ EOL
                         fi
                     '''
 
-                    // Make script executable
                     sh 'chmod +x deploy.sh'
 
-                    // Deploy to EC2
                     sshagent(['ec2-ssh-key']) {
                         sh """
                             echo "Copying files to EC2..."
@@ -180,14 +198,17 @@ EOL
         always {
             sh 'docker logout'
             sh 'rm -f .env deploy.sh'
-            cleanWs()
+            cleanWs(patterns: [
+                [pattern: '.m2/repository/**', type: 'INCLUDE'],
+                [pattern: '.sonar/cache/**', type: 'INCLUDE'],
+                [pattern: '/var/lib/docker/**', type: 'INCLUDE']
+            ])
         }
         success {
             echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}"
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
-            // You can add notification steps here (email, Slack, etc.)
         }
     }
 }
