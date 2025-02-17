@@ -51,7 +51,6 @@ pipeline {
         }
 
         stage('Init') {
-            agent { label 'master' }
             steps {
                 script {
                     cancelPreviousBuilds()
