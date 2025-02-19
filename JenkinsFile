@@ -65,13 +65,13 @@ pipeline {
 //             }
 //         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh './mvnw sonar:sonar'
-                }
-            }
-        }
+//         stage('SonarQube Analysis') {
+//             steps {
+//                 withSonarQubeEnv('SonarQube') {
+//                     sh './mvnw sonar:sonar'
+//                 }
+//             }
+//         }
 
         stage('Prepare .env File') {
             steps {
