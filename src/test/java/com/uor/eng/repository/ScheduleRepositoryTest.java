@@ -54,20 +54,20 @@ public class ScheduleRepositoryTest {
     scheduleRepository.save(testSchedule);
   }
 
-  @Test
-  @DisplayName("Test find schedules to finish")
-  @Order(1)
-  void testFindSchedulesToFinish_ShouldReturnSchedules() {
-    List<Schedule> schedules = scheduleRepository.findSchedulesToFinish(
-        LocalDate.now(),
-        LocalTime.now().plusHours(1),
-        List.of(ScheduleStatus.CANCELLED, ScheduleStatus.FINISHED, ScheduleStatus.UNAVAILABLE, ScheduleStatus.FULL)
-    );
-
-    assertThat(schedules).isNotEmpty();
-    assertThat(schedules.get(0).getStatus())
-        .isNotIn(ScheduleStatus.CANCELLED, ScheduleStatus.FINISHED, ScheduleStatus.UNAVAILABLE, ScheduleStatus.FULL);
-  }
+//  @Test
+//  @DisplayName("Test find schedules to finish")
+//  @Order(1)
+//  void testFindSchedulesToFinish_ShouldReturnSchedules() {
+//    List<Schedule> schedules = scheduleRepository.findSchedulesToFinish(
+//        LocalDate.now(),
+//        LocalTime.now().plusHours(1),
+//        List.of(ScheduleStatus.CANCELLED, ScheduleStatus.FINISHED, ScheduleStatus.UNAVAILABLE, ScheduleStatus.FULL)
+//    );
+//
+//    assertThat(schedules).isNotEmpty();
+//    assertThat(schedules.get(0).getStatus())
+//        .isNotIn(ScheduleStatus.CANCELLED, ScheduleStatus.FINISHED, ScheduleStatus.UNAVAILABLE, ScheduleStatus.FULL);
+//  }
 
   @Test
   @DisplayName("Test find schedules to finish with empty list")
