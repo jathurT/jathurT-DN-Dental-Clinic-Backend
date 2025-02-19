@@ -6,7 +6,6 @@ pipeline {
         jdk 'JDK 17'
     }
 
-    // Parameters that can be set during build
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Select deployment environment')
         string(name: 'EC2_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
@@ -20,7 +19,7 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
         DOCKER_IMAGE = "jathurt/myapp-backend"
         EC2_HOST = credentials('ec2-host')
-        EC2_USER = 'ubuntu'  // Fixed for Ubuntu EC2 instances
+        EC2_USER = 'ubuntu'
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
     }
 
@@ -33,7 +32,7 @@ pipeline {
 
         stage('Init') {
             steps {
-                milestone(ordinal: 1)  // This will automatically cancel older builds
+                milestone(ordinal: 1)
             }
         }
 
@@ -103,8 +102,11 @@ EOL
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
-                sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+                script {
+                    // Build using the built JAR from Jenkins
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+                }
             }
         }
 
@@ -119,7 +121,6 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 script {
-                    // Create deployment script
                     writeFile file: 'deploy.sh', text: '''
                         #!/bin/bash
                         set -e
@@ -154,10 +155,8 @@ EOL
                         fi
                     '''
 
-                    // Make script executable
                     sh 'chmod +x deploy.sh'
 
-                    // Deploy to EC2
                     sshagent(['ec2-ssh-key']) {
                         sh """
                             echo "Copying files to EC2..."
@@ -187,7 +186,6 @@ EOL
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
-            // You can add notification steps here (email, Slack, etc.)
         }
     }
 }
