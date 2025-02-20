@@ -1,10 +1,11 @@
 package com.uor.eng.service;
+import com.uor.eng.model.Feedback;
 import com.uor.eng.payload.other.FeedbackDTO;
 
 import java.util.List;
 
 public interface IFeedbackService {
-  FeedbackDTO saveFeedback(FeedbackDTO FeedbackDTO);
+  FeedbackDTO saveFeedback(Feedback feedback);
 
   List<FeedbackDTO> getAllFeedback();
 

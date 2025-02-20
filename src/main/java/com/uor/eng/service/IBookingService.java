@@ -2,6 +2,7 @@ package com.uor.eng.service;
 
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
+import com.uor.eng.payload.dashboard.BookingCountResponse;
 
 import java.util.List;
 
@@ -19,4 +20,12 @@ public interface IBookingService {
   BookingResponseDTO updateBooking(String id, CreateBookingDTO bookingDTO);
 
   BookingResponseDTO updateBookingStatus(String id, String status);
+
+  BookingCountResponse getFinishedBookingsOfCurrentMonth();
+
+  BookingCountResponse getCancelledBookingsOfCurrentMonth();
+
+  BookingCountResponse getTotalBookingsOfCurrentMonth();
+
+  BookingCountResponse getPendingBookingsOfCurrentMonth();
 }

@@ -8,6 +8,7 @@ import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
+import com.uor.eng.payload.dashboard.BookingCountResponse;
 import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IBookingService;
@@ -19,7 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -159,4 +162,94 @@ public class BookingServiceImpl implements IBookingService {
     bookingResponseDTO.setScheduleStatus(schedule.getStatus());
     return bookingResponseDTO;
   }
+
+  @Override
+  public BookingCountResponse getFinishedBookingsOfCurrentMonth() {
+    LocalDate now = LocalDate.now();
+    String month = String.valueOf(now.getMonth());
+    int year = now.getYear();
+
+    Integer num = bookingRepository.findAll().stream()
+        .filter(booking -> {
+          LocalDate bookingDate = booking.getDate();
+          return Objects.equals(String.valueOf(bookingDate.getMonth()), month) &&
+              bookingDate.getYear() == year;
+        })
+        .filter(booking -> booking.getStatus() == BookingStatus.FINISHED)
+        .mapToInt(booking -> 1)
+        .sum();
+
+    return BookingCountResponse.builder()
+        .bookingCount(num)
+        .month(month)
+        .build();
+
+  }
+
+  @Override
+  public BookingCountResponse getCancelledBookingsOfCurrentMonth() {
+    LocalDate now = LocalDate.now();
+    String currentMonth = String.valueOf(now.getMonth());
+    int currentYear = now.getYear();
+
+    Integer num = bookingRepository.findAll().stream()
+        .filter(booking -> {
+          LocalDate bookingDate = booking.getDate();
+          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
+              bookingDate.getYear() == currentYear;
+        })
+        .filter(booking -> booking.getStatus() == BookingStatus.CANCELLED)
+        .mapToInt(booking -> 1)
+        .sum();
+
+    return BookingCountResponse.builder()
+        .bookingCount(num)
+        .month(currentMonth)
+        .build();
+  }
+
+  @Override
+  public BookingCountResponse getTotalBookingsOfCurrentMonth() {
+    LocalDate now = LocalDate.now();
+    String currentMonth = String.valueOf(now.getMonth());
+    int currentYear = now.getYear();
+
+    Integer num = bookingRepository.findAll().stream()
+        .filter(booking -> {
+          LocalDate bookingDate = booking.getDate();
+          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
+              bookingDate.getYear() == currentYear;
+        })
+        .mapToInt(booking -> 1)
+        .sum();
+
+    return BookingCountResponse.builder()
+        .bookingCount(num)
+        .month(currentMonth)
+        .build();
+  }
+
+  @Override
+  public BookingCountResponse getPendingBookingsOfCurrentMonth() {
+    LocalDate now = LocalDate.now();
+    String currentMonth = String.valueOf(now.getMonth());
+    int currentYear = now.getYear();
+
+    Integer num = bookingRepository.findAll().stream()
+        .filter(booking -> {
+          LocalDate bookingDate = booking.getDate();
+          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
+              bookingDate.getYear() == currentYear;
+        })
+        .filter(booking -> booking.getStatus() == BookingStatus.PENDING)
+        .mapToInt(booking -> 1)
+        .sum();
+
+    return BookingCountResponse.builder()
+        .bookingCount(num)
+        .month(currentMonth)
+        .build();
+  }
+
+
 }

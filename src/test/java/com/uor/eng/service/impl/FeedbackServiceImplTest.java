@@ -40,7 +40,7 @@ class FeedbackServiceImplTest {
   @BeforeEach
   void setUp() {
     feedback = new Feedback(1L, "John Doe", "john@example.com", 5, "Great service!");
-    feedbackDTO = new FeedbackDTO(1L, "John Doe", "john@example.com", 5, "Great service!");
+    feedbackDTO = new FeedbackDTO(1L, "John Doe", "john@example.com", 5, "Great service!", false);
   }
 
   @AfterEach
@@ -52,11 +52,10 @@ class FeedbackServiceImplTest {
   @DisplayName("Test save feedback - Success")
   @Order(1)
   void saveFeedback_ShouldSaveAndReturnFeedback() {
-    when(modelMapper.map(feedbackDTO, Feedback.class)).thenReturn(feedback);
     when(feedbackRepository.save(feedback)).thenReturn(feedback);
     when(modelMapper.map(feedback, FeedbackDTO.class)).thenReturn(feedbackDTO);
 
-    FeedbackDTO result = feedbackService.saveFeedback(feedbackDTO);
+    FeedbackDTO result = feedbackService.saveFeedback(feedback);
 
     assertNotNull(result);
     assertEquals(feedbackDTO.getId(), result.getId());

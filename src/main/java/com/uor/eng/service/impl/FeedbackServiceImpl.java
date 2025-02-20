@@ -23,12 +23,10 @@ public class FeedbackServiceImpl implements IFeedbackService {
   private ModelMapper modelMapper;
 
   @Override
-  public FeedbackDTO saveFeedback(FeedbackDTO feedbackDTO) {
-    if (feedbackDTO == null) {
+  public FeedbackDTO saveFeedback(Feedback feedback) {
+    if (feedback == null) {
       throw new BadRequestException("Feedback data cannot be null.");
     }
-
-    Feedback feedback = modelMapper.map(feedbackDTO, Feedback.class);
     Feedback savedFeedback = feedbackRepository.save(feedback);
     return modelMapper.map(savedFeedback, FeedbackDTO.class);
   }
