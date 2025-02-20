@@ -1,5 +1,6 @@
 package com.uor.eng.controller;
 
+import com.uor.eng.model.Feedback;
 import com.uor.eng.payload.other.FeedbackDTO;
 import com.uor.eng.service.IFeedbackService;
 import jakarta.validation.Valid;
@@ -17,8 +18,8 @@ public class FeedbackController {
   private IFeedbackService feedbackService;
 
   @PostMapping("/submit")
-  public ResponseEntity<FeedbackDTO> submitFeedback(@Valid @RequestBody FeedbackDTO feedbackDTO) {
-    FeedbackDTO savedFeedbackDTO = feedbackService.saveFeedback(feedbackDTO);
+  public ResponseEntity<FeedbackDTO> submitFeedback(@Valid @RequestBody Feedback feedback) {
+    FeedbackDTO savedFeedbackDTO = feedbackService.saveFeedback(feedback);
     return ResponseEntity.status(201).body(savedFeedbackDTO);
   }
 
