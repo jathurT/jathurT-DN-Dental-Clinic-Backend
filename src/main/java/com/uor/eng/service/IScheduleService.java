@@ -1,5 +1,7 @@
 package com.uor.eng.service;
 
+import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
@@ -24,4 +26,8 @@ public interface IScheduleService {
   void initialUpdaterScheduleOnStartup();
 
   ScheduleResponseDTO updateScheduleStatus(Long id, String status);
+
+  List<CancelledScheduleResponse> getCancelledSchedules();
+
+  List<UpcomingScheduleResponse> getUpcomingSchedules();
 }

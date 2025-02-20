@@ -1,5 +1,7 @@
 package com.uor.eng.controller;
 
+import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
@@ -64,6 +66,18 @@ public class ScheduleController {
   public ResponseEntity<ScheduleResponseDTO> updateScheduleStatus(@PathVariable Long id, @RequestParam String status) {
     ScheduleResponseDTO updatedSchedule = scheduleService.updateScheduleStatus(id, status);
     return new ResponseEntity<>(updatedSchedule, HttpStatus.OK);
+  }
+
+  @GetMapping("/cancelledSchedules")
+  public ResponseEntity<List<CancelledScheduleResponse>> getCancelledSchedules() {
+    List<CancelledScheduleResponse> cancelledSchedules = scheduleService.getCancelledSchedules();
+    return new ResponseEntity<>(cancelledSchedules, HttpStatus.OK);
+  }
+
+  @GetMapping("/upcomingSchedules")
+  public ResponseEntity<List<UpcomingScheduleResponse>> getUpcomingSchedules() {
+    List<UpcomingScheduleResponse> upcomingSchedules = scheduleService.getUpcomingSchedules();
+    return new ResponseEntity<>(upcomingSchedules, HttpStatus.OK);
   }
 
 }
