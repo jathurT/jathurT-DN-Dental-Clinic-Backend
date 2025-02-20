@@ -4,6 +4,8 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.*;
 import com.uor.eng.payload.booking.BookingResponseDTO;
+import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
@@ -15,6 +17,10 @@ import com.uor.eng.util.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -247,6 +253,43 @@ public class ScheduleServiceImpl implements IScheduleService {
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
     return responseDTO;
+  }
+
+  @Override
+  public List<CancelledScheduleResponse> getCancelledSchedules() {
+    Pageable topTen = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "date", "startTime"));
+    Page<Schedule> cancelledSchedules = scheduleRepository.findByStatus(ScheduleStatus.CANCELLED, topTen);
+
+    if (cancelledSchedules.isEmpty()) {
+      throw new ResourceNotFoundException("No cancelled schedules found.");
+    }
+
+    return cancelledSchedules.getContent().stream()
+        .map(schedule -> CancelledScheduleResponse.builder()
+            .startTime(String.valueOf(schedule.getStartTime()))
+            .endTime(String.valueOf(schedule.getEndTime()))
+            .date(String.valueOf(schedule.getDate()))
+            .build())
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<UpcomingScheduleResponse> getUpcomingSchedules() {
+    Pageable topTen = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "date", "startTime"));
+    Page<Schedule> upcomingSchedules = scheduleRepository.findByStatus(ScheduleStatus.AVAILABLE, topTen);
+
+    if (upcomingSchedules.isEmpty()) {
+      throw new ResourceNotFoundException("No upcoming schedules found.");
+    }
+
+    return upcomingSchedules.getContent().stream()
+        .map(schedule -> UpcomingScheduleResponse.builder()
+            .startTime(String.valueOf(schedule.getStartTime()))
+            .endTime(String.valueOf(schedule.getEndTime()))
+            .date(String.valueOf(schedule.getDate()))
+            .appointmentCount(schedule.getBookings().size())
+            .build())
+        .collect(Collectors.toList());
   }
 
   private void scheduleUpdateTriggerActions(Schedule schedule, ScheduleStatus updatedStatus, Integer capacity) {

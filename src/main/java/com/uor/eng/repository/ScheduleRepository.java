@@ -3,6 +3,8 @@ package com.uor.eng.repository;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,5 +24,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
   List<Schedule> findTop7ByDateGreaterThanAndStatusOrderByDateAsc(LocalDate today, ScheduleStatus scheduleStatus);
 
 
+  Page<Schedule> findByStatus(ScheduleStatus scheduleStatus, Pageable topTen);
 }
 
