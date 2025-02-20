@@ -134,7 +134,6 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 script {
-                    // Create deploy script with single quotes to prevent premature interpolation
                     writeFile file: 'deploy.sh', text: '''#!/bin/bash
         set -e
 
@@ -175,19 +174,34 @@ EOL
                     sh 'chmod +x deploy.sh'
 
                     sshagent(['ec2-ssh-key']) {
-                        // Use sh """ with explicit parameters to avoid string interpolation
+                        // First ensure docker permissions are set up correctly
+                        sh """
+                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
+                                # Add user to docker group if not already added
+                                if ! groups \$USER | grep -q docker; then
+                                    sudo usermod -aG docker \$USER
+                                    echo "Added user to docker group. A reconnection may be required."
+                                    # Create a new session to apply group changes
+                                    exec sg docker -c "echo Docker group applied"
+                                fi
+                            '
+                        """
+
+                        // Copy files and execute deployment
                         sh """
                             scp -o StrictHostKeyChecking=no .env \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
                             scp -o StrictHostKeyChecking=no deploy.sh \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
 
-                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST \
-                                "chmod +x deploy.sh && \
-                                ./deploy.sh '${DOCKER_IMAGE}' '${params.EC2_PORT}'"
+                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
+                                chmod +x deploy.sh && \
+                                sg docker -c "./deploy.sh \"${DOCKER_IMAGE}\" \"${params.EC2_PORT}\""
+                            '
                         """
                     }
                 }
             }
         }
+
     }
 
     post {
