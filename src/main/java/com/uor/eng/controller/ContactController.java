@@ -39,4 +39,10 @@ public class ContactController {
     contactService.deleteContact(id);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
+
+  @PutMapping("/sendReply/{id}")
+  public ResponseEntity<Void> sendReply(@PathVariable Long id, @RequestBody String reply) {
+    contactService.sendReply(id, reply);
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
 }

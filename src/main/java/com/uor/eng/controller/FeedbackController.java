@@ -39,4 +39,16 @@ public class FeedbackController {
     feedbackService.deleteFeedback(id);
     return ResponseEntity.noContent().build();
   }
+
+  @GetMapping("/show")
+  public ResponseEntity<List<FeedbackDTO>> showFeedback() {
+    List<FeedbackDTO> feedbacksDTO = feedbackService.getFeedbackShowOnWebsite();
+    return ResponseEntity.ok(feedbacksDTO);
+  }
+
+  @PutMapping("/show/{id}")
+  public ResponseEntity<FeedbackDTO> showFeedback(@PathVariable Long id) {
+    FeedbackDTO feedbackDTO = feedbackService.updateFeedbackShowOnWebsite(id);
+    return ResponseEntity.ok(feedbackDTO);
+  }
 }

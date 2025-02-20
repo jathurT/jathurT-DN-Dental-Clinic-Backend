@@ -6,6 +6,7 @@ import com.uor.eng.repository.ContactRepository;
 import com.uor.eng.service.IContactService;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.exceptions.BadRequestException;
+import com.uor.eng.util.EmailService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,9 @@ public class ContactServiceImpl implements IContactService {
 
   @Autowired
   private ModelMapper modelMapper;
+
+  @Autowired
+  private EmailService emailService;
 
   @Override
   @Transactional
@@ -60,5 +64,13 @@ public class ContactServiceImpl implements IContactService {
       throw new ResourceNotFoundException("Contact with ID " + id + " does not exist. Unable to delete.");
     }
     contactRepository.deleteById(id);
+  }
+
+  @Override
+  public void sendReply(Long id, String reply) {
+    Contact contact = contactRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Contact with ID " + id + " not found. Please check the ID and try again."));
+    ContactDTO contactDTO=modelMapper.map(contact, ContactDTO.class);
+    emailService.sendResponseForContactUs(contactDTO,reply);
   }
 }

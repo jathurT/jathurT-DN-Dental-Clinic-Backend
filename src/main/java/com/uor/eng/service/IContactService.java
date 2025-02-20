@@ -12,4 +12,6 @@ public interface IContactService {
   ContactDTO getContactById(Long id);
 
   void deleteContact(Long id);
+
+  void sendReply(Long id, String reply);
 }

@@ -36,4 +36,6 @@ public class Feedback {
 
   @Size(max = 500, message = "Comments should not exceed 500 characters")
   private String comments;
+
+  private Boolean showOnWebsite = false;
 }

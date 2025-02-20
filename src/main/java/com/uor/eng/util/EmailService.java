@@ -3,6 +3,7 @@ package com.uor.eng.util;
 import com.uor.eng.exceptions.EmailSendingException;
 import com.uor.eng.model.Booking;
 import com.uor.eng.payload.booking.BookingResponseDTO;
+import com.uor.eng.payload.other.ContactDTO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,10 @@ public class EmailService {
     sendEmail("templates/booking-activation.html", "Appointment Activation - Reference ID: " + bookingDetails.getReferenceId(), bookingDetails);
   }
 
+  public void sendResponseForContactUs(ContactDTO contactDTO, String reply) {
+    sendEmail("templates/contact-us-reply.html", "Contact Us Reply", contactDTO, reply);
+  }
+
   private void sendEmail(String templatePath, String subject, BookingResponseDTO bookingDetails) {
     try {
       String template = loadTemplate(templatePath);
@@ -60,6 +65,27 @@ public class EmailService {
     } catch (MessagingException | IOException e) {
       System.err.println("Failed to send email (" + subject + ") to " + bookingDetails.getEmail() + ": " + e.getMessage());
       throw new EmailSendingException("Failed to send email to " + bookingDetails.getEmail());
+    }
+  }
+
+  private void sendEmail(String templatePath, String subject, ContactDTO contactDTO, String reply) {
+    try {
+      String template = loadTemplate(templatePath);
+      String htmlContent = populateTemplate(template, contactDTO, reply);
+
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+      helper.setFrom(fromEmail);
+      helper.setTo(contactDTO.getEmail());
+      helper.setSubject(subject);
+      helper.setText(htmlContent, true);
+
+      mailSender.send(message);
+      System.out.println("Email sent successfully to " + contactDTO.getEmail() + " with subject: " + subject);
+    } catch (MessagingException | IOException e) {
+      System.err.println("Failed to send email (" + subject + ") to " + contactDTO.getEmail() + ": " + e.getMessage());
+      throw new EmailSendingException("Failed to send email to " + contactDTO.getEmail());
     }
   }
 
@@ -96,4 +122,18 @@ public class EmailService {
     return template;
   }
 
+  private String populateTemplate(String template, ContactDTO contactDTO, String reply) {
+    Map<String, String> placeholders = new HashMap<>();
+    placeholders.put("{{name}}", contactDTO.getName() != null ? contactDTO.getName() : "Guest");
+    placeholders.put("{{email}}", contactDTO.getEmail() != null ? contactDTO.getEmail() : "N/A");
+    placeholders.put("{{message}}", contactDTO.getMessage() != null ? contactDTO.getMessage() : "N/A");
+    placeholders.put("{{currentYear}}", String.valueOf(LocalDate.now().getYear()));
+    placeholders.put("{{reply}}", reply);
+
+    for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+      template = template.replace(entry.getKey(), entry.getValue());
+    }
+
+    return template;
+  }
 }
