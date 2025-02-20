@@ -6,10 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class BookingCountResponse {
-  private Integer bookingCount;
+@AllArgsConstructor
+@Builder
+public class MonthlyBookingStatsResponse {
   private String month;
+  private int totalBookings;
+  private int finishedBookings;
+  private int cancelledBookings;
+  private int pendingBookings;
 }
