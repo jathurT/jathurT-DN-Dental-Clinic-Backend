@@ -2,7 +2,7 @@ package com.uor.eng.controller;
 
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
-import com.uor.eng.payload.dashboard.BookingCountResponse;
+import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
 import com.uor.eng.service.IBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -62,27 +62,9 @@ public class BookingController {
     return new ResponseEntity<>(updatedBooking, HttpStatus.OK);
   }
 
-  @GetMapping("/currentMonth/finished")
-  public ResponseEntity<BookingCountResponse> getFinishedBookingsOfCurrentMonth() {
-    BookingCountResponse finishedBookings = bookingService.getFinishedBookingsOfCurrentMonth();
-    return new ResponseEntity<>(finishedBookings, HttpStatus.OK);
-  }
-
-  @GetMapping("/currentMonth/cancelled")
-  public ResponseEntity<BookingCountResponse> getCancelledBookingsOfCurrentMonth() {
-    BookingCountResponse cancelledBookings = bookingService.getCancelledBookingsOfCurrentMonth();
-    return new ResponseEntity<>(cancelledBookings, HttpStatus.OK);
-  }
-
-  @GetMapping("/currentMonth/total")
-  public ResponseEntity<BookingCountResponse> getTotalBookingsOfCurrentMonth() {
-    BookingCountResponse totalBookings = bookingService.getTotalBookingsOfCurrentMonth();
-    return new ResponseEntity<>(totalBookings, HttpStatus.OK);
-  }
-
-  @GetMapping("/currentMonth/pending")
-  public ResponseEntity<BookingCountResponse> getPendingBookingsOfCurrentMonth() {
-    BookingCountResponse pendingBookings = bookingService.getPendingBookingsOfCurrentMonth();
-    return new ResponseEntity<>(pendingBookings, HttpStatus.OK);
+  @GetMapping("/currentMonth/stats")
+  public ResponseEntity<MonthlyBookingStatsResponse> getCurrentMonthBookingStats() {
+    MonthlyBookingStatsResponse stats = bookingService.getCurrentMonthBookingStats();
+    return new ResponseEntity<>(stats, HttpStatus.OK);
   }
 }

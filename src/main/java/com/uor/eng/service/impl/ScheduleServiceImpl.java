@@ -5,6 +5,7 @@ import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.*;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.ScheduleHistoryResponse;
 import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -289,6 +291,29 @@ public class ScheduleServiceImpl implements IScheduleService {
             .date(String.valueOf(schedule.getDate()))
             .appointmentCount(schedule.getBookings().size())
             .build())
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ScheduleHistoryResponse> getScheduleHistory() {
+    Pageable top = PageRequest.of(0, 90, Sort.by(Sort.Direction.DESC, "date", "startTime"));
+    Page<Schedule> scheduleHistory = scheduleRepository.findByStatusNot(ScheduleStatus.AVAILABLE, top);
+
+    if (scheduleHistory.isEmpty()) {
+      throw new ResourceNotFoundException("No schedule history found.");
+    }
+
+    return scheduleHistory.stream()
+        .collect(Collectors.groupingBy(
+            Schedule::getDate,
+            Collectors.summingInt(schedule -> schedule.getBookings().size())
+        ))
+        .entrySet().stream()
+        .map(entry -> new ScheduleHistoryResponse(
+            entry.getKey().toString(),
+            entry.getValue()
+        ))
+        .sorted(Comparator.comparing(ScheduleHistoryResponse::getDate).reversed())
         .collect(Collectors.toList());
   }
 

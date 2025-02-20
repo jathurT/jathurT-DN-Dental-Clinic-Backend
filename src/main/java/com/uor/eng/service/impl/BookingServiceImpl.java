@@ -8,7 +8,7 @@ import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
-import com.uor.eng.payload.dashboard.BookingCountResponse;
+import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
 import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IBookingService;
@@ -145,6 +145,40 @@ public class BookingServiceImpl implements IBookingService {
     return mapToResponse(updatedBooking);
   }
 
+  @Override
+  public MonthlyBookingStatsResponse getCurrentMonthBookingStats() {
+    LocalDate now = LocalDate.now();
+    String currentMonth = String.valueOf(now.getMonth());
+    int currentYear = now.getYear();
+
+    List<Booking> currentMonthBookings = bookingRepository.findAll().stream()
+        .filter(booking -> {
+          LocalDate bookingDate = booking.getDate();
+          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
+              bookingDate.getYear() == currentYear;
+        })
+        .toList();
+
+    int total = currentMonthBookings.size();
+    int finished = (int) currentMonthBookings.stream()
+        .filter(booking -> booking.getStatus() == BookingStatus.FINISHED)
+        .count();
+    int cancelled = (int) currentMonthBookings.stream()
+        .filter(booking -> booking.getStatus() == BookingStatus.CANCELLED)
+        .count();
+    int pending = (int) currentMonthBookings.stream()
+        .filter(booking -> booking.getStatus() == BookingStatus.PENDING)
+        .count();
+
+    return MonthlyBookingStatsResponse.builder()
+        .month(currentMonth)
+        .totalBookings(total)
+        .finishedBookings(finished)
+        .cancelledBookings(cancelled)
+        .pendingBookings(pending)
+        .build();
+  }
+
   private Schedule getSchedule(Long scheduleId) {
     return scheduleRepository.findById(scheduleId)
         .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
@@ -161,94 +195,6 @@ public class BookingServiceImpl implements IBookingService {
     bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
     bookingResponseDTO.setScheduleStatus(schedule.getStatus());
     return bookingResponseDTO;
-  }
-
-  @Override
-  public BookingCountResponse getFinishedBookingsOfCurrentMonth() {
-    LocalDate now = LocalDate.now();
-    String month = String.valueOf(now.getMonth());
-    int year = now.getYear();
-
-    Integer num = bookingRepository.findAll().stream()
-        .filter(booking -> {
-          LocalDate bookingDate = booking.getDate();
-          return Objects.equals(String.valueOf(bookingDate.getMonth()), month) &&
-              bookingDate.getYear() == year;
-        })
-        .filter(booking -> booking.getStatus() == BookingStatus.FINISHED)
-        .mapToInt(booking -> 1)
-        .sum();
-
-    return BookingCountResponse.builder()
-        .bookingCount(num)
-        .month(month)
-        .build();
-
-  }
-
-  @Override
-  public BookingCountResponse getCancelledBookingsOfCurrentMonth() {
-    LocalDate now = LocalDate.now();
-    String currentMonth = String.valueOf(now.getMonth());
-    int currentYear = now.getYear();
-
-    Integer num = bookingRepository.findAll().stream()
-        .filter(booking -> {
-          LocalDate bookingDate = booking.getDate();
-          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
-              bookingDate.getYear() == currentYear;
-        })
-        .filter(booking -> booking.getStatus() == BookingStatus.CANCELLED)
-        .mapToInt(booking -> 1)
-        .sum();
-
-    return BookingCountResponse.builder()
-        .bookingCount(num)
-        .month(currentMonth)
-        .build();
-  }
-
-  @Override
-  public BookingCountResponse getTotalBookingsOfCurrentMonth() {
-    LocalDate now = LocalDate.now();
-    String currentMonth = String.valueOf(now.getMonth());
-    int currentYear = now.getYear();
-
-    Integer num = bookingRepository.findAll().stream()
-        .filter(booking -> {
-          LocalDate bookingDate = booking.getDate();
-          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
-              bookingDate.getYear() == currentYear;
-        })
-        .mapToInt(booking -> 1)
-        .sum();
-
-    return BookingCountResponse.builder()
-        .bookingCount(num)
-        .month(currentMonth)
-        .build();
-  }
-
-  @Override
-  public BookingCountResponse getPendingBookingsOfCurrentMonth() {
-    LocalDate now = LocalDate.now();
-    String currentMonth = String.valueOf(now.getMonth());
-    int currentYear = now.getYear();
-
-    Integer num = bookingRepository.findAll().stream()
-        .filter(booking -> {
-          LocalDate bookingDate = booking.getDate();
-          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
-              bookingDate.getYear() == currentYear;
-        })
-        .filter(booking -> booking.getStatus() == BookingStatus.PENDING)
-        .mapToInt(booking -> 1)
-        .sum();
-
-    return BookingCountResponse.builder()
-        .bookingCount(num)
-        .month(currentMonth)
-        .build();
   }
 
 

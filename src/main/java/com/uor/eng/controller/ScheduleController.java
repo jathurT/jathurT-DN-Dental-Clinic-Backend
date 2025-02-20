@@ -1,6 +1,7 @@
 package com.uor.eng.controller;
 
 import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.ScheduleHistoryResponse;
 import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
@@ -79,5 +80,12 @@ public class ScheduleController {
     List<UpcomingScheduleResponse> upcomingSchedules = scheduleService.getUpcomingSchedules();
     return new ResponseEntity<>(upcomingSchedules, HttpStatus.OK);
   }
+
+  @GetMapping("/scheduleHistory")
+  public ResponseEntity<List<ScheduleHistoryResponse>> getScheduleHistory() {
+    List<ScheduleHistoryResponse> scheduleHistory = scheduleService.getScheduleHistory();
+    return new ResponseEntity<>(scheduleHistory, HttpStatus.OK);
+  }
+
 
 }

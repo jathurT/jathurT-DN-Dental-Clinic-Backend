@@ -1,6 +1,7 @@
 package com.uor.eng.service;
 
 import com.uor.eng.payload.dashboard.CancelledScheduleResponse;
+import com.uor.eng.payload.dashboard.ScheduleHistoryResponse;
 import com.uor.eng.payload.dashboard.UpcomingScheduleResponse;
 import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
@@ -30,4 +31,6 @@ public interface IScheduleService {
   List<CancelledScheduleResponse> getCancelledSchedules();
 
   List<UpcomingScheduleResponse> getUpcomingSchedules();
+
+  List<ScheduleHistoryResponse> getScheduleHistory();
 }
