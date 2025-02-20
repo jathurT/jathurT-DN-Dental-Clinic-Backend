@@ -43,37 +43,37 @@ pipeline {
             }
         }
 
-        // Uncomment the test stage if needed
-        // stage('Test') {
-        //     steps {
-        //         // Set up test environment variables
-        //         withEnv([
-        //             'SPRING_PROFILES_ACTIVE=test',
-        //             'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
-        //             'SPRING_DATASOURCE_USERNAME=sa',
-        //             'SPRING_DATASOURCE_PASSWORD=',
-        //             'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
-        //         ]) {
-        //             sh './mvnw test'
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             // Capture detailed test reports
-        //             sh 'find target/surefire-reports -name "*.txt" -exec cat {} \\;'
-        //             junit '**/target/surefire-reports/*.xml'
-        //         }
-        //     }
-        // }
+//         Uncomment the test stage if needed
+        stage('Test') {
+            steps {
+                // Set up test environment variables
+                withEnv([
+                    'SPRING_PROFILES_ACTIVE=test',
+                    'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
+                    'SPRING_DATASOURCE_USERNAME=sa',
+                    'SPRING_DATASOURCE_PASSWORD=',
+                    'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
+                ]) {
+                    sh './mvnw test'
+                }
+            }
+            post {
+                always {
+                    // Capture detailed test reports
+                    sh 'find target/surefire-reports -name "*.txt" -exec cat {} \\;'
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
 
-        // Uncomment the SonarQube analysis stage if needed
-        // stage('SonarQube Analysis') {
-        //     steps {
-        //         withSonarQubeEnv('SonarQube') {
-        //             sh './mvnw sonar:sonar'
-        //         }
-        //     }
-        // }
+//         Uncomment the SonarQube analysis stage if needed
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh './mvnw sonar:sonar'
+                }
+            }
+        }
 
         stage('Prepare .env File') {
             steps {
