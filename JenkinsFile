@@ -132,59 +132,60 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 script {
-                    writeFile file: 'deploy.sh', text: '''
-                        #!/bin/bash
-                        set -e
+                    // Create deploy script with single quotes to prevent premature interpolation
+                    writeFile file: 'deploy.sh', text: '''#!/bin/bash
+        set -e
 
-                        echo "Pulling latest Docker image..."
-                        docker pull ${DOCKER_IMAGE}:latest
+        # Get parameters from environment
+        DOCKER_IMAGE="$1"
+        EC2_PORT="$2"
 
-                        echo "Checking for existing container..."
-                        if docker ps -a | grep -q myapp-backend; then
-                            echo "Stopping and removing existing container..."
-                            docker stop myapp-backend
-                            docker rm myapp-backend
-                        fi
+        echo "Pulling latest Docker image..."
+        docker pull "${DOCKER_IMAGE}:latest"
 
-                        echo "Starting new container..."
-                        docker run -d \
-                            --name myapp-backend \
-                            --restart unless-stopped \
-                            -p ${EC2_PORT}:8081 \
-                            --env-file .env \
-                            ${DOCKER_IMAGE}:latest
+        echo "Checking for existing container..."
+        if docker ps -a | grep -q myapp-backend; then
+            echo "Stopping and removing existing container..."
+            docker stop myapp-backend || true
+            docker rm myapp-backend || true
+        fi
 
-                        echo "Waiting for container health check..."
-                        sleep 10
+        echo "Starting new container..."
+        docker run -d \
+            --name myapp-backend \
+            --restart unless-stopped \
+            -p "${EC2_PORT}:8081" \
+            --env-file .env \
+            "${DOCKER_IMAGE}:latest"
 
-                        echo "Checking container status..."
-                        if [ "$(docker ps -q -f name=myapp-backend)" ]; then
-                            echo "Container is running successfully"
-                        else
-                            echo "Container failed to start"
-                            exit 1
-                        fi
-                    '''
+        echo "Waiting for container health check..."
+        sleep 10
+
+        echo "Checking container status..."
+        if [ "$(docker ps -q -f name=myapp-backend)" ]; then
+            echo "Container is running successfully"
+        else
+            echo "Container failed to start"
+            exit 1
+        fi
+        '''
 
                     sh 'chmod +x deploy.sh'
 
                     sshagent(['ec2-ssh-key']) {
+                        // Use sh """ with explicit parameters to avoid string interpolation
                         sh """
-                            echo "Copying files to EC2..."
-                            scp -o StrictHostKeyChecking=no .env ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/
-                            scp -o StrictHostKeyChecking=no deploy.sh ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/
+                            scp -o StrictHostKeyChecking=no .env \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
+                            scp -o StrictHostKeyChecking=no deploy.sh \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
 
-                            echo "Executing deployment script..."
-                            ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                                chmod +x deploy.sh
-                                ./deploy.sh
-                            '
+                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST \
+                                "chmod +x deploy.sh && \
+                                ./deploy.sh '${DOCKER_IMAGE}' '${params.EC2_PORT}'"
                         """
                     }
                 }
             }
         }
-    }
 
     post {
         always {
