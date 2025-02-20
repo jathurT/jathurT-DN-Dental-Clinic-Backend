@@ -11,4 +11,8 @@ public interface IFeedbackService {
   FeedbackDTO getFeedbackById(Long id);
 
   void deleteFeedback(Long id);
+
+  List<FeedbackDTO> getFeedbackShowOnWebsite();
+
+  FeedbackDTO updateFeedbackShowOnWebsite(Long id);
 }

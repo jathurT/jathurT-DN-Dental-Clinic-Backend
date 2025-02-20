@@ -58,4 +58,24 @@ public class FeedbackServiceImpl implements IFeedbackService {
     }
     feedbackRepository.deleteById(id);
   }
+
+  @Override
+  public List<FeedbackDTO> getFeedbackShowOnWebsite() {
+    List<Feedback> feedbacks = feedbackRepository.findByShowOnWebsite(true);
+    if (feedbacks.isEmpty()) {
+      throw new ResourceNotFoundException("No feedback entries found to show on display.");
+    }
+    return feedbacks.stream()
+            .map(feedback -> modelMapper.map(feedback, FeedbackDTO.class))
+            .collect(Collectors.toList());
+  }
+
+  @Override
+  public FeedbackDTO updateFeedbackShowOnWebsite(Long id) {
+    Feedback feedback = feedbackRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Feedback with ID " + id + " not found. Please check the ID and try again."));
+    feedback.setShowOnWebsite(true);
+    Feedback updatedFeedback = feedbackRepository.save(feedback);
+    return modelMapper.map(updatedFeedback, FeedbackDTO.class);
+  }
 }

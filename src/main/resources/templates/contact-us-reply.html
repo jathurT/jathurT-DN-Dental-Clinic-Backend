@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Contact Response</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            color: #333333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: auto;
+        }
+        .header {
+            background-color: #007E85;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-table th, .details-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #dddddd;
+        }
+        .details-table th {
+            background-color: #f2f2f2;
+            width: 40%;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+            margin-top: 20px;
+        }
+        a {
+            color: #007E85;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Contact Response</h1>
+    </div>
+    <div class="content">
+        <p>Dear {{name}},</p>
+        <p>Thank you for reaching out to us. We have received the following information from your message:</p>
+        <table class="details-table">
+            <tr>
+                <th>Name:</th>
+                <td>{{name}}</td>
+            </tr>
+            <tr>
+                <th>Email:</th>
+                <td>{{email}}</td>
+            </tr>
+            <tr>
+                <th>Message:</th>
+                <td>{{message}}</td>
+            </tr>
+        </table>
+        <p>We have reviewed your inquiry. Below is our reply:</p>
+        <p>{{reply}}</p>
+    </div>
+    <div class="footer">
+        <p>&copy; {{currentYear}} Your Company. All rights reserved.</p>
+        <p>Your Company Address | Phone: (123) 456-7890 | <a href="mailto:support@yourcompany.com">support@yourcompany.com</a></p>
+    </div>
+</div>
+</body>
+</html>
