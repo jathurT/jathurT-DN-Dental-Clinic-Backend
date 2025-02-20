@@ -38,4 +38,19 @@ public class Feedback {
   private String comments;
 
   private Boolean showOnWebsite = false;
+
+  public Feedback(String name, String email, Integer rating, String comments) {
+    this.name = name;
+    this.email = email;
+    this.rating = rating;
+    this.comments = comments;
+  }
+
+  public Feedback(Long id,String name, String email, Integer rating, String comments) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+    this.rating = rating;
+    this.comments = comments;
+  }
 }
