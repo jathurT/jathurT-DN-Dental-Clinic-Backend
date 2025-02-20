@@ -13,4 +13,5 @@ public class FeedbackDTO {
     private String email;
     private Integer rating;
     private String comments;
+    private Boolean showOnWebsite;
 }
