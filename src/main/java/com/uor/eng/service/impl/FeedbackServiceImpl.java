@@ -74,7 +74,7 @@ public class FeedbackServiceImpl implements IFeedbackService {
   public FeedbackDTO updateFeedbackShowOnWebsite(Long id) {
     Feedback feedback = feedbackRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Feedback with ID " + id + " not found. Please check the ID and try again."));
-    feedback.setShowOnWebsite(true);
+    feedback.setShowOnWebsite(!feedback.getShowOnWebsite());
     Feedback updatedFeedback = feedbackRepository.save(feedback);
     return modelMapper.map(updatedFeedback, FeedbackDTO.class);
   }
