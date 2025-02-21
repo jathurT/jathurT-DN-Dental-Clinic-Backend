@@ -1,11 +1,15 @@
 package com.uor.eng.payload.patient;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreatePatientRequest {
 
   @NotBlank(message = "Name is required")
