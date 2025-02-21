@@ -26,6 +26,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
   Page<Schedule> findByStatus(ScheduleStatus scheduleStatus, Pageable topTen);
 
-  Page<Schedule> findByStatusNot(ScheduleStatus scheduleStatus, Pageable topTen);
+  List<Schedule> findByDateBetweenAndStatusNot(LocalDate startDate, LocalDate today, ScheduleStatus scheduleStatus);
 }
 

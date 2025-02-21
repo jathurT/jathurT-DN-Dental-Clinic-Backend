@@ -28,9 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -296,25 +296,26 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   @Override
   public List<ScheduleHistoryResponse> getScheduleHistory() {
-    Pageable top = PageRequest.of(0, 90, Sort.by(Sort.Direction.DESC, "date", "startTime"));
-    Page<Schedule> scheduleHistory = scheduleRepository.findByStatusNot(ScheduleStatus.AVAILABLE, top);
+    LocalDate today = LocalDate.now();
+    LocalDate startDate = today.minusDays(89);
 
-    if (scheduleHistory.isEmpty()) {
-      throw new ResourceNotFoundException("No schedule history found.");
-    }
+    List<Schedule> scheduleHistory = scheduleRepository.findByDateBetweenAndStatusNot(
+        startDate, today, ScheduleStatus.AVAILABLE);
 
-    return scheduleHistory.stream()
+    Map<LocalDate, Integer> bookingCountByDate = scheduleHistory.stream()
         .collect(Collectors.groupingBy(
             Schedule::getDate,
             Collectors.summingInt(schedule -> schedule.getBookings().size())
-        ))
-        .entrySet().stream()
-        .map(entry -> new ScheduleHistoryResponse(
-            entry.getKey().toString(),
-            entry.getValue()
-        ))
-        .sorted(Comparator.comparing(ScheduleHistoryResponse::getDate).reversed())
-        .collect(Collectors.toList());
+        ));
+
+    List<ScheduleHistoryResponse> result = new ArrayList<>();
+    for (int i = 0; i < 90; i++) {
+      LocalDate date = today.minusDays(i);
+      int bookingCount = bookingCountByDate.getOrDefault(date, 0);
+      result.add(new ScheduleHistoryResponse(date.toString(), bookingCount));
+    }
+
+    return result;
   }
 
   private void scheduleUpdateTriggerActions(Schedule schedule, ScheduleStatus updatedStatus, Integer capacity) {
