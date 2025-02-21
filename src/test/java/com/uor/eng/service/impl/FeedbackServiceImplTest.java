@@ -39,7 +39,7 @@ class FeedbackServiceImplTest {
 
   @BeforeEach
   void setUp() {
-    feedback = new Feedback(1L, "John Doe", "john@example.com", 5, "Great service!");
+    feedback = new Feedback(1L, "John Doe", "john@example.com", 5, "Great service!", false);
     feedbackDTO = new FeedbackDTO(1L, "John Doe", "john@example.com", 5, "Great service!", false);
   }
 
@@ -141,4 +141,64 @@ class FeedbackServiceImplTest {
     assertThrows(ResourceNotFoundException.class, () -> feedbackService.deleteFeedback(1L));
     verify(feedbackRepository, never()).deleteById(anyLong());
   }
+
+  @Test
+  @DisplayName("Test get feedback to show on website - Success")
+  @Order(9)
+  void getFeedbackShowOnWebsite_ShouldReturnFeedbackList_WhenFeedbackExists() {
+    List<Feedback> feedbackList = Arrays.asList(feedback);
+    when(feedbackRepository.findByShowOnWebsite(true)).thenReturn(feedbackList);
+    when(modelMapper.map(feedback, FeedbackDTO.class)).thenReturn(feedbackDTO);
+
+    List<FeedbackDTO> result = feedbackService.getFeedbackShowOnWebsite();
+
+    assertNotNull(result);
+    assertEquals(1, result.size());
+    verify(feedbackRepository, times(1)).findByShowOnWebsite(true);
+  }
+
+  @Test
+  @DisplayName("Test get feedback to show on website - Failure")
+  @Order(10)
+  void getFeedbackShowOnWebsite_ShouldThrowResourceNotFoundException_WhenNoFeedbackExists() {
+    when(feedbackRepository.findByShowOnWebsite(true)).thenReturn(Arrays.asList());
+
+    assertThrows(ResourceNotFoundException.class, () -> feedbackService.getFeedbackShowOnWebsite());
+    verify(feedbackRepository, times(1)).findByShowOnWebsite(true);
+  }
+
+  @Test
+  @DisplayName("Test update feedback show on website - Success")
+  @Order(11)
+  void updateFeedbackShowOnWebsite_ShouldToggleShowOnWebsite_WhenFeedbackExists() {
+    when(feedbackRepository.findById(1L)).thenReturn(Optional.of(feedback));
+    when(feedbackRepository.save(any(Feedback.class))).thenAnswer(invocation ->
+        invocation.<Feedback>getArgument(0));
+    when(modelMapper.map(any(Feedback.class), eq(FeedbackDTO.class))).thenAnswer(invocation -> {
+      Feedback mappedFeedback = invocation.getArgument(0);
+      return new FeedbackDTO(mappedFeedback.getId(), mappedFeedback.getName(),
+          mappedFeedback.getEmail(), mappedFeedback.getRating(),
+          mappedFeedback.getComments(), mappedFeedback.getShowOnWebsite());
+    });
+
+    FeedbackDTO result = feedbackService.updateFeedbackShowOnWebsite(1L);
+
+    assertNotNull(result);
+    assertTrue(result.getShowOnWebsite());
+    verify(feedbackRepository).findById(1L);
+    verify(feedbackRepository).save(any(Feedback.class));
+  }
+
+
+  @Test
+  @DisplayName("Test update feedback show on website - Failure")
+  @Order(12)
+  void updateFeedbackShowOnWebsite_ShouldThrowResourceNotFoundException_WhenFeedbackNotFound() {
+    when(feedbackRepository.findById(1L)).thenReturn(Optional.empty());
+
+    assertThrows(ResourceNotFoundException.class, () -> feedbackService.updateFeedbackShowOnWebsite(1L));
+    verify(feedbackRepository, times(1)).findById(1L);
+    verify(feedbackRepository, never()).save(any());
+  }
+
 }

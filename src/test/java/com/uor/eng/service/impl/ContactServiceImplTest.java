@@ -5,6 +5,7 @@ import com.uor.eng.payload.other.ContactDTO;
 import com.uor.eng.repository.ContactRepository;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.exceptions.BadRequestException;
+import com.uor.eng.util.EmailService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +34,9 @@ class ContactServiceImplTest {
 
   @Mock
   private ModelMapper modelMapper;
+
+  @Mock
+  private EmailService emailService;
 
   private Contact contact;
   private ContactDTO contactDTO;
@@ -141,4 +145,37 @@ class ContactServiceImplTest {
     assertThrows(ResourceNotFoundException.class, () -> contactService.deleteContact(1L));
     verify(contactRepository, times(1)).existsById(1L);
   }
+
+  @Test
+  @DisplayName("Test send reply - Success")
+  @Order(9)
+  void sendReply_shouldSendEmailSuccessfully() {
+    Long contactId = 1L;
+    String replyMessage = "Thank you for reaching out!";
+    when(contactRepository.findById(contactId)).thenReturn(Optional.of(contact));
+    when(modelMapper.map(contact, ContactDTO.class)).thenReturn(contactDTO);
+
+    contactService.sendReply(contactId, replyMessage);
+
+    verify(contactRepository, times(1)).findById(contactId);
+    verify(modelMapper, times(1)).map(contact, ContactDTO.class);
+    verify(emailService, times(1)).sendResponseForContactUs(contactDTO, replyMessage);
+  }
+
+  @Test
+  @DisplayName("Test send reply - Contact Not Found")
+  @Order(10)
+  void sendReply_shouldThrowResourceNotFoundExceptionWhenContactNotFound() {
+    Long contactId = 1L;
+    String replyMessage = "Thank you for reaching out!";
+    when(contactRepository.findById(contactId)).thenReturn(Optional.empty());
+
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+        () -> contactService.sendReply(contactId, replyMessage));
+
+    assertEquals("Contact with ID 1 not found. Please check the ID and try again.", exception.getMessage());
+    verify(contactRepository, times(1)).findById(contactId);
+    verify(emailService, never()).sendResponseForContactUs(any(), any());
+  }
+
 }
