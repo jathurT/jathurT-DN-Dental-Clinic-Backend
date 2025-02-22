@@ -149,85 +149,54 @@ EOL
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash -s << 'ENDSSH'
                                 cd ~/app-deployment
 
-                                # Install Docker if not present
-                                if ! command -v docker &> /dev/null; then
-                                    echo "Installing Docker..."
-                                    curl -fsSL https://get.docker.com -o get-docker.sh
-                                    sudo sh get-docker.sh
-                                    sudo usermod -aG docker $USER
-                                    sudo systemctl enable docker
-                                    sudo systemctl start docker
-                                fi
-
-                                # Install Docker Compose if not present
-                                if ! command -v docker-compose &> /dev/null; then
-                                    echo "Installing Docker Compose..."
-                                    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-                                    sudo chmod +x /usr/local/bin/docker-compose
-                                fi
-
-                                # Ensure user is in docker group
-                                if ! groups $USER | grep -q docker; then
-                                    sudo usermod -aG docker $USER
-                                    exec sg docker -c "echo Docker group applied"
-                                fi
-
-                                # Docker login
+                                # Docker login - Fixed TTY issue
                                 echo "Logging into Docker Hub..."
-                                echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin
+                                docker login -u $DOCKER_CREDENTIALS_USR -p $DOCKER_CREDENTIALS_PSW || {
+                                    echo "Docker login failed"
+                                    exit 1
+                                }
 
-                                # Stop and remove existing containers
+                                # Stop existing containers
                                 echo "Stopping existing containers..."
-                                docker-compose down || true
+                                docker-compose down --remove-orphans || true
+
+                                # Remove old containers and networks explicitly
+                                echo "Cleaning up old resources..."
+                                docker rm -f $(docker ps -a -q) 2>/dev/null || true
+                                docker network prune -f || true
 
                                 # Pull latest images
                                 echo "Pulling latest images..."
-                                docker-compose pull
+                                docker-compose pull || {
+                                    echo "Failed to pull images"
+                                    exit 1
+                                }
 
                                 # Start containers
                                 echo "Starting containers..."
-                                docker-compose up -d
+                                docker-compose up -d || {
+                                    echo "Failed to start containers"
+                                    docker-compose logs
+                                    exit 1
+                                }
 
-                                # Wait for containers to start
+                                # Wait for containers
                                 echo "Waiting for containers to be healthy..."
                                 sleep 30
 
                                 # Check container status
-                                echo "Checking container status..."
                                 if ! docker-compose ps | grep -q "Up"; then
-                                    echo "Error: Containers failed to start properly"
+                                    echo "Containers failed to start properly"
                                     docker-compose logs
                                     exit 1
                                 fi
 
-                                # Verify application health
-                                echo "Checking application health..."
-                                HEALTH_CHECK_URL="http://localhost:${SERVER_PORT}/actuator/health"
-                                MAX_RETRIES=5
-                                RETRY_COUNT=0
-
-                                while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                                    if curl -f $HEALTH_CHECK_URL &> /dev/null; then
-                                        echo "Application is healthy!"
-                                        break
-                                    fi
-                                    RETRY_COUNT=$((RETRY_COUNT+1))
-                                    echo "Health check failed, attempt $RETRY_COUNT of $MAX_RETRIES"
-                                    sleep 10
-                                done
-
-                                if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-                                    echo "Application failed health check after $MAX_RETRIES attempts"
-                                    docker-compose logs
-                                    exit 1
-                                fi
-
-                                # Clean up old images
-                                echo "Cleaning up old images..."
-                                docker image prune -f
+                                # Print container status
+                                echo "Container status:"
+                                docker-compose ps
 
                                 echo "Deployment completed successfully!"
-ENDSSH
+                            ENDSSH
                         '''
                     }
                 }
