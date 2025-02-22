@@ -94,7 +94,6 @@ AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
 EOL
                     '''
-
                 }
             }
         }
@@ -166,6 +165,7 @@ EOL
                 }
             }
         }
+    }
 
     post {
         always {
