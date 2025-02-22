@@ -8,7 +8,8 @@ pipeline {
 
     parameters {
         choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Select deployment environment')
-        string(name: 'EC2_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
+        string(name: 'SERVER_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
+        string(name: 'MYSQL_PORT', defaultValue: '3306', description: 'Port for MySQL to run on EC2')
     }
 
     environment {
@@ -30,12 +31,6 @@ pipeline {
             }
         }
 
-        stage('Init') {
-            steps {
-                milestone(ordinal: 1)
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'chmod +x mvnw'
@@ -43,10 +38,8 @@ pipeline {
             }
         }
 
-//         Uncomment the test stage if needed
         stage('Test') {
             steps {
-                // Set up test environment variables
                 withEnv([
                     'SPRING_PROFILES_ACTIVE=test',
                     'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
@@ -59,21 +52,10 @@ pipeline {
             }
             post {
                 always {
-                    // Capture detailed test reports
-                    sh 'find target/surefire-reports -name "*.txt" -exec cat {} \\;'
                     junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
-
-//         Uncomment the SonarQube analysis stage if needed
-//         stage('SonarQube Analysis') {
-//             steps {
-//                 withSonarQubeEnv('SonarQube') {
-//                     sh './mvnw sonar:sonar'
-//                 }
-//             }
-//         }
 
         stage('Prepare .env File') {
             steps {
@@ -81,7 +63,8 @@ pipeline {
                     sh '''
                     cat > .env << EOL
 SPRING_APPLICATION_NAME=backend
-SERVER_PORT=8081
+SERVER_PORT=${params.SERVER_PORT}
+MYSQL_PORT=${params.MYSQL_PORT}
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
 SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
@@ -116,7 +99,6 @@ EOL
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build using the built JAR from Jenkins
                     sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
                     sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
                 }
@@ -134,80 +116,55 @@ EOL
         stage('Deploy to EC2') {
             steps {
                 script {
-                    writeFile file: 'deploy.sh', text: '''#!/bin/bash
-        set -e
-
-        # Get parameters from environment
-        DOCKER_IMAGE="$1"
-        EC2_PORT="$2"
-
-        echo "Pulling latest Docker image..."
-        docker pull "${DOCKER_IMAGE}:latest"
-
-        echo "Checking for existing container..."
-        if docker ps -a | grep -q myapp-backend; then
-            echo "Stopping and removing existing container..."
-            docker stop myapp-backend || true
-            docker rm myapp-backend || true
-        fi
-
-        echo "Starting new container..."
-        docker run -d \
-            --name myapp-backend \
-            --restart unless-stopped \
-            -p "${EC2_PORT}:8081" \
-            --env-file .env \
-            "${DOCKER_IMAGE}:latest"
-
-        echo "Waiting for container health check..."
-        sleep 10
-
-        echo "Checking container status..."
-        if [ "$(docker ps -q -f name=myapp-backend)" ]; then
-            echo "Container is running successfully"
-        else
-            echo "Container failed to start"
-            exit 1
-        fi
-        '''
-
-                    sh 'chmod +x deploy.sh'
-
                     sshagent(['ec2-ssh-key']) {
-                        // First ensure docker permissions are set up correctly
                         sh """
+                            # Ensure docker and docker-compose are installed
                             ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
-                                # Add user to docker group if not already added
+                                if ! command -v docker-compose &> /dev/null; then
+                                    sudo apt-get update
+                                    sudo apt-get install -y docker-compose
+                                fi
+
                                 if ! groups \$USER | grep -q docker; then
                                     sudo usermod -aG docker \$USER
-                                    echo "Added user to docker group. A reconnection may be required."
-                                    # Create a new session to apply group changes
                                     exec sg docker -c "echo Docker group applied"
                                 fi
                             '
-                        """
 
-                        // Copy files and execute deployment
-                        sh """
-                            scp -o StrictHostKeyChecking=no .env \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
-                            scp -o StrictHostKeyChecking=no deploy.sh \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
+                            # Copy deployment files
+                            scp -o StrictHostKeyChecking=no docker-compose.yml \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
+                            scp -o StrictHostKeyChecking=no .env \$EC2_USER@\$EC2_USER:/home/\$EC2_USER/
 
+                            # Deploy using docker-compose
                             ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
-                                chmod +x deploy.sh && \
-                                sg docker -c "./deploy.sh \"${DOCKER_IMAGE}\" \"${params.EC2_PORT}\""
+                                cd /home/\$EC2_USER
+                                docker-compose pull
+                                docker-compose up -d
+
+                                # Wait for services to be healthy
+                                echo "Waiting for services to be healthy..."
+                                sleep 30
+
+                                # Check service status
+                                if docker-compose ps | grep -q "Up"; then
+                                    echo "Services are running successfully"
+                                else
+                                    echo "Services failed to start properly"
+                                    docker-compose logs
+                                    exit 1
+                                fi
                             '
                         """
                     }
                 }
             }
         }
-
     }
 
     post {
         always {
             sh 'docker logout'
-            sh 'rm -f .env deploy.sh'
+            sh 'rm -f .env'
             cleanWs()
         }
         success {
