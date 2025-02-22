@@ -63,6 +63,9 @@ pipeline {
             steps {
                 script {
                     sh '''
+                    # Create .env file with secure permissions
+                    touch .env && chmod 600 .env
+
                     cat > .env << EOL
 SPRING_APPLICATION_NAME=backend
 SERVER_PORT=${SERVER_PORT}
@@ -93,6 +96,12 @@ AWS_SECRETKEY=${AWS_CREDENTIALS_PSW}
 AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
 EOL
+
+                    # Verify file was created successfully
+                    if [ ! -f .env ]; then
+                        echo "Failed to create .env file"
+                        exit 1
+                    fi
                     '''
                 }
             }
@@ -123,46 +132,102 @@ EOL
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
-                            # Initial SSH connection and Docker setup
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-                                if ! command -v docker-compose &> /dev/null; then
-                                    sudo apt-get update
-                                    sudo apt-get install -y docker-compose
-                                fi
+                            # Test SSH connection
+                            echo "Testing SSH connection..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'"
 
-                                if ! groups \$USER | grep -q docker; then
-                                    sudo usermod -aG docker \$USER
-                                    exec sg docker -c "echo Docker group applied"
-                                fi
-                            EOF
+                            # Create deployment directory
+                            echo "Creating deployment directory..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
 
                             # Copy deployment files
-                            scp -o StrictHostKeyChecking=no docker-compose.yml $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
-                            scp -o StrictHostKeyChecking=no .env $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
+                            echo "Copying deployment files..."
+                            scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Docker login and deployment
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin"
+                            # Execute deployment
+                            echo "Starting deployment..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash -s << 'ENDSSH'
+                                cd ~/app-deployment
 
-                            # Run deployment commands
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-                                cd /home/$USER
+                                # Install Docker if not present
+                                if ! command -v docker &> /dev/null; then
+                                    echo "Installing Docker..."
+                                    curl -fsSL https://get.docker.com -o get-docker.sh
+                                    sudo sh get-docker.sh
+                                    sudo usermod -aG docker $USER
+                                    sudo systemctl enable docker
+                                    sudo systemctl start docker
+                                fi
+
+                                # Install Docker Compose if not present
+                                if ! command -v docker-compose &> /dev/null; then
+                                    echo "Installing Docker Compose..."
+                                    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                                    sudo chmod +x /usr/local/bin/docker-compose
+                                fi
+
+                                # Ensure user is in docker group
+                                if ! groups $USER | grep -q docker; then
+                                    sudo usermod -aG docker $USER
+                                    exec sg docker -c "echo Docker group applied"
+                                fi
+
+                                # Docker login
+                                echo "Logging into Docker Hub..."
+                                echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin
+
+                                # Stop and remove existing containers
+                                echo "Stopping existing containers..."
+                                docker-compose down || true
+
+                                # Pull latest images
+                                echo "Pulling latest images..."
                                 docker-compose pull
+
+                                # Start containers
+                                echo "Starting containers..."
                                 docker-compose up -d
 
-                                # Wait for services to be healthy
-                                echo "Waiting for services to be healthy..."
+                                # Wait for containers to start
+                                echo "Waiting for containers to be healthy..."
                                 sleep 30
 
-                                # Check service status and show logs
-                                docker-compose ps
-                                echo "Container logs:"
-                                docker-compose logs
-
+                                # Check container status
+                                echo "Checking container status..."
                                 if ! docker-compose ps | grep -q "Up"; then
-                                    echo "Services failed to start properly"
+                                    echo "Error: Containers failed to start properly"
+                                    docker-compose logs
                                     exit 1
                                 fi
-                            EOF
+
+                                # Verify application health
+                                echo "Checking application health..."
+                                HEALTH_CHECK_URL="http://localhost:${SERVER_PORT}/actuator/health"
+                                MAX_RETRIES=5
+                                RETRY_COUNT=0
+
+                                while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                                    if curl -f $HEALTH_CHECK_URL &> /dev/null; then
+                                        echo "Application is healthy!"
+                                        break
+                                    fi
+                                    RETRY_COUNT=$((RETRY_COUNT+1))
+                                    echo "Health check failed, attempt $RETRY_COUNT of $MAX_RETRIES"
+                                    sleep 10
+                                done
+
+                                if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+                                    echo "Application failed health check after $MAX_RETRIES attempts"
+                                    docker-compose logs
+                                    exit 1
+                                fi
+
+                                # Clean up old images
+                                echo "Cleaning up old images..."
+                                docker image prune -f
+
+                                echo "Deployment completed successfully!"
+ENDSSH
                         '''
                     }
                 }
@@ -172,9 +237,19 @@ EOL
 
     post {
         always {
-            sh 'docker logout'
-            sh 'rm -f .env'
-            cleanWs()
+            script {
+                // Clean up Docker resources
+                sh 'docker logout || true'
+                sh 'docker system prune -f || true'
+
+                // Remove sensitive files
+                sh '''
+                    rm -f .env
+                    rm -f get-docker.sh || true
+                '''
+
+                cleanWs()
+            }
         }
         success {
             echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}"
