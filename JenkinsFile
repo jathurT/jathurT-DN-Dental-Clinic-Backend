@@ -120,9 +120,13 @@ EOL
             steps {
                 script {
                     sshagent(['ec2-ssh-key']) {
+                        // Store EC2 details in variables for clearer usage
+                        def remote_user = env.EC2_USER
+                        def remote_host = env.EC2_HOST
+
                         sh """
-                            # Ensure docker and docker-compose are installed
-                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
+                            # Initial SSH connection and Docker setup
+                            ssh -o StrictHostKeyChecking=no ${remote_user}@${remote_host} '
                                 if ! command -v docker-compose &> /dev/null; then
                                     sudo apt-get update
                                     sudo apt-get install -y docker-compose
@@ -135,12 +139,12 @@ EOL
                             '
 
                             # Copy deployment files
-                            scp -o StrictHostKeyChecking=no docker-compose.yml \$EC2_USER@\$EC2_HOST:/home/\$EC2_USER/
-                            scp -o StrictHostKeyChecking=no .env \$EC2_USER@\$EC2_USER:/home/\$EC2_USER/
+                            scp -o StrictHostKeyChecking=no docker-compose.yml ${remote_user}@${remote_host}:/home/${remote_user}/
+                            scp -o StrictHostKeyChecking=no .env ${remote_user}@${remote_host}:/home/${remote_user}/
 
                             # Deploy using docker-compose
-                            ssh -o StrictHostKeyChecking=no \$EC2_USER@\$EC2_HOST '
-                                cd /home/\$EC2_USER
+                            ssh -o StrictHostKeyChecking=no ${remote_user}@${remote_host} '
+                                cd /home/\$USER
                                 docker-compose pull
                                 docker-compose up -d
 
@@ -162,7 +166,6 @@ EOL
                 }
             }
         }
-    }
 
     post {
         always {
