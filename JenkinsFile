@@ -63,8 +63,8 @@ pipeline {
                     sh '''
                     cat > .env << EOL
 SPRING_APPLICATION_NAME=backend
-SERVER_PORT=${params.SERVER_PORT}
-MYSQL_PORT=${params.MYSQL_PORT}
+SERVER_PORT=${SERVER_PORT}
+MYSQL_PORT=${MYSQL_PORT}
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
 SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
@@ -92,6 +92,7 @@ AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
 EOL
                     '''
+                    writeFile file: '.env', text: envContent
                 }
             }
         }
