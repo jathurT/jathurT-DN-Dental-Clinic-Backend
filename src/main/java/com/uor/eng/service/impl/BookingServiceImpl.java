@@ -43,7 +43,7 @@ public class BookingServiceImpl implements IBookingService {
 
   @Override
   @Transactional
-  public BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
+  public synchronized BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
     try {
       Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
           .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule."));
