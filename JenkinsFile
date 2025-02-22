@@ -22,6 +22,8 @@ pipeline {
         EC2_HOST = credentials('ec2-host')
         EC2_USER = 'ubuntu'
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
+        SERVER_PORT = "${params.SERVER_PORT}"
+        MYSQL_PORT = "${params.MYSQL_PORT}"
     }
 
     stages {
@@ -92,7 +94,7 @@ AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
 EOL
                     '''
-                    writeFile file: '.env', text: envContent
+
                 }
             }
         }
