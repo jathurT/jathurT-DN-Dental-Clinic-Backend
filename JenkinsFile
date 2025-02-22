@@ -141,8 +141,10 @@ EOL
                             scp -o StrictHostKeyChecking=no .env $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
 
                             # Docker login and deployment
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin"
+
+                            # Run deployment commands
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-                                echo "$DOCKER_CREDENTIALS_PSW" | docker login -u "$DOCKER_CREDENTIALS_USR" --password-stdin
                                 cd /home/$USER
                                 docker-compose pull
                                 docker-compose up -d
@@ -151,12 +153,13 @@ EOL
                                 echo "Waiting for services to be healthy..."
                                 sleep 30
 
-                                # Check service status
-                                if docker-compose ps | grep -q "Up"; then
-                                    echo "Services are running successfully"
-                                else
+                                # Check service status and show logs
+                                docker-compose ps
+                                echo "Container logs:"
+                                docker-compose logs
+
+                                if ! docker-compose ps | grep -q "Up"; then
                                     echo "Services failed to start properly"
-                                    docker-compose logs
                                     exit 1
                                 fi
                             EOF
