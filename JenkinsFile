@@ -117,15 +117,14 @@ EOL
 
         stage('Deploy to EC2') {
             steps {
-                script {
+                withEnv([
+                    "REMOTE_USER=${EC2_USER}",
+                    "REMOTE_HOST=${EC2_HOST}"
+                ]) {
                     sshagent(['ec2-ssh-key']) {
-                        // Store EC2 details in variables for clearer usage
-                        def remote_user = env.EC2_USER
-                        def remote_host = env.EC2_HOST
-
-                        sh """
+                        sh '''
                             # Initial SSH connection and Docker setup
-                            ssh -o StrictHostKeyChecking=no ${remote_user}@${remote_host} '
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
                                 if ! command -v docker-compose &> /dev/null; then
                                     sudo apt-get update
                                     sudo apt-get install -y docker-compose
@@ -135,14 +134,14 @@ EOL
                                     sudo usermod -aG docker \$USER
                                     exec sg docker -c "echo Docker group applied"
                                 fi
-                            '
+                            EOF
 
                             # Copy deployment files
-                            scp -o StrictHostKeyChecking=no docker-compose.yml ${remote_user}@${remote_host}:/home/${remote_user}/
-                            scp -o StrictHostKeyChecking=no .env ${remote_user}@${remote_host}:/home/${remote_user}/
+                            scp -o StrictHostKeyChecking=no docker-compose.yml $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
+                            scp -o StrictHostKeyChecking=no .env $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
 
                             # Deploy using docker-compose
-                            ssh -o StrictHostKeyChecking=no ${remote_user}@${remote_host} '
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
                                 cd /home/\$USER
                                 docker-compose pull
                                 docker-compose up -d
@@ -159,8 +158,8 @@ EOL
                                     docker-compose logs
                                     exit 1
                                 fi
-                            '
-                        """
+                            EOF
+                        '''
                     }
                 }
             }
