@@ -63,10 +63,10 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    # Create .env file with secure permissions
-                    touch .env && chmod 600 .env
+                        # Create .env file with secure permissions
+                        touch .env && chmod 600 .env
 
-                    cat > .env << EOL
+                        cat > .env << EOL
 SPRING_APPLICATION_NAME=backend
 SERVER_PORT=${SERVER_PORT}
 MYSQL_PORT=${MYSQL_PORT}
@@ -97,11 +97,11 @@ AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
 EOL
 
-                    # Verify file was created successfully
-                    if [ ! -f .env ]; then
-                        echo "Failed to create .env file"
-                        exit 1
-                    fi
+                        # Verify file was created successfully
+                        if [ ! -f .env ]; then
+                            echo "Failed to create .env file"
+                            exit 1
+                        fi
                     '''
                 }
             }
@@ -128,7 +128,9 @@ EOL
             steps {
                 withEnv([
                     "REMOTE_USER=${EC2_USER}",
-                    "REMOTE_HOST=${EC2_HOST}"
+                    "REMOTE_HOST=${EC2_HOST}",
+                    "DOCKER_USERNAME=${DOCKER_CREDENTIALS_USR}",
+                    "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
@@ -144,14 +146,14 @@ EOL
                             echo "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment
+                            # Execute deployment with environment variables passed explicitly
                             echo "Starting deployment..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash -s << 'ENDSSH'
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash -s" << 'ENDSSH'
                                 cd ~/app-deployment
 
-                                # Docker login - Fixed TTY issue
+                                # Docker login using environment variables
                                 echo "Logging into Docker Hub..."
-                                docker login -u $DOCKER_CREDENTIALS_USR -p $DOCKER_CREDENTIALS_PSW || {
+                                echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin || {
                                     echo "Docker login failed"
                                     exit 1
                                 }
