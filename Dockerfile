@@ -36,7 +36,6 @@ ENV SPRING_APPLICATION_NAME=backend \
 
 EXPOSE 8081
 
-# Copy and set up entrypoint
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
