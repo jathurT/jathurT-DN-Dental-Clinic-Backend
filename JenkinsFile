@@ -140,9 +140,10 @@ EOL
                             scp -o StrictHostKeyChecking=no docker-compose.yml $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
                             scp -o StrictHostKeyChecking=no .env $REMOTE_USER@$REMOTE_HOST:/home/$REMOTE_USER/
 
-                            # Deploy using docker-compose
+                            # Docker login and deployment
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-                                cd /home/\$USER
+                                echo "$DOCKER_CREDENTIALS_PSW" | docker login -u "$DOCKER_CREDENTIALS_USR" --password-stdin
+                                cd /home/$USER
                                 docker-compose pull
                                 docker-compose up -d
 
