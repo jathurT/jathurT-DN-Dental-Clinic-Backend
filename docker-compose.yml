@@ -14,11 +14,6 @@ services:
     networks:
       - myapp-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   mysql:
     image: mysql:8.0
@@ -35,11 +30,6 @@ services:
     networks:
       - myapp-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
 
 networks:
   myapp-network:
