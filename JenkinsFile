@@ -25,7 +25,6 @@ pipeline {
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
         MYSQL_PORT = "${params.MYSQL_PORT}"
-        DEPLOYMENT_TIMEOUT = '300'
     }
 
     stages {
@@ -64,11 +63,11 @@ pipeline {
         stage('Prepare .env File') {
             steps {
                 script {
-                    sh '''#!/bin/bash
+                    sh '''
                         # Create .env file with secure permissions
                         touch .env && chmod 600 .env
 
-                        cat > .env <<EOL
+                        cat > .env << EOL
 SPRING_APPLICATION_NAME=backend
 SERVER_PORT=${SERVER_PORT}
 MYSQL_PORT=${MYSQL_PORT}
@@ -121,22 +120,9 @@ EOL
 
         stage('Push to Docker Hub') {
             steps {
-                script {
-                    sh '''#!/bin/bash
-                        echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin || {
-                            echo "Docker login failed"
-                            exit 1
-                        }
-                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER} || {
-                            echo "Failed to push image with build number tag"
-                            exit 1
-                        }
-                        docker push ${DOCKER_IMAGE}:latest || {
-                            echo "Failed to push image with latest tag"
-                            exit 1
-                        }
-                    '''
-                }
+                sh 'echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin'
+                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
 
@@ -149,43 +135,72 @@ EOL
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
-                        sh '''#!/bin/bash
-                            # Function for logging
-                            log() {
-                                echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-                            }
+                        sh '''
+                            # Test SSH connection
+                            echo "Testing SSH connection..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'"
 
-                            # SSH to remote and setup permissions
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
-sudo usermod -aG docker \$USER
-sudo chown root:docker /var/run/docker.sock
-sudo chmod 666 /var/run/docker.sock
-sudo systemctl restart docker
-sleep 5
-EOF
-
-                            # Create deployment directory and copy files
+                            # Create deployment directory
+                            echo "Creating deployment directory..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
+
+                            # Copy deployment files
+                            echo "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
-cd ~/app-deployment
+                            # Execute deployment with environment variables passed explicitly
+                            echo "Starting deployment..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash -s" << 'ENDSSH'
+                                cd ~/app-deployment
 
-# Docker login
-echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+                                # Docker login using environment variables
+                                echo "Logging into Docker Hub..."
+                                echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin || {
+                                    echo "Docker login failed"
+                                    exit 1
+                                }
 
-# Stop and remove existing containers
-docker-compose down --remove-orphans || sudo docker-compose down --remove-orphans
+                                # Stop existing containers
+                                echo "Stopping existing containers..."
+                                docker-compose down --remove-orphans || true
 
-# Clean up
-docker system prune -f || sudo docker system prune -f
+                                # Remove old containers and networks explicitly
+                                echo "Cleaning up old resources..."
+                                docker rm -f $(docker ps -a -q) 2>/dev/null || true
+                                docker network prune -f || true
 
-# Pull and start
-docker-compose pull
-docker-compose up -d
+                                # Pull latest images
+                                echo "Pulling latest images..."
+                                docker-compose pull || {
+                                    echo "Failed to pull images"
+                                    exit 1
+                                }
 
-EOF
+                                # Start containers
+                                echo "Starting containers..."
+                                docker-compose up -d || {
+                                    echo "Failed to start containers"
+                                    docker-compose logs
+                                    exit 1
+                                }
+
+                                # Wait for containers
+                                echo "Waiting for containers to be healthy..."
+                                sleep 30
+
+                                # Check container status
+                                if ! docker-compose ps | grep -q "Up"; then
+                                    echo "Containers failed to start properly"
+                                    docker-compose logs
+                                    exit 1
+                                fi
+
+                                # Print container status
+                                echo "Container status:"
+                                docker-compose ps
+
+                                echo "Deployment completed successfully!"
+                            ENDSSH
                         '''
                     }
                 }
@@ -196,18 +211,16 @@ EOF
     post {
         always {
             script {
-                sh '''#!/bin/bash
-                    # Clean up Docker resources
-                    docker logout || true
-                    docker system prune -f || true
-                    docker volume prune -f || true
-                    docker network prune -f || true
+                // Clean up Docker resources
+                sh 'docker logout || true'
+                sh 'docker system prune -f || true'
 
-                    # Remove sensitive files
+                // Remove sensitive files
+                sh '''
                     rm -f .env
                     rm -f get-docker.sh || true
-                    rm -f ~/.docker/config.json || true
                 '''
+
                 cleanWs()
             }
         }
@@ -216,12 +229,6 @@ EOF
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
-            sshagent(['ec2-ssh-key']) {
-                sh '''#!/bin/bash
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "cd ~/app-deployment && docker-compose logs > deployment_logs.txt"
-                    scp -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST:~/app-deployment/deployment_logs.txt .
-                '''
-            }
         }
     }
 }
