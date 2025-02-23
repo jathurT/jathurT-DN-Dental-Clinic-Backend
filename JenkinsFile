@@ -136,18 +136,6 @@ EOL
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
-                            # Ensure Docker permissions are correct
-                            echo "Adding user to Docker group..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo usermod -aG docker $REMOTE_USER"
-
-                            # Test Docker access
-                            echo "Testing Docker access..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "docker --version"
-
-                            # Test SSH connection
-                            echo "Testing SSH connection..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'"
-
                             # Create deployment directory
                             echo "Creating deployment directory..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
@@ -156,46 +144,31 @@ EOL
                             echo "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment with environment variables passed explicitly
+                            # Execute deployment commands
                             echo "Starting deployment..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash -s" << 'ENDSSH'
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash << 'EOF'
                                 cd ~/app-deployment
 
                                 # Ensure Docker permissions are correct
                                 sudo usermod -aG docker ubuntu
 
-                                # Docker login using environment variables
-                                echo "Logging into Docker Hub..."
-                                echo "$DOCKER_PASSWORD" | sudo docker login --username "$DOCKER_USERNAME" --password-stdin || {
-                                    echo "Docker login failed"
-                                    exit 1
-                                }
+                                # Docker login
+                                echo "$DOCKER_PASSWORD" | sudo docker login --username "$DOCKER_USERNAME" --password-stdin
 
                                 # Stop existing containers
-                                echo "Stopping existing containers..."
                                 sudo docker-compose down --remove-orphans || true
 
-                                # Remove old containers and networks explicitly
-                                echo "Cleaning up old resources..."
+                                # Clean up old resources
                                 sudo docker rm -f $(sudo docker ps -a -q) 2>/dev/null || true
                                 sudo docker network prune -f || true
 
                                 # Pull latest images
-                                echo "Pulling latest images..."
-                                sudo docker-compose pull || {
-                                    echo "Failed to pull images"
-                                    exit 1
-                                }
+                                sudo docker-compose pull
 
                                 # Start containers
-                                echo "Starting containers..."
-                                sudo docker-compose up -d || {
-                                    echo "Failed to start containers"
-                                    sudo docker-compose logs
-                                    exit 1
-                                }
+                                sudo docker-compose up -d
 
-                                # Wait for containers
+                                # Wait for containers to be healthy
                                 echo "Waiting for containers to be healthy..."
                                 sleep 30
 
@@ -209,9 +182,8 @@ EOL
                                 # Print container status
                                 echo "Container status:"
                                 sudo docker-compose ps
-
                                 echo "Deployment completed successfully!"
-                            ENDSSH
+EOF
                         '''
                     }
                 }
