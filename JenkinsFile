@@ -17,6 +17,7 @@ pipeline {
         MAIL_CREDENTIALS = credentials('mail-credentials')
         JWT_SECRET = credentials('jwt-secret')
         DB_CREDENTIALS = credentials('db-credentials')
+        MYSQL_ROOT_PASSWORD = credentials('mysql-root-password')
         DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
         DOCKER_IMAGE = "jathurt/myapp-backend"
         EC2_HOST = credentials('ec2-host')
@@ -70,6 +71,7 @@ pipeline {
 SPRING_APPLICATION_NAME=backend
 SERVER_PORT=${SERVER_PORT}
 MYSQL_PORT=${MYSQL_PORT}
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 SPRING_JPA_HIBERNATE_DDL_AUTO=update
 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
 SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
