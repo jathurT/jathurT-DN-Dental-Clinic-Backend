@@ -178,14 +178,12 @@ echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-
 # Stop and remove existing containers
 docker-compose down --remove-orphans || sudo docker-compose down --remove-orphans
 
-# Clean up
-docker system prune -f || sudo docker system prune -f
+# Clean up (comment out for debugging)
+# docker system prune -f || sudo docker system prune -f
 
-# Pull and start
-docker-compose pull
-docker-compose up -d
-
-# Wait for health check
+# Pull and start containers
+docker-compose pull || { echo "Failed to pull the image"; exit 1; }
+docker-compose up -d || { echo "Docker Compose failed"; docker-compose logs; exit 1; }
 
 EOF
                         '''
