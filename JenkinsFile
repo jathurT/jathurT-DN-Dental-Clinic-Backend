@@ -148,9 +148,9 @@ EOL
                             echo "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment with environment variables passed explicitly
+                            # Execute deployment
                             echo "Starting deployment..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash -s" << 'ENDSSH'
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash -c '
                                 cd ~/app-deployment
 
                                 # Docker login using environment variables
@@ -200,7 +200,7 @@ EOL
                                 docker-compose ps
 
                                 echo "Deployment completed successfully!"
-                            ENDSSH
+                            '
                         '''
                     }
                 }
