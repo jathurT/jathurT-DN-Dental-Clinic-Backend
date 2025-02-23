@@ -186,12 +186,7 @@ docker-compose pull
 docker-compose up -d
 
 # Wait for health check
-timeout 180 bash -c '
-    until docker-compose ps | grep "Up" | grep -q "healthy"; do
-        echo "Waiting for containers..."
-        sleep 10
-    done
-'
+
 EOF
                         '''
                     }
