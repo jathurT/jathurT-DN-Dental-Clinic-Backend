@@ -155,149 +155,44 @@ EOL
                                 echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
                             }
 
-                            # Function to setup Docker permissions
-                            setup_docker_permissions() {
-                                log "Setting up Docker permissions..."
-                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl status docker"
-                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
-                                    # Add current user to docker group if not already added
-                                    if ! groups | grep -q docker; then
-                                        sudo usermod -aG docker $USER
-                                    fi
+                            # SSH to remote and setup permissions
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
+                                sudo usermod -aG docker $USER
+                                sudo chown root:docker /var/run/docker.sock
+                                sudo chmod 666 /var/run/docker.sock
+                                sudo systemctl restart docker
+                                sleep 5
+                            ENDSSH
 
-                                    # Fix Docker socket permissions
-                                    sudo chown root:docker /var/run/docker.sock
-                                    sudo chmod 666 /var/run/docker.sock
-
-                                    # Display current permissions
-                                    ls -l /var/run/docker.sock
-                                    groups
-
-                                    # Ensure Docker is running
-                                    sudo systemctl restart docker
-                                    sleep 5
-                                ENDSSH
-                            }
-
-                            # Function to check Docker service
-                            check_docker_service() {
-                                log "Checking Docker service status..."
-                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl is-active docker" || {
-                                    log "WARNING: Docker service not active, attempting to start..."
-                                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl start docker"
-                                    sleep 10
-                                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl is-active docker" || {
-                                        log "FATAL: Could not start Docker service"
-                                        return 1
-                                    }
-                                }
-                                return 0
-                            }
-
-                            # Test SSH connection with timeout
-                            log "Testing SSH connection..."
-                            timeout 30 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'" || {
-                                log "FATAL: SSH connection failed"
-                                exit 1
-                            }
-
-                            # Setup Docker permissions
-                            setup_docker_permissions || {
-                                log "FATAL: Failed to setup Docker permissions"
-                                exit 1
-                            }
-
-                            # Check Docker service
-                            check_docker_service || exit 1
-
-                            # Create deployment directory
-                            log "Creating deployment directory..."
+                            # Create deployment directory and copy files
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
-
-                            # Copy deployment files
-                            log "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
                             # Execute deployment
-                            log "Starting deployment..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash" << 'EOF'
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
                                 cd ~/app-deployment
 
-                                # Verify Docker permissions
-                                if ! docker info > /dev/null 2>&1; then
-                                    echo "ERROR: Cannot connect to Docker daemon"
-                                    exit 1
-                                fi
+                                # Docker login
+                                echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-                                # Docker login with retries
-                                for i in {1..3}; do
-                                    echo "Attempting Docker login (attempt $i)..."
-                                    if echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin; then
-                                        break
-                                    fi
-                                    echo "Docker login failed, retrying..."
-                                    sleep 5
-                                    if [ $i -eq 3 ]; then
-                                        echo "FATAL: Docker login failed after 3 attempts"
-                                        exit 1
-                                    fi
-                                done
+                                # Stop and remove existing containers
+                                docker-compose down --remove-orphans || sudo docker-compose down --remove-orphans
 
-                                # Stop existing containers with sudo if needed
-                                echo "Stopping existing containers..."
-                                if ! docker-compose down --timeout 30 --remove-orphans; then
-                                    sudo docker-compose down --timeout 30 --remove-orphans
-                                fi
+                                # Clean up
+                                docker system prune -f || sudo docker system prune -f
 
-                                # Cleanup with elevated privileges if needed
-                                echo "Cleaning up old resources..."
-                                if ! docker system prune -f --volumes; then
-                                    sudo docker system prune -f --volumes
-                                fi
-                                if ! docker network prune -f; then
-                                    sudo docker network prune -f
-                                fi
+                                # Pull and start
+                                docker-compose pull
+                                docker-compose up -d
 
-                                # Pull latest images with retry
-                                echo "Pulling latest images..."
-                                for i in {1..3}; do
-                                    if docker-compose pull; then
-                                        break
-                                    fi
-                                    echo "Retry $i of 3: Failed to pull images"
-                                    sleep 10
-                                    if [ $i -eq 3 ]; then
-                                        echo "FATAL: Failed to pull images after 3 attempts"
-                                        exit 1
-                                    fi
-                                done
-
-                                # Start containers
-                                echo "Starting containers..."
-                                if ! docker-compose up -d; then
-                                    echo "Trying with sudo..."
-                                    sudo docker-compose up -d
-                                fi
-
-                                # Wait for containers to be healthy
-                                echo "Waiting for containers to be healthy..."
+                                # Wait for health check
                                 timeout 180 bash -c '
                                     until docker-compose ps | grep "Up" | grep -q "healthy"; do
-                                        echo "Waiting for containers to be healthy..."
-                                        docker-compose ps
-                                        docker-compose logs --tail=50
+                                        echo "Waiting for containers..."
                                         sleep 10
                                     done
-                                ' || {
-                                    echo "FATAL: Containers failed to become healthy within timeout"
-                                    docker-compose logs
-                                    exit 1
-                                }
-
-                                echo "Deployment completed successfully!"
-                                docker-compose ps
-                                docker system df
-EOF
+                                '
+                            ENDSSH
                         '''
                     }
                 }
