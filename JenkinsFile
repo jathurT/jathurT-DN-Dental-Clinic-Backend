@@ -64,11 +64,11 @@ pipeline {
         stage('Prepare .env File') {
             steps {
                 script {
-                    sh '''
+                    sh '''#!/bin/bash
                         # Create .env file with secure permissions
                         touch .env && chmod 600 .env
 
-                        cat > .env << EOL
+                        cat > .env <<EOL
 SPRING_APPLICATION_NAME=backend
 SERVER_PORT=${SERVER_PORT}
 MYSQL_PORT=${MYSQL_PORT}
@@ -122,7 +122,7 @@ EOL
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh '''
+                    sh '''#!/bin/bash
                         echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin || {
                             echo "Docker login failed"
                             exit 1
@@ -149,50 +149,50 @@ EOL
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
-                        sh '''
+                        sh '''#!/bin/bash
                             # Function for logging
                             log() {
                                 echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
                             }
 
                             # SSH to remote and setup permissions
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
-                                sudo usermod -aG docker $USER
-                                sudo chown root:docker /var/run/docker.sock
-                                sudo chmod 666 /var/run/docker.sock
-                                sudo systemctl restart docker
-                                sleep 5
-                            ENDSSH
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
+sudo usermod -aG docker \$USER
+sudo chown root:docker /var/run/docker.sock
+sudo chmod 666 /var/run/docker.sock
+sudo systemctl restart docker
+sleep 5
+EOF
 
                             # Create deployment directory and copy files
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
                             # Execute deployment
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
-                                cd ~/app-deployment
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
+cd ~/app-deployment
 
-                                # Docker login
-                                echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+# Docker login
+echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-                                # Stop and remove existing containers
-                                docker-compose down --remove-orphans || sudo docker-compose down --remove-orphans
+# Stop and remove existing containers
+docker-compose down --remove-orphans || sudo docker-compose down --remove-orphans
 
-                                # Clean up
-                                docker system prune -f || sudo docker system prune -f
+# Clean up
+docker system prune -f || sudo docker system prune -f
 
-                                # Pull and start
-                                docker-compose pull
-                                docker-compose up -d
+# Pull and start
+docker-compose pull
+docker-compose up -d
 
-                                # Wait for health check
-                                timeout 180 bash -c '
-                                    until docker-compose ps | grep "Up" | grep -q "healthy"; do
-                                        echo "Waiting for containers..."
-                                        sleep 10
-                                    done
-                                '
-                            ENDSSH
+# Wait for health check
+timeout 180 bash -c '
+    until docker-compose ps | grep "Up" | grep -q "healthy"; do
+        echo "Waiting for containers..."
+        sleep 10
+    done
+'
+EOF
                         '''
                     }
                 }
@@ -203,21 +203,18 @@ EOL
     post {
         always {
             script {
-                // Clean up Docker resources
-                sh '''
+                sh '''#!/bin/bash
+                    # Clean up Docker resources
                     docker logout || true
                     docker system prune -f || true
                     docker volume prune -f || true
                     docker network prune -f || true
-                '''
 
-                // Remove sensitive files
-                sh '''
+                    # Remove sensitive files
                     rm -f .env
                     rm -f get-docker.sh || true
                     rm -f ~/.docker/config.json || true
                 '''
-
                 cleanWs()
             }
         }
@@ -226,10 +223,8 @@ EOL
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
-
-            // Collect logs for troubleshooting
             sshagent(['ec2-ssh-key']) {
-                sh '''
+                sh '''#!/bin/bash
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "cd ~/app-deployment && docker-compose logs > deployment_logs.txt"
                     scp -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST:~/app-deployment/deployment_logs.txt .
                 '''
