@@ -1,5 +1,8 @@
 FROM openjdk:17-jdk-slim
 
+# Install netcat
+RUN apt-get update && apt-get install -y netcat-traditional && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the built JAR from Jenkins
