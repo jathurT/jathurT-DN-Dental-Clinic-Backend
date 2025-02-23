@@ -137,7 +137,12 @@ EOL
                     sshagent(['ec2-ssh-key']) {
                         sh '''
                             # Ensure Docker permissions are correct
-                            sudo usermod -aG docker ubuntu
+                            echo "Adding user to Docker group..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo usermod -aG docker $REMOTE_USER"
+
+                            # Test Docker access
+                            echo "Testing Docker access..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "docker --version"
 
                             # Test SSH connection
                             echo "Testing SSH connection..."
