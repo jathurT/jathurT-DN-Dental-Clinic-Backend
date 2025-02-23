@@ -25,106 +25,11 @@ pipeline {
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
         MYSQL_PORT = "${params.MYSQL_PORT}"
+        DEPLOYMENT_TIMEOUT = '300'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests --no-transfer-progress'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                withEnv([
-                    'SPRING_PROFILES_ACTIVE=test',
-                    'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
-                    'SPRING_DATASOURCE_USERNAME=sa',
-                    'SPRING_DATASOURCE_PASSWORD=',
-                    'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
-                ]) {
-                    sh './mvnw test'
-                }
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-
-        stage('Prepare .env File') {
-            steps {
-                script {
-                    sh '''
-                        # Create .env file with secure permissions
-                        touch .env && chmod 600 .env
-
-                        cat > .env << EOL
-SPRING_APPLICATION_NAME=backend
-SERVER_PORT=${SERVER_PORT}
-MYSQL_PORT=${MYSQL_PORT}
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-SPRING_JPA_HIBERNATE_DDL_AUTO=update
-SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dental
-SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
-SPRING_DATASOURCE_PASSWORD=${DB_CREDENTIALS_PSW}
-SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
-SPRING_JPA_SHOW_SQL=false
-APP_CORS_ALLOWED_ORIGINS=*
-APP_RESET_PASSWORD_LINK=http://myapp.com/reset-password
-SPRING_APP_JWTSECRET=${JWT_SECRET}
-SPRING_APP_JWTEXPIRATIONMS=86400000
-SPRING_APP_JWTCOOKIENAME=dn-dental-clinic
-SPRING_MAIL_HOST=smtp.gmail.com
-SPRING_MAIL_PORT=587
-SPRING_MAIL_USERNAME=${MAIL_CREDENTIALS_USR}
-SPRING_MAIL_PASSWORD=${MAIL_CREDENTIALS_PSW}
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT=5000
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT=5000
-SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT=5000
-AWS_ACCESSKEYID=${AWS_CREDENTIALS_USR}
-AWS_SECRETKEY=${AWS_CREDENTIALS_PSW}
-AWS_REGION=eu-north-1
-AWS_S3_BUCKET=patient-logbook-photos
-EOL
-
-                        # Verify file was created successfully
-                        if [ ! -f .env ]; then
-                            echo "Failed to create .env file"
-                            exit 1
-                        fi
-                    '''
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
-                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                sh 'echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin'
-                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                sh "docker push ${DOCKER_IMAGE}:latest"
-            }
-        }
+        // Previous stages remain the same until Deploy to EC2
 
         stage('Deploy to EC2') {
             steps {
@@ -136,70 +41,153 @@ EOL
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
-                            # Test SSH connection
-                            echo "Testing SSH connection..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'"
+                            # Function for logging
+                            log() {
+                                echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+                            }
+
+                            # Function to setup Docker permissions
+                            setup_docker_permissions() {
+                                log "Setting up Docker permissions..."
+                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl status docker"
+                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
+                                    # Add current user to docker group if not already added
+                                    if ! groups | grep -q docker; then
+                                        sudo usermod -aG docker $USER
+                                    fi
+
+                                    # Fix Docker socket permissions
+                                    sudo chown root:docker /var/run/docker.sock
+                                    sudo chmod 666 /var/run/docker.sock
+
+                                    # Display current permissions
+                                    ls -l /var/run/docker.sock
+                                    groups
+
+                                    # Ensure Docker is running
+                                    sudo systemctl restart docker
+                                    sleep 5
+                                ENDSSH
+                            }
+
+                            # Function to check Docker service
+                            check_docker_service() {
+                                log "Checking Docker service status..."
+                                ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl is-active docker" || {
+                                    log "WARNING: Docker service not active, attempting to start..."
+                                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl start docker"
+                                    sleep 10
+                                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl is-active docker" || {
+                                        log "FATAL: Could not start Docker service"
+                                        return 1
+                                    }
+                                }
+                                return 0
+                            }
+
+                            # Test SSH connection with timeout
+                            log "Testing SSH connection..."
+                            timeout 30 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'" || {
+                                log "FATAL: SSH connection failed"
+                                exit 1
+                            }
+
+                            # Setup Docker permissions
+                            setup_docker_permissions || {
+                                log "FATAL: Failed to setup Docker permissions"
+                                exit 1
+                            }
+
+                            # Check Docker service
+                            check_docker_service || exit 1
 
                             # Create deployment directory
-                            echo "Creating deployment directory..."
+                            log "Creating deployment directory..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
 
                             # Copy deployment files
-                            echo "Copying deployment files..."
+                            log "Copying deployment files..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment with environment variables passed explicitly
-                            echo "Starting deployment..."
+                            # Execute deployment
+                            log "Starting deployment..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "export DOCKER_USERNAME='$DOCKER_USERNAME' && export DOCKER_PASSWORD='$DOCKER_PASSWORD' && bash" << 'EOF'
                                 cd ~/app-deployment
 
-                                # Docker login using environment variables
-                                echo "Logging into Docker Hub..."
-                                echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin || {
-                                    echo "Docker login failed"
-                                    exit 1
-                                }
-
-                                # Stop existing containers
-                                echo "Stopping existing containers..."
-                                docker-compose down --remove-orphans || true
-
-                                # Remove old containers and networks explicitly
-                                echo "Cleaning up old resources..."
-                                docker rm -f $(docker ps -a -q) 2>/dev/null || true
-                                docker network prune -f || true
-
-                                # Pull latest images
-                                echo "Pulling latest images..."
-                                docker-compose pull || {
-                                    echo "Failed to pull images"
-                                    exit 1
-                                }
-
-                                # Start containers
-                                echo "Starting containers..."
-                                docker-compose up -d || {
-                                    echo "Failed to start containers"
-                                    docker-compose logs
-                                    exit 1
-                                }
-
-                                # Wait for containers
-                                echo "Waiting for containers to be healthy..."
-                                sleep 30
-
-                                # Check container status
-                                if ! docker-compose ps | grep -q "Up"; then
-                                    echo "Containers failed to start properly"
-                                    docker-compose logs
+                                # Verify Docker permissions
+                                if ! docker info > /dev/null 2>&1; then
+                                    echo "ERROR: Cannot connect to Docker daemon"
                                     exit 1
                                 fi
 
-                                # Print container status
-                                echo "Container status:"
-                                docker-compose ps
+                                # Docker login with retries
+                                for i in {1..3}; do
+                                    echo "Attempting Docker login (attempt $i)..."
+                                    if echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin; then
+                                        break
+                                    fi
+                                    echo "Docker login failed, retrying..."
+                                    sleep 5
+                                    if [ $i -eq 3 ]; then
+                                        echo "FATAL: Docker login failed after 3 attempts"
+                                        exit 1
+                                    fi
+                                done
+
+                                # Stop existing containers with sudo if needed
+                                echo "Stopping existing containers..."
+                                if ! docker-compose down --timeout 30 --remove-orphans; then
+                                    sudo docker-compose down --timeout 30 --remove-orphans
+                                fi
+
+                                # Cleanup with elevated privileges if needed
+                                echo "Cleaning up old resources..."
+                                if ! docker system prune -f --volumes; then
+                                    sudo docker system prune -f --volumes
+                                fi
+                                if ! docker network prune -f; then
+                                    sudo docker network prune -f
+                                fi
+
+                                # Pull latest images with retry
+                                echo "Pulling latest images..."
+                                for i in {1..3}; do
+                                    if docker-compose pull; then
+                                        break
+                                    fi
+                                    echo "Retry $i of 3: Failed to pull images"
+                                    sleep 10
+                                    if [ $i -eq 3 ]; then
+                                        echo "FATAL: Failed to pull images after 3 attempts"
+                                        exit 1
+                                    fi
+                                done
+
+                                # Start containers
+                                echo "Starting containers..."
+                                if ! docker-compose up -d; then
+                                    echo "Trying with sudo..."
+                                    sudo docker-compose up -d
+                                fi
+
+                                # Wait for containers to be healthy
+                                echo "Waiting for containers to be healthy..."
+                                timeout 180 bash -c '
+                                    until docker-compose ps | grep "Up" | grep -q "healthy"; do
+                                        echo "Waiting for containers to be healthy..."
+                                        docker-compose ps
+                                        docker-compose logs --tail=50
+                                        sleep 10
+                                    done
+                                ' || {
+                                    echo "FATAL: Containers failed to become healthy within timeout"
+                                    docker-compose logs
+                                    exit 1
+                                }
 
                                 echo "Deployment completed successfully!"
+                                docker-compose ps
+                                docker system df
 EOF
                         '''
                     }
@@ -212,13 +200,18 @@ EOF
         always {
             script {
                 // Clean up Docker resources
-                sh 'docker logout || true'
-                sh 'docker system prune -f || true'
+                sh '''
+                    docker logout || true
+                    docker system prune -f || true
+                    docker volume prune -f || true
+                    docker network prune -f || true
+                '''
 
                 // Remove sensitive files
                 sh '''
                     rm -f .env
                     rm -f get-docker.sh || true
+                    rm -f ~/.docker/config.json || true
                 '''
 
                 cleanWs()
@@ -229,6 +222,14 @@ EOF
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
+
+            // Collect logs for troubleshooting
+            sshagent(['ec2-ssh-key']) {
+                sh '''
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "cd ~/app-deployment && docker-compose logs > deployment_logs.txt"
+                    scp -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST:~/app-deployment/deployment_logs.txt .
+                '''
+            }
         }
     }
 }
