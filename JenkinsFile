@@ -185,6 +185,13 @@ docker-compose down --remove-orphans || sudo docker-compose down --remove-orphan
 docker-compose pull || { echo "Failed to pull the image"; exit 1; }
 docker-compose up -d || { echo "Docker Compose failed"; docker-compose logs; exit 1; }
 
+# Wait for backend to be healthy
+timeout 300 bash -c 'until docker-compose ps | grep myapp-backend | grep healthy; do sleep 10; done' || {
+    echo "Backend service did not become healthy within the timeout period"
+    docker-compose logs backend
+    exit 1
+}
+
 EOF
                         '''
                     }
