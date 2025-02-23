@@ -136,6 +136,9 @@ EOL
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
+                            # Ensure Docker permissions are correct
+                            sudo usermod -aG docker $USER
+
                             # Test SSH connection
                             echo "Testing SSH connection..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'"
