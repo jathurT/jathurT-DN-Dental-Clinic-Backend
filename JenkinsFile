@@ -168,9 +168,7 @@ EOL
                                 # Start containers
                                 sudo docker-compose up -d
 
-                                # Wait for containers to be healthy
-                                echo "Waiting for containers to be healthy..."
-                                sleep 30
+
 
                                 # Check container status
                                 if ! sudo docker-compose ps | grep -q "Up"; then
