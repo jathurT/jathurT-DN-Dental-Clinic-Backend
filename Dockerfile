@@ -1,7 +1,7 @@
 FROM openjdk:17-jdk-slim
 
-# Install netcat and curl for health checks
-RUN apt-get update && apt-get install -y netcat-traditional curl && rm -rf /var/lib/apt/lists/*
+# Install netcat (using the package name 'netcat') and curl for health checks
+RUN apt-get update && apt-get install -y netcat curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
