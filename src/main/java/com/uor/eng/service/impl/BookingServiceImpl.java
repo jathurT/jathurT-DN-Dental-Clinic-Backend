@@ -13,6 +13,8 @@ import com.uor.eng.repository.BookingRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IBookingService;
 import com.uor.eng.util.EmailService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.transaction.annotation.Transactional;
 import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
@@ -28,6 +30,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookingServiceImpl implements IBookingService {
+  @Autowired
+  private Counter createBookingCounter;
+
+  @Autowired
+  private Counter createBookingErrorCounter;
+
+  @Autowired
+  private Timer createBookingTimer;
 
   @Autowired
   private BookingRepository bookingRepository;
@@ -44,11 +54,16 @@ public class BookingServiceImpl implements IBookingService {
   @Override
   @Transactional
   public synchronized BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
+    Timer.Sample sample = Timer.start();
     try {
       Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
-          .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule."));
+          .orElseThrow(() -> {
+            createBookingErrorCounter.increment();
+            return new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule.");
+          });
 
       if (schedule.getAvailableSlots() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
+        createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently full.");
       } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE ||
           schedule.getStatus() == ScheduleStatus.CANCELLED ||
@@ -56,6 +71,7 @@ public class BookingServiceImpl implements IBookingService {
           schedule.getStatus() == ScheduleStatus.ON_GOING ||
           schedule.getStatus() == ScheduleStatus.ACTIVE
       ) {
+        createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently unavailable.");
       }
 
@@ -71,11 +87,16 @@ public class BookingServiceImpl implements IBookingService {
 
       BookingResponseDTO bookingResponseDTO = mapToResponse(savedBooking);
       emailService.sendBookingConfirmation(bookingResponseDTO);
+      createBookingCounter.increment();
       return bookingResponseDTO;
     } catch (OptimisticLockingFailureException e) {
+      createBookingErrorCounter.increment();
       throw new BadRequestException("Unable to create booking due to high demand. Please try again.");
     } catch (Exception e) {
+      createBookingErrorCounter.increment();
       throw new BadRequestException("Unable to create booking. Please check the details and try again.");
+    } finally {
+      sample.stop(createBookingTimer);
     }
   }
 

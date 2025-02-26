@@ -82,7 +82,7 @@ public class WebSecurityConfig {
                     .requestMatchers("/api/feedback/submit").permitAll()
                     .requestMatchers("/api/contacts/submit").permitAll()
                     .requestMatchers("/h2-console/**").permitAll()
-
+                    .requestMatchers("/actuator/**").permitAll()
 //                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .anyRequest().authenticated()
         );
