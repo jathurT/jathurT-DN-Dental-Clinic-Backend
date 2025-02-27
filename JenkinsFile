@@ -109,6 +109,35 @@ EOL
             }
         }
 
+        stage('Check Monitoring Directories') {
+            steps {
+                script {
+                    sh '''
+                        # Verify that the required directories exist
+                        if [ ! -d "prometheus" ]; then
+                            echo "Error: prometheus directory not found in project"
+                            exit 1
+                        fi
+
+                        if [ ! -d "grafana/provisioning/dashboards" ]; then
+                            echo "Error: grafana/provisioning/dashboards directory not found in project"
+                            exit 1
+                        fi
+
+                        if [ ! -d "grafana/provisioning/datasources" ]; then
+                            echo "Error: grafana/provisioning/datasources directory not found in project"
+                            exit 1
+                        fi
+
+                        # Verify the directories contents
+                        ls -la prometheus/
+                        ls -la grafana/provisioning/dashboards/
+                        ls -la grafana/provisioning/datasources/
+                    '''
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -134,53 +163,85 @@ EOL
                     "DOCKER_USERNAME=${DOCKER_CREDENTIALS_USR}",
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
-                    sshagent(['ec2-ssh-key']) {
+                    sshagent(['ec2-ssh-key-hotel']) {
                         sh '''
-                            # Create deployment directory
-                            echo "Creating deployment directory..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
+                            set -e  # Exit on any error
 
-                            # Copy deployment files
-                            echo "Copying deployment files..."
+                            echo "Preparing deployment on ${REMOTE_USER}@${REMOTE_HOST}..."
+
+                            # First check and clean existing deployment directory if needed
+                            echo "Checking and cleaning existing directories if needed..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo rm -rf ~/app-deployment || true"
+
+                            # Create remote directory structure with proper permissions
+                            echo "Creating remote directories with proper permissions..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/prometheus"
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/grafana/provisioning/dashboards"
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/grafana/provisioning/datasources"
+
+                            # Ensure the ubuntu user owns all these directories
+                            echo "Setting ownership of remote directories..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo chown -R $REMOTE_USER:$REMOTE_USER ~/app-deployment"
+
+                            # Ensure proper permissions on remote directories
+                            echo "Setting permissions on remote directories..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "chmod -R 755 ~/app-deployment"
+
+                            # List directories to verify
+                            echo "Verifying remote directories..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/"
+
+                            # Copy main config files
+                            echo "Copying docker-compose.yml and .env..."
                             scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
 
-                            # Execute deployment commands
-                            echo "Starting deployment..."
+                            # Copy the existing prometheus and grafana configuration files
+                            echo "Copying prometheus configuration..."
+                            scp -o StrictHostKeyChecking=no prometheus/prometheus.yml $REMOTE_USER@$REMOTE_HOST:~/app-deployment/prometheus/
+
+                            echo "Copying grafana dashboard configurations..."
+                            scp -o StrictHostKeyChecking=no grafana/provisioning/dashboards/dashboard.yml $REMOTE_USER@$REMOTE_HOST:~/app-deployment/grafana/provisioning/dashboards/
+                            scp -o StrictHostKeyChecking=no grafana/provisioning/dashboards/booking_dashboard.json $REMOTE_USER@$REMOTE_HOST:~/app-deployment/grafana/provisioning/dashboards/
+
+                            echo "Copying grafana datasource configurations..."
+                            scp -o StrictHostKeyChecking=no grafana/provisioning/datasources/datasource.yml $REMOTE_USER@$REMOTE_HOST:~/app-deployment/grafana/provisioning/datasources/
+
+                            # Verify files on remote server
+                            echo "Verifying remote files..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/prometheus/"
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/dashboards/"
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/datasources/"
+
+                            # Deploy the application
+                            echo "Deploying application..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash << 'EOF'
-                                cd ~/app-deployment
+cd ~/app-deployment
+echo "Current directory: $(pwd)"
+echo "Logging into Docker Hub..."
+echo "$DOCKER_PASSWORD" | sudo docker login --username "$DOCKER_USERNAME" --password-stdin
 
-                                # Ensure Docker permissions are correct
-                                sudo usermod -aG docker ubuntu
+echo "Stopping existing services..."
+sudo docker-compose down --remove-orphans || true
 
-                                # Docker login
-                                echo "$DOCKER_PASSWORD" | sudo docker login --username "$DOCKER_USERNAME" --password-stdin
+echo "Cleaning up any stale containers..."
+sudo docker ps -aq | xargs sudo docker rm -f 2>/dev/null || true
+sudo docker network prune -f || true
 
-                                # Stop existing containers
-                                sudo docker-compose down --remove-orphans || true
+echo "Pulling latest images..."
+sudo docker-compose pull
 
-                                # Clean up old resources
-                                sudo docker rm -f $(sudo docker ps -a -q) 2>/dev/null || true
-                                sudo docker network prune -f || true
+echo "Starting services..."
+sudo docker-compose up -d
 
-                                # Pull latest images
-                                sudo docker-compose pull
+echo "Checking if services started successfully..."
+if ! sudo docker-compose ps | grep -q "Up"; then
+    echo "Containers failed to start properly"
+    sudo docker-compose logs
+    exit 1
+fi
 
-                                # Start containers
-                                sudo docker-compose up -d
-
-
-
-                                # Check container status
-                                if ! sudo docker-compose ps | grep -q "Up"; then
-                                    echo "Containers failed to start properly"
-                                    sudo docker-compose logs
-                                    exit 1
-                                fi
-
-                                # Print container status
-                                echo "Container status:"
-                                sudo docker-compose ps
-                                echo "Deployment completed successfully!"
+echo "Deployment completed successfully!"
 EOF
                         '''
                     }
