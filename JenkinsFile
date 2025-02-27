@@ -163,7 +163,7 @@ EOL
                     "DOCKER_USERNAME=${DOCKER_CREDENTIALS_USR}",
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
-                    sshagent(['ec2-ssh-key-hotel']) {
+                    sshagent(['ec2-ssh-key']) {
                         sh '''
                             set -e  # Exit on any error
 
