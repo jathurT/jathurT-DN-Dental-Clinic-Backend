@@ -64,11 +64,11 @@ public class JwtUtils {
 
   public ResponseCookie getCleanJwtCookie() {
     ResponseCookie cookie = ResponseCookie.from(jwtCookie, "")
-        .path("/api")
+        .path("/")
         .maxAge(0)
         .httpOnly(true)
         .secure(true)
-        .sameSite("Strict")
+        .sameSite("Lax")
         .build();
     return cookie;
   }
