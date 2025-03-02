@@ -57,7 +57,7 @@ public class JwtUtils {
         .maxAge(24 * 60 * 60)
         .httpOnly(true)
         .secure(false)
-        .sameSite("Lax")
+        .sameSite("None")
         .build();
     return cookie;
   }
@@ -68,7 +68,7 @@ public class JwtUtils {
         .maxAge(0)
         .httpOnly(true)
         .secure(true)
-        .sameSite("Lax")
+        .sameSite("None")
         .build();
     return cookie;
   }
