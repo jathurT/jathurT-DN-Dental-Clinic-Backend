@@ -19,8 +19,8 @@ pipeline {
         DB_CREDENTIALS = credentials('db-credentials')
         MYSQL_ROOT_PASSWORD = credentials('mysql-root-password')
         DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
-        UNIVERSITY_CREDENTIALS = credentials('university-server-credentials')
         UNIVERSITY_SERVER = credentials('university-server-ip')
+        UNIVERSITY_CREDENTIALS = credentials('university-server-credentials') // Changed to use username/password
         DOCKER_IMAGE = "jathurt/myapp-backend"
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
@@ -157,41 +157,89 @@ EOL
 
         stage('Deploy to University Server') {
             steps {
-                sshagent(['university-server-credentials']) {
-                    sh '''
-                        # Create remote directories
-                        ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "mkdir -p ~/app-deployment/prometheus ~/app-deployment/grafana/provisioning/dashboards ~/app-deployment/grafana/provisioning/datasources"
+                withEnv([
+                    "REMOTE_USER=${UNIVERSITY_CREDENTIALS_USR}",
+                    "REMOTE_HOST=${UNIVERSITY_SERVER}",
+                    "REMOTE_PASSWORD=${UNIVERSITY_CREDENTIALS_PSW}",
+                    "DOCKER_USERNAME=${DOCKER_CREDENTIALS_USR}",
+                    "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
+                ]) {
+                    script {
+                        // Install sshpass if needed
+                        sh '''
+                            if ! command -v sshpass &> /dev/null; then
+                                echo "Installing sshpass..."
+                                apt-get update -y
+                                apt-get install -y sshpass
+                            fi
+                        '''
 
-                        # Copy files
-                        scp -o StrictHostKeyChecking=no docker-compose.yml .env ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-                        scp -o StrictHostKeyChecking=no -r prometheus/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/prometheus/
-                        scp -o StrictHostKeyChecking=no -r grafana/provisioning/dashboards/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/dashboards/
-                        scp -o StrictHostKeyChecking=no -r grafana/provisioning/datasources/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/datasources/
+                        // Deploy using password authentication
+                        sh '''
+                            set -e  # Exit on any error
 
-                        # Create remote deployment script
-                        cat > remote_deploy.sh << 'EOL'
-#!/bin/bash
-set -e
+                            echo "Preparing deployment on ${REMOTE_USER}@${REMOTE_HOST}..."
 
+                            # First check and clean existing deployment directory if needed
+                            echo "Checking and cleaning existing directories if needed..."
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "rm -rf ~/app-deployment || true"
+
+                            # Create remote directory structure with proper permissions
+                            echo "Creating remote directories with proper permissions..."
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment"
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/prometheus"
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/grafana/provisioning/dashboards"
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p ~/app-deployment/grafana/provisioning/datasources"
+
+                            # Ensure proper permissions on remote directories
+                            echo "Setting permissions on remote directories..."
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "chmod -R 755 ~/app-deployment"
+
+                            # List directories to verify
+                            echo "Verifying remote directories..."
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/"
+
+                            # Copy main config files
+                            echo "Copying docker-compose.yml and .env..."
+                            sshpass -p "${REMOTE_PASSWORD}" scp -o StrictHostKeyChecking=no docker-compose.yml .env $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
+
+                            # Copy the existing prometheus and grafana configuration files
+                            echo "Copying prometheus configuration..."
+                            sshpass -p "${REMOTE_PASSWORD}" scp -o StrictHostKeyChecking=no -r prometheus/* $REMOTE_USER@$REMOTE_HOST:~/app-deployment/prometheus/
+
+                            echo "Copying grafana dashboard configurations..."
+                            sshpass -p "${REMOTE_PASSWORD}" scp -o StrictHostKeyChecking=no -r grafana/provisioning/dashboards/* $REMOTE_USER@$REMOTE_HOST:~/app-deployment/grafana/provisioning/dashboards/
+
+                            echo "Copying grafana datasource configurations..."
+                            sshpass -p "${REMOTE_PASSWORD}" scp -o StrictHostKeyChecking=no -r grafana/provisioning/datasources/* $REMOTE_USER@$REMOTE_HOST:~/app-deployment/grafana/provisioning/datasources/
+
+                            # Verify files on remote server
+                            echo "Verifying remote files..."
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/prometheus/"
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/dashboards/"
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/datasources/"
+
+                            # Create a temporary script to run on the remote server
+                            cat > deploy_script.sh << 'EOF'
 cd ~/app-deployment
+echo "Current directory: $(pwd)"
+echo "Logging into Docker Hub..."
+echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-# Docker login
-echo "${DOCKER_CREDENTIALS_PSW}" | docker login --username "${DOCKER_CREDENTIALS_USR}" --password-stdin
-
-# Stop any existing services
+echo "Stopping existing services..."
 docker-compose down --remove-orphans || true
 
-# Clean up stale containers
+echo "Cleaning up any stale containers..."
 docker ps -aq | xargs docker rm -f 2>/dev/null || true
 docker network prune -f || true
 
-# Pull latest images
+echo "Pulling latest images..."
 docker-compose pull
 
-# Start services
+echo "Starting services..."
 docker-compose up -d
 
-# Check if services started successfully
+echo "Checking if services started successfully..."
 if ! docker-compose ps | grep -q "Up"; then
     echo "Containers failed to start properly"
     docker-compose logs
@@ -199,15 +247,18 @@ if ! docker-compose ps | grep -q "Up"; then
 fi
 
 echo "Deployment completed successfully!"
-EOL
+EOF
 
-                        # Transfer and execute remote script
-                        scp -o StrictHostKeyChecking=no remote_deploy.sh ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-                        ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "chmod +x ~/app-deployment/remote_deploy.sh && ~/app-deployment/remote_deploy.sh"
+                            # Copy and execute the script
+                            chmod +x deploy_script.sh
+                            sshpass -p "${REMOTE_PASSWORD}" scp -o StrictHostKeyChecking=no deploy_script.sh $REMOTE_USER@$REMOTE_HOST:~/app-deployment/
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "cd ~/app-deployment && chmod +x deploy_script.sh && DOCKER_USERNAME='$DOCKER_USERNAME' DOCKER_PASSWORD='$DOCKER_PASSWORD' ./deploy_script.sh"
 
-                        # Clean up local script
-                        rm -f remote_deploy.sh
-                    '''
+                            # Clean up the temporary script
+                            rm -f deploy_script.sh
+                            sshpass -p "${REMOTE_PASSWORD}" ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "rm -f ~/app-deployment/deploy_script.sh"
+                        '''
+                    }
                 }
             }
         }
@@ -222,12 +273,7 @@ EOL
 
                 // Remove sensitive files
                 sh '''
-                    rm -f .env
-                    rm -f deploy.sh || true
-                    rm -f ssh_config || true
-                    rm -f sshpass || true
-                    rm -f get-docker.sh || true
-                    rm -rf sshpass-* || true
+                    rm -f .env || true
                 '''
 
                 cleanWs()
