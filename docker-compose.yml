@@ -22,7 +22,7 @@ services:
       - "prometheus.port=8081"
 
   mysql:
-    image: mysql:8.0
+    image: mysql:5.7
     container_name: myapp-mysql
     ports:
       - "${MYSQL_PORT:-3307}:3306"
