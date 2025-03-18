@@ -155,33 +155,21 @@ EOL
             }
         }
 
-        stage('Prepare Deployment Files') {
+        stage('Deploy to University Server') {
             steps {
-                script {
-                    // Create a shell script to handle SSH/SCP using sshpass
-                    writeFile file: 'deploy.sh', text: """#!/bin/bash
-set -e
+                sshagent(['university-server-credentials']) {
+                    sh '''
+                        # Create remote directories
+                        ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "mkdir -p ~/app-deployment/prometheus ~/app-deployment/grafana/provisioning/dashboards ~/app-deployment/grafana/provisioning/datasources"
 
-# Check if sshpass is installed
-if ! command -v sshpass &> /dev/null; then
-    echo "sshpass is not installed. Installing..."
-    apt-get update && apt-get install -y sshpass
-fi
+                        # Copy files
+                        scp -o StrictHostKeyChecking=no docker-compose.yml .env ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
+                        scp -o StrictHostKeyChecking=no -r prometheus/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/prometheus/
+                        scp -o StrictHostKeyChecking=no -r grafana/provisioning/dashboards/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/dashboards/
+                        scp -o StrictHostKeyChecking=no -r grafana/provisioning/datasources/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/datasources/
 
-# Export variables for use in sshpass
-export SSHPASS="${UNIVERSITY_CREDENTIALS_PSW}"
-
-# Create remote directories
-sshpass -e ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "mkdir -p ~/app-deployment/prometheus ~/app-deployment/grafana/provisioning/dashboards ~/app-deployment/grafana/provisioning/datasources"
-
-# Copy files using sshpass
-sshpass -e scp -o StrictHostKeyChecking=no docker-compose.yml .env ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-sshpass -e scp -o StrictHostKeyChecking=no -r prometheus/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/prometheus/
-sshpass -e scp -o StrictHostKeyChecking=no -r grafana/provisioning/dashboards/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/dashboards/
-sshpass -e scp -o StrictHostKeyChecking=no -r grafana/provisioning/datasources/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/datasources/
-
-# Create remote deployment script
-cat > remote_deploy.sh << EOL
+                        # Create remote deployment script
+                        cat > remote_deploy.sh << 'EOL'
 #!/bin/bash
 set -e
 
@@ -213,104 +201,13 @@ fi
 echo "Deployment completed successfully!"
 EOL
 
-# Copy and execute remote deployment script
-sshpass -e scp -o StrictHostKeyChecking=no remote_deploy.sh ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-sshpass -e ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "chmod +x ~/app-deployment/remote_deploy.sh && ~/app-deployment/remote_deploy.sh"
+                        # Transfer and execute remote script
+                        scp -o StrictHostKeyChecking=no remote_deploy.sh ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
+                        ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "chmod +x ~/app-deployment/remote_deploy.sh && ~/app-deployment/remote_deploy.sh"
 
-# Clean up local remote_deploy.sh
-rm -f remote_deploy.sh
-                    """
-
-                    sh 'chmod +x deploy.sh'
-                }
-            }
-        }
-
-        stage('Deploy to University Server') {
-            steps {
-                script {
-                    // Use withEnv to avoid exposing credentials directly
-                    withEnv(["SSHPASS=${UNIVERSITY_CREDENTIALS_PSW}"]) {
-                        // Try to install sshpass if needed using Jenkins user permissions
-                        sh '''
-                            if ! command -v sshpass &> /dev/null; then
-                                echo "sshpass not found, attempting to install..."
-                                # Try to install without sudo first
-                                apt-get update && apt-get install -y sshpass || true
-
-                                # If install failed and we're on a Debian/Ubuntu, try alternative paths
-                                if ! command -v sshpass &> /dev/null; then
-                                    # Try with apt-get with non-interactive
-                                    DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass || true
-                                fi
-
-                                # If still not installed, try to download and use precompiled binary
-                                if ! command -v sshpass &> /dev/null; then
-                                    echo "Attempting to download and use precompiled sshpass..."
-                                    wget -q https://sourceforge.net/projects/sshpass/files/sshpass/1.09/sshpass-1.09.tar.gz
-                                    tar -xzf sshpass-1.09.tar.gz
-                                    cd sshpass-1.09
-                                    ./configure && make
-                                    cp sshpass ../
-                                    cd ..
-                                    SSHPASS_PATH="./sshpass"
-                                else
-                                    SSHPASS_PATH="sshpass"
-                                fi
-                            else
-                                SSHPASS_PATH="sshpass"
-                            fi
-
-                            # Now use sshpass for deployment
-                            export SSHPASS="${UNIVERSITY_CREDENTIALS_PSW}"
-
-                            # Create remote directories
-                            $SSHPASS_PATH -e ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "mkdir -p ~/app-deployment/prometheus ~/app-deployment/grafana/provisioning/dashboards ~/app-deployment/grafana/provisioning/datasources"
-
-                            # Copy files using sshpass
-                            $SSHPASS_PATH -e scp -o StrictHostKeyChecking=no docker-compose.yml .env ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-                            $SSHPASS_PATH -e scp -o StrictHostKeyChecking=no -r prometheus/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/prometheus/
-                            $SSHPASS_PATH -e scp -o StrictHostKeyChecking=no -r grafana/provisioning/dashboards/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/dashboards/
-                            $SSHPASS_PATH -e scp -o StrictHostKeyChecking=no -r grafana/provisioning/datasources/* ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/grafana/provisioning/datasources/
-
-                            # Create and execute remote deployment script
-                            echo '#!/bin/bash
-set -e
-
-cd ~/app-deployment
-
-# Docker login
-echo "${DOCKER_CREDENTIALS_PSW}" | docker login --username "${DOCKER_CREDENTIALS_USR}" --password-stdin
-
-# Stop any existing services
-docker-compose down --remove-orphans || true
-
-# Clean up stale containers
-docker ps -aq | xargs docker rm -f 2>/dev/null || true
-docker network prune -f || true
-
-# Pull latest images
-docker-compose pull
-
-# Start services
-docker-compose up -d
-
-# Check if services started successfully
-if ! docker-compose ps | grep -q "Up"; then
-    echo "Containers failed to start properly"
-    docker-compose logs
-    exit 1
-fi
-
-echo "Deployment completed successfully!"' > remote_deploy.sh
-
-                            $SSHPASS_PATH -e scp -o StrictHostKeyChecking=no remote_deploy.sh ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER}:~/app-deployment/
-                            $SSHPASS_PATH -e ssh -o StrictHostKeyChecking=no ${UNIVERSITY_CREDENTIALS_USR}@${UNIVERSITY_SERVER} "chmod +x ~/app-deployment/remote_deploy.sh && ~/app-deployment/remote_deploy.sh"
-
-                            # Clean up
-                            rm -f remote_deploy.sh
-                        '''
-                    }
+                        # Clean up local script
+                        rm -f remote_deploy.sh
+                    '''
                 }
             }
         }
@@ -326,9 +223,9 @@ echo "Deployment completed successfully!"' > remote_deploy.sh
                 // Remove sensitive files
                 sh '''
                     rm -f .env
-                    rm -f deploy.sh
-                    rm -f ssh_config
-                    rm -f sshpass
+                    rm -f deploy.sh || true
+                    rm -f ssh_config || true
+                    rm -f sshpass || true
                     rm -f get-docker.sh || true
                     rm -rf sshpass-* || true
                 '''
