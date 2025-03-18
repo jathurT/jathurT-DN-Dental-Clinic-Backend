@@ -166,13 +166,13 @@ EOL
                 ]) {
                     script {
                         // Install sshpass if needed
-                        sh '''
-                            if ! command -v sshpass &> /dev/null; then
-                                echo "Installing sshpass..."
-                                apt-get update -y
-                                apt-get install -y sshpass
-                            fi
-                        '''
+//                         sh '''
+//                             if ! command -v sshpass &> /dev/null; then
+//                                 echo "Installing sshpass..."
+//                                 apt-get update -y
+//                                 apt-get install -y sshpass
+//                             fi
+//                         '''
 
                         // Deploy using password authentication
                         sh '''
