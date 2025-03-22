@@ -25,12 +25,26 @@ pipeline {
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
         MYSQL_PORT = "${params.MYSQL_PORT}"
+        http_proxy = "http://10.50.225.222:3128/"
+        https_proxy = "http://10.50.225.222:3128/"
+        MAVEN_OPTS = "-Dhttp.proxyHost=10.50.225.222 -Dhttp.proxyPort=3128 -Dhttps.proxyHost=10.50.225.222 -Dhttps.proxyPort=3128"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Check Environment') {
+            steps {
+                sh '''
+                echo "HTTP_PROXY: $http_proxy"
+                echo "HTTPS_PROXY: $https_proxy"
+                echo "NO_PROXY: $no_proxy"
+                env
+                '''
             }
         }
 
