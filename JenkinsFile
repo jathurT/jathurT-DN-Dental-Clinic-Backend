@@ -20,14 +20,11 @@ pipeline {
         MYSQL_ROOT_PASSWORD = credentials('mysql-root-password')
         DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
         UNIVERSITY_SERVER = credentials('university-server-ip')
-        UNIVERSITY_CREDENTIALS = credentials('university-server-credentials')
+        UNIVERSITY_CREDENTIALS = credentials('university-server-credentials') // Changed to use username/password
         DOCKER_IMAGE = "jathurt/myapp-backend"
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
         MYSQL_PORT = "${params.MYSQL_PORT}"
-        HTTP_PROXY = "http://10.50.255.222:3128"
-        HTTPS_PROXY = "http://10.50.255.222:3128"
-        NO_PROXY = "localhost,127.0.0.1,.local"
     }
 
     stages {
@@ -40,15 +37,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'chmod +x mvnw'
-                sh '''
-                    # Ensure Maven uses the proxy settings
-                    export HTTP_PROXY="http://10.50.255.222:3128"
-                    export HTTPS_PROXY="http://10.50.255.222:3128"
-                    export NO_PROXY="localhost,127.0.0.1,.local"
-
-                    # Use explicit settings file with proxy configuration
-                    ./mvnw -s /etc/maven/settings.xml clean package -DskipTests --no-transfer-progress
-                '''
+                sh './mvnw clean package -DskipTests --no-transfer-progress'
             }
         }
 
@@ -59,12 +48,9 @@ pipeline {
                     'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
                     'SPRING_DATASOURCE_USERNAME=sa',
                     'SPRING_DATASOURCE_PASSWORD=',
-                    'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop',
-                    'HTTP_PROXY=http://10.50.255.222:3128',
-                    'HTTPS_PROXY=http://10.50.255.222:3128',
-                    'NO_PROXY=localhost,127.0.0.1,.local'
+                    'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
                 ]) {
-                    sh './mvnw -s /etc/maven/settings.xml test'
+                    sh './mvnw test'
                 }
             }
             post {
@@ -155,14 +141,7 @@ EOL
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Add proxy settings to Docker build if needed
-                    sh '''
-                        docker build \
-                          --build-arg HTTP_PROXY=${HTTP_PROXY} \
-                          --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
-                          --build-arg NO_PROXY=${NO_PROXY} \
-                          -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
-                    '''
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
                     sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
                 }
             }
@@ -186,6 +165,16 @@ EOL
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
                 ]) {
                     script {
+                        // Install sshpass if needed
+//                         sh '''
+//                             if ! command -v sshpass &> /dev/null; then
+//                                 echo "Installing sshpass..."
+//                                 apt-get update -y
+//                                 apt-get install -y sshpass
+//                             fi
+//                         '''
+
+                        // Deploy using password authentication
                         sh '''
                             set -e  # Exit on any error
 
@@ -245,10 +234,6 @@ docker ps -aq | xargs docker rm -f 2>/dev/null || true
 docker network prune -f || true
 
 echo "Pulling latest images..."
-# Add proxy to docker pull if needed
-export HTTP_PROXY="http://10.50.255.222:3128"
-export HTTPS_PROXY="http://10.50.255.222:3128"
-export NO_PROXY="localhost,127.0.0.1,.local"
 docker-compose pull
 
 echo "Starting services..."
