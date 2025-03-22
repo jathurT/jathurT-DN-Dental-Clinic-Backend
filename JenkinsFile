@@ -37,7 +37,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests --no-transfer-progress'
+                sh '../mvnw clean package -DskipTests --no-transfer-progress -Dhttp.proxyHost=10.50.225.222 -Dhttp.proxyPort=3128 -Dhttps.proxyHost=10.50.225.222 -Dhttps.proxyPort=3128'
             }
         }
 
