@@ -20,10 +20,11 @@ public class CorsConfig {
     CorsConfiguration configuration = new CorsConfiguration();
     List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
     configuration.setAllowedOrigins(allowedOriginsList);
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+    configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
     configuration.setAllowCredentials(true);
     configuration.setExposedHeaders(List.of("Authorization"));
+    configuration.setMaxAge(3600L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
 
