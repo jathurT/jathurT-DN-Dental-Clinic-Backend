@@ -15,7 +15,6 @@ import com.uor.eng.security.response.UserInfoResponse;
 import com.uor.eng.security.services.UserDetailsImpl;
 import com.uor.eng.service.PasswordResetService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -25,6 +24,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -37,30 +37,33 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-  @Autowired
-  private JwtUtils jwtUtils;
+  private final JwtUtils jwtUtils;
+  private final AuthenticationManager authenticationManager;
+  private final UserRepository userRepository;
+  private final RoleRepository roleRepository;
+  private final PasswordEncoder encoder;
+  private final PasswordResetService passwordResetService;
 
-  @Autowired
-  private AuthenticationManager authenticationManager;
-
-  @Autowired
-  private UserRepository userRepository;
-
-  @Autowired
-  private RoleRepository roleRepository;
-
-  @Autowired
-  private PasswordEncoder encoder;
-
-  @Autowired
-  private PasswordResetService passwordResetService;
+  public AuthController(JwtUtils jwtUtils,
+                        AuthenticationManager authenticationManager,
+                        UserRepository userRepository,
+                        RoleRepository roleRepository,
+                        PasswordEncoder encoder,
+                        PasswordResetService passwordResetService) {
+    this.jwtUtils = jwtUtils;
+    this.authenticationManager = authenticationManager;
+    this.userRepository = userRepository;
+    this.roleRepository = roleRepository;
+    this.encoder = encoder;
+    this.passwordResetService = passwordResetService;
+  }
 
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
     Authentication authentication;
     try {
       authentication = authenticationManager
-          .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUserNameOrEmail(), loginRequest.getPassword()));
+              .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUserNameOrEmail(), loginRequest.getPassword()));
     } catch (AuthenticationException exception) {
       Map<String, Object> map = new HashMap<>();
       map.put("message", "Bad credentials");
@@ -75,15 +78,15 @@ public class AuthController {
     ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
     List<String> roles = userDetails.getAuthorities().stream()
-        .map(item -> item.getAuthority())
-        .collect(Collectors.toList());
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
 
     UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-        userDetails.getUsername(), roles, jwtCookie.toString());
+            userDetails.getUsername(), roles, jwtCookie.toString());
 
     return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
-            jwtCookie.toString())
-        .body(response);
+                    jwtCookie.toString())
+            .body(response);
   }
 
   @PostMapping("/signup")
@@ -97,34 +100,34 @@ public class AuthController {
     }
 
     User user = new User(signUpRequest.getUsername(),
-        signUpRequest.getEmail(),
-        encoder.encode(signUpRequest.getPassword()));
+            signUpRequest.getEmail(),
+            encoder.encode(signUpRequest.getPassword()));
 
     Set<String> strRoles = signUpRequest.getRole();
     Set<Role> roles = new HashSet<>();
 
     if (strRoles == null) {
       Role receiptionistRole = roleRepository.findByRoleName(AppRole.ROLE_RECEPTIONIST)
-          .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
       roles.add(receiptionistRole);
     } else {
       strRoles.forEach(role -> {
         switch (role) {
           case "admin":
             Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(adminRole);
 
             break;
           case "doctor":
             Role doctorRole = roleRepository.findByRoleName(AppRole.ROLE_DENTIST)
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(doctorRole);
 
             break;
           default:
             Role receiptionistRole = roleRepository.findByRoleName(AppRole.ROLE_RECEPTIONIST)
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(receiptionistRole);
         }
       });
@@ -138,8 +141,8 @@ public class AuthController {
   public ResponseEntity<?> signoutUser() {
     ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
     return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
-            cookie.toString())
-        .body(new MessageResponse("You've been signed out!"));
+                    cookie.toString())
+            .body(new MessageResponse("You've been signed out!"));
   }
 
   @GetMapping("/user")
@@ -149,10 +152,10 @@ public class AuthController {
     }
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
     List<String> roles = userDetails.getAuthorities().stream()
-        .map(item -> item.getAuthority())
-        .collect(Collectors.toList());
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
     UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-        userDetails.getUsername(), roles);
+            userDetails.getUsername(), roles);
 
     return ResponseEntity.ok().body(response);
   }
