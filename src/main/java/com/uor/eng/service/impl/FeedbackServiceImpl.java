@@ -16,11 +16,13 @@ import java.util.stream.Collectors;
 @Service
 public class FeedbackServiceImpl implements IFeedbackService {
 
-  @Autowired
-  private FeedbackRepository feedbackRepository;
+  private final FeedbackRepository feedbackRepository;
+  private final ModelMapper modelMapper;
 
-  @Autowired
-  private ModelMapper modelMapper;
+  public FeedbackServiceImpl(FeedbackRepository feedbackRepository, ModelMapper modelMapper) {
+    this.feedbackRepository = feedbackRepository;
+    this.modelMapper = modelMapper;
+  }
 
   @Override
   public FeedbackDTO saveFeedback(Feedback feedback) {

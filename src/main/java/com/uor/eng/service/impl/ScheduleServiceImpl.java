@@ -17,7 +17,6 @@ import com.uor.eng.service.IScheduleService;
 import com.uor.eng.util.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,28 +27,32 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @Slf4j
 public class ScheduleServiceImpl implements IScheduleService {
 
-  @Autowired
-  private ScheduleRepository scheduleRepository;
+  private final ScheduleRepository scheduleRepository;
+  private final ModelMapper modelMapper;
+  private final DentistRepository dentistRepository;
+  private final EmailService emailService;
+  private final BookingRepository bookingRepository;
 
-  @Autowired
-  private ModelMapper modelMapper;
-
-  @Autowired
-  private DentistRepository dentistRepository;
-
-  @Autowired
-  private EmailService emailService;
-
-  @Autowired
-  private BookingRepository bookingRepository;
+  public ScheduleServiceImpl(ScheduleRepository scheduleRepository,
+                             ModelMapper modelMapper,
+                             DentistRepository dentistRepository,
+                             EmailService emailService,
+                             BookingRepository bookingRepository) {
+    this.scheduleRepository = scheduleRepository;
+    this.modelMapper = modelMapper;
+    this.dentistRepository = dentistRepository;
+    this.emailService = emailService;
+    this.bookingRepository = bookingRepository;
+  }
 
   @Override
   @Transactional
@@ -66,19 +69,19 @@ public class ScheduleServiceImpl implements IScheduleService {
 
     Long dentistId = scheduleDTO.getDentistId();
     Dentist dentist = dentistRepository.findById(dentistId)
-        .orElseThrow(() -> new BadRequestException("Dentist with ID " + dentistId + " not found."));
+            .orElseThrow(() -> new BadRequestException("Dentist with ID " + dentistId + " not found."));
 
     ScheduleStatus status;
     try {
       status = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+              ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
 
     if (status == ScheduleStatus.FINISHED || status == ScheduleStatus.CANCELLED || status == ScheduleStatus.FULL) {
       throw new BadRequestException("Cannot create a schedule with status " + status +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE");
+              ". Allowed statuses: AVAILABLE, UNAVAILABLE");
     }
 
     Schedule schedule = new Schedule();
@@ -116,7 +119,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Override
   public ScheduleResponseDTO getScheduleById(Long id) {
     Schedule schedule = scheduleRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
     return modelMapper.map(schedule, ScheduleResponseDTO.class);
   }
 
@@ -124,7 +127,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Transactional
   public void deleteSchedule(Long id) {
     Schedule schedule = scheduleRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
     if (schedule.getBookings() != null && !schedule.getBookings().isEmpty()) {
       throw new BadRequestException("Cannot delete schedule with ID " + id + " because it has bookings.");
     } else {
@@ -136,7 +139,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Transactional
   public ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO) {
     Schedule schedule = scheduleRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
     LocalDate date = scheduleDTO.getDate();
     if (date != null) {
       schedule.setDate(date);
@@ -147,7 +150,7 @@ public class ScheduleServiceImpl implements IScheduleService {
       updatedStatus = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+              ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
     scheduleUpdateTriggerActions(schedule, updatedStatus, scheduleDTO.getCapacity());
 
@@ -162,7 +165,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
     if (scheduleDTO.getDentistId() != null) {
       Dentist dentist = dentistRepository.findById(scheduleDTO.getDentistId())
-          .orElseThrow(() -> new BadRequestException("Dentist with ID " + scheduleDTO.getDentistId() + " not found."));
+              .orElseThrow(() -> new BadRequestException("Dentist with ID " + scheduleDTO.getDentistId() + " not found."));
       schedule.setDentist(dentist);
     }
     Schedule updatedSchedule = scheduleRepository.save(schedule);
@@ -175,7 +178,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   public List<ScheduleResponseDTO> getNextSevenSchedules() {
     LocalDate today = LocalDate.now();
     List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
-        today, ScheduleStatus.AVAILABLE
+            today, ScheduleStatus.AVAILABLE
     );
     if (schedules.isEmpty()) {
       throw new ResourceNotFoundException("No schedules found for the next 7 days.");
@@ -191,7 +194,7 @@ public class ScheduleServiceImpl implements IScheduleService {
   public List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom() {
     LocalDate today = LocalDate.now();
     List<Schedule> schedules = scheduleRepository.findTop7ByDateGreaterThanAndStatusOrderByDateAsc(
-        today, ScheduleStatus.AVAILABLE
+            today, ScheduleStatus.AVAILABLE
     );
     if (schedules.isEmpty()) {
       throw new ResourceNotFoundException("No schedules found for the next 7 days.");
@@ -242,13 +245,13 @@ public class ScheduleServiceImpl implements IScheduleService {
   @Transactional
   public ScheduleResponseDTO updateScheduleStatus(Long id, String status) {
     Schedule schedule = scheduleRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
     ScheduleStatus updatedStatus;
     try {
       updatedStatus = ScheduleStatus.valueOf(status.toUpperCase());
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BadRequestException("Invalid schedule status: " + status +
-          ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+              ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
     scheduleUpdateTriggerActions(schedule, updatedStatus, schedule.getCapacity());
     Schedule updatedSchedule = scheduleRepository.save(schedule);
@@ -267,12 +270,12 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
 
     return cancelledSchedules.getContent().stream()
-        .map(schedule -> CancelledScheduleResponse.builder()
-            .startTime(String.valueOf(schedule.getStartTime()))
-            .endTime(String.valueOf(schedule.getEndTime()))
-            .date(String.valueOf(schedule.getDate()))
-            .build())
-        .collect(Collectors.toList());
+            .map(schedule -> CancelledScheduleResponse.builder()
+                    .startTime(String.valueOf(schedule.getStartTime()))
+                    .endTime(String.valueOf(schedule.getEndTime()))
+                    .date(String.valueOf(schedule.getDate()))
+                    .build())
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -285,13 +288,13 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
 
     return upcomingSchedules.getContent().stream()
-        .map(schedule -> UpcomingScheduleResponse.builder()
-            .startTime(String.valueOf(schedule.getStartTime()))
-            .endTime(String.valueOf(schedule.getEndTime()))
-            .date(String.valueOf(schedule.getDate()))
-            .appointmentCount(schedule.getBookings().size())
-            .build())
-        .collect(Collectors.toList());
+            .map(schedule -> UpcomingScheduleResponse.builder()
+                    .startTime(String.valueOf(schedule.getStartTime()))
+                    .endTime(String.valueOf(schedule.getEndTime()))
+                    .date(String.valueOf(schedule.getDate()))
+                    .appointmentCount(schedule.getBookings().size())
+                    .build())
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -300,13 +303,13 @@ public class ScheduleServiceImpl implements IScheduleService {
     LocalDate startDate = today.minusDays(89);
 
     List<Schedule> scheduleHistory = scheduleRepository.findByDateBetweenAndStatusNot(
-        startDate, today, ScheduleStatus.AVAILABLE);
+            startDate, today, ScheduleStatus.AVAILABLE);
 
     Map<LocalDate, Integer> bookingCountByDate = scheduleHistory.stream()
-        .collect(Collectors.groupingBy(
-            Schedule::getDate,
-            Collectors.summingInt(schedule -> schedule.getBookings().size())
-        ));
+            .collect(Collectors.groupingBy(
+                    Schedule::getDate,
+                    Collectors.summingInt(schedule -> schedule.getBookings().size())
+            ));
 
     List<ScheduleHistoryResponse> result = new ArrayList<>();
     for (int i = 0; i < 90; i++) {
@@ -331,9 +334,7 @@ public class ScheduleServiceImpl implements IScheduleService {
       });
     } else if (updatedStatus == ScheduleStatus.FINISHED) {
       schedule.setAvailableSlots(0);
-      bookings.forEach(booking -> {
-        booking.setStatus(BookingStatus.FINISHED);
-      });
+      bookings.forEach(booking -> booking.setStatus(BookingStatus.FINISHED));
     } else if (updatedStatus == ScheduleStatus.FULL) {
       schedule.setAvailableSlots(0);
     } else if (updatedStatus == ScheduleStatus.ACTIVE) {
@@ -350,7 +351,7 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   private Schedule getSchedule(Long scheduleId) {
     return scheduleRepository.findById(scheduleId)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
   }
 
   private BookingResponseDTO mapToResponse(Booking booking) {
@@ -358,15 +359,15 @@ public class ScheduleServiceImpl implements IScheduleService {
     Long scheduleId = booking.getSchedule().getId();
     Schedule schedule = getSchedule(scheduleId);
     BookingResponseDTO.builder()
-        .scheduleId(scheduleId)
-        .scheduleDate(schedule.getDate())
-        .scheduleDayOfWeek(schedule.getDayOfWeek())
-        .scheduleStartTime(schedule.getStartTime())
-        .doctorName(schedule.getDentist().getFirstName())
-        .scheduleStatus(schedule.getStatus())
-        .dayOfWeek(schedule.getDayOfWeek())
-        .status(booking.getStatus())
-        .build();
+            .scheduleId(scheduleId)
+            .scheduleDate(schedule.getDate())
+            .scheduleDayOfWeek(schedule.getDayOfWeek())
+            .scheduleStartTime(schedule.getStartTime())
+            .doctorName(schedule.getDentist().getFirstName())
+            .scheduleStatus(schedule.getStatus())
+            .dayOfWeek(schedule.getDayOfWeek())
+            .status(booking.getStatus())
+            .build();
     return bookingResponseDTO;
   }
 }

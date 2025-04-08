@@ -14,8 +14,11 @@ import java.util.List;
 @RequestMapping("/api/patients")
 public class PatientLogController {
 
-  @Autowired
-  private PatientLogService patientLogService;
+  private final PatientLogService patientLogService;
+
+  public PatientLogController(PatientLogService patientLogService) {
+    this.patientLogService = patientLogService;
+  }
 
   @PostMapping("/{patientId}/logs")
   public ResponseEntity<PatientLogResponse> createPatientLog(

@@ -2,7 +2,6 @@ package com.uor.eng.controller;
 
 import com.uor.eng.payload.other.ContactDTO;
 import com.uor.eng.service.IContactService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +12,11 @@ import java.util.List;
 @RequestMapping("/api/contacts")
 public class ContactController {
 
-  @Autowired
-  private IContactService contactService;
+  private final IContactService contactService;
+
+  public ContactController(IContactService contactService) {
+    this.contactService = contactService;
+  }
 
   @PostMapping("/submit")
   public ResponseEntity<ContactDTO> submitContact(@RequestBody ContactDTO contactDTO) {

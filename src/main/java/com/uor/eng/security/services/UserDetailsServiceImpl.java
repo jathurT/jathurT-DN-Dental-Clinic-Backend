@@ -3,7 +3,6 @@ package com.uor.eng.security.services;
 import com.uor.eng.model.User;
 import com.uor.eng.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,8 +13,11 @@ import java.util.Optional;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-  @Autowired
-  private UserRepository userRepository;
+  private final UserRepository userRepository;
+
+  public UserDetailsServiceImpl(UserRepository userRepository) {
+    this.userRepository = userRepository;
+  }
 
   @Override
   @Transactional
@@ -27,7 +29,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     User user = userOpt.orElseThrow(() ->
-        new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
+            new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
 
     return UserDetailsImpl.build(user);
   }

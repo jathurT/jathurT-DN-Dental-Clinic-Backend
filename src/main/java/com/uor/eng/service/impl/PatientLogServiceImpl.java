@@ -13,7 +13,6 @@ import com.uor.eng.repository.PatientRepository;
 import com.uor.eng.service.PatientLogService;
 import com.uor.eng.util.S3Service;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,30 +25,33 @@ import java.util.Optional;
 @Service
 public class PatientLogServiceImpl implements PatientLogService {
 
-  @Autowired
-  private PatientRepository patientRepository;
+  private final PatientRepository patientRepository;
+  private final PatientLogRepository patientLogRepository;
+  private final PatientLogPhotoRepository patientLogPhotoRepository;
+  private final DentistRepository dentistRepository;
+  private final S3Service s3Service;
 
-  @Autowired
-  private PatientLogRepository patientLogRepository;
-
-  @Autowired
-  private PatientLogPhotoRepository patientLogPhotoRepository;
-
-  @Autowired
-  private DentistRepository dentistRepository;
-
-  @Autowired
-  private S3Service s3Service;
+  public PatientLogServiceImpl(PatientRepository patientRepository,
+                               PatientLogRepository patientLogRepository,
+                               PatientLogPhotoRepository patientLogPhotoRepository,
+                               DentistRepository dentistRepository,
+                               S3Service s3Service) {
+    this.patientRepository = patientRepository;
+    this.patientLogRepository = patientLogRepository;
+    this.patientLogPhotoRepository = patientLogPhotoRepository;
+    this.dentistRepository = dentistRepository;
+    this.s3Service = s3Service;
+  }
 
   @Transactional
   @Override
   public PatientLogResponse createPatientLog(Long patientId, @Valid PatientLogRequestNoPhotos request) {
 
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     Dentist dentist = dentistRepository.findById(request.getDentistId())
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + request.getDentistId()));
+            .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + request.getDentistId()));
 
     PatientLog patientLog = new PatientLog();
     patientLog.setPatient(patient);
@@ -65,7 +67,7 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public List<PatientLogResponse> getPatientLogs(Long patientId) {
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     List<PatientLog> patientLogs = patientLogRepository.findByPatientId(patient.getId());
     List<PatientLogResponse> responses = new ArrayList<>();
@@ -94,10 +96,10 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public PatientLogResponse getPatientLog(Long patientId, Long logId) {
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
     List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientId(patientLog.getId());
     List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
@@ -118,10 +120,10 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public void deletePatientLog(Long patientId, Long logId) {
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
     List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientLogId(patientLog.getId());
     for (PatientLogPhoto photo : photos) {
@@ -136,8 +138,8 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public PatientLogResponse updatePatientLog(Long patientId, Long logId, PatientLogUpdateRequest request) {
     PatientLog log = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patientId)
-        .orElseThrow(() -> new ResourceNotFoundException(
-            "PatientLog not found with id: " + logId + " for patient id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "PatientLog not found with id: " + logId + " for patient id: " + patientId));
 
     if (request.getActionType() != null && !request.getActionType().isBlank()) {
       log.setActionType(request.getActionType());
@@ -193,10 +195,10 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public List<PatientLogPhotoResponse> associatePhotosWithLog(Long patientId, Long logId, AssociatePhotosRequest request) {
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
     List<String> s3Keys = request.getS3Keys();
     List<String> descriptions = request.getDescriptions();
@@ -238,10 +240,10 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   public List<PatientLogPhotoResponse> getPhotos(Long patientId, Long logId) {
     Patient patient = patientRepository.findById(patientId)
-        .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+            .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
     List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientLogId(patientLog.getId());
     List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();

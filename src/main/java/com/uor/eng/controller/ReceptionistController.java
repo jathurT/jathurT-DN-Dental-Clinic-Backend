@@ -15,8 +15,11 @@ import java.util.List;
 @RequestMapping("/api/receptionist")
 public class ReceptionistController {
 
-  @Autowired
-  private IReceptionistService receptionistService;
+  private final IReceptionistService receptionistService;
+
+  public ReceptionistController(IReceptionistService receptionistService) {
+    this.receptionistService = receptionistService;
+  }
 
   @PostMapping("/create")
   public ResponseEntity<ReceptionistResponseDTO> createDentist(@Valid @RequestBody CreateReceptionistDTO receptionistDTO) {

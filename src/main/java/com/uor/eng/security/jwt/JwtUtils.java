@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
 import java.security.Key;
-import java.util.Base64;
 import java.util.Date;
 
 @Component
@@ -52,25 +51,23 @@ public class JwtUtils {
 
   public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
     String jwt = generateTokenFromUsername(userPrincipal.getUsername());
-    ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwt)
+    return ResponseCookie.from(jwtCookie, jwt)
         .path("/")
         .maxAge(24 * 60 * 60)
         .httpOnly(true)
         .secure(false)
         .sameSite("Lax")
         .build();
-    return cookie;
   }
 
   public ResponseCookie getCleanJwtCookie() {
-    ResponseCookie cookie = ResponseCookie.from(jwtCookie, "")
+    return ResponseCookie.from(jwtCookie, "")
         .path("/")
         .maxAge(0)
         .httpOnly(true)
         .secure(false)
         .sameSite("Lax")
         .build();
-    return cookie;
   }
 
   public String getUserNameFromJwtToken(String token) {

@@ -1,14 +1,13 @@
 package com.uor.eng.service.impl;
 
+import com.uor.eng.exceptions.BadRequestException;
+import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.Contact;
 import com.uor.eng.payload.other.ContactDTO;
 import com.uor.eng.repository.ContactRepository;
 import com.uor.eng.service.IContactService;
-import com.uor.eng.exceptions.ResourceNotFoundException;
-import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.util.EmailService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,14 +17,17 @@ import java.util.stream.Collectors;
 @Service
 public class ContactServiceImpl implements IContactService {
 
-  @Autowired
-  private ContactRepository contactRepository;
+  private final ContactRepository contactRepository;
+  private final ModelMapper modelMapper;
+  private final EmailService emailService;
 
-  @Autowired
-  private ModelMapper modelMapper;
-
-  @Autowired
-  private EmailService emailService;
+  public ContactServiceImpl(ContactRepository contactRepository,
+                            ModelMapper modelMapper,
+                            EmailService emailService) {
+    this.contactRepository = contactRepository;
+    this.modelMapper = modelMapper;
+    this.emailService = emailService;
+  }
 
   @Override
   @Transactional
@@ -70,7 +72,7 @@ public class ContactServiceImpl implements IContactService {
   public void sendReply(Long id, String reply) {
     Contact contact = contactRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Contact with ID " + id + " not found. Please check the ID and try again."));
-    ContactDTO contactDTO=modelMapper.map(contact, ContactDTO.class);
-    emailService.sendResponseForContactUs(contactDTO,reply);
+    ContactDTO contactDTO = modelMapper.map(contact, ContactDTO.class);
+    emailService.sendResponseForContactUs(contactDTO, reply);
   }
 }

@@ -1,6 +1,5 @@
 package com.uor.eng.repository;
 
-import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.model.ScheduleStatus;
 import org.springframework.data.domain.Page;

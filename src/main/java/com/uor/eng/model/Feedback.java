@@ -1,17 +1,10 @@
 package com.uor.eng.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import javax.xml.transform.Source;
 
 @Entity
 @Table(name = "feedbacks")
@@ -41,7 +34,7 @@ public class Feedback {
 
   private Boolean showOnWebsite = false;
 
-  public Feedback(Long id,String name, String email, Integer rating, String comments) {
+  public Feedback(Long id, String name, String email, Integer rating, String comments) {
     this.id = id;
     this.name = name;
     this.email = email;

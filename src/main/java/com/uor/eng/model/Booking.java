@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 public class Booking {
 
   @Id
-  @Column(nullable = false, unique = true, length = 255)
+  @Column(nullable = false, unique = true)
   private String referenceId;
 
   @Column(nullable = false)
@@ -69,7 +69,7 @@ public class Booking {
   @PrePersist
   public void prePersist() {
     if (this.referenceId == null || this.referenceId.isEmpty()) {
-      this.referenceId = generateRandomAlphanumeric(8);
+      this.referenceId = generateRandomAlphanumeric();
     }
     if (this.status == null) {
       this.status = BookingStatus.PENDING;
@@ -80,11 +80,11 @@ public class Booking {
   }
 
 
-  private String generateRandomAlphanumeric(int length) {
+  private String generateRandomAlphanumeric() {
     String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     StringBuilder referenceId = new StringBuilder();
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < 8; i++) {
       int index = (int) (Math.random() * characters.length());
       referenceId.append(characters.charAt(index));
     }
