@@ -25,6 +25,8 @@ pipeline {
         DEPLOY_ENV = "${params.DEPLOY_ENV ?: 'staging'}"
         SERVER_PORT = "${params.SERVER_PORT}"
         MYSQL_PORT = "${params.MYSQL_PORT}"
+        DOMAIN_NAME = "dndentalclinic.com.lk"
+        ADMIN_EMAIL = "ktmjathur2001@gmail.com"
     }
 
     stages {
@@ -78,8 +80,8 @@ SPRING_DATASOURCE_USERNAME=${DB_CREDENTIALS_USR}
 SPRING_DATASOURCE_PASSWORD=${DB_CREDENTIALS_PSW}
 SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
 SPRING_JPA_SHOW_SQL=false
-APP_CORS_ALLOWED_ORIGINS=http://13.234.48.30,http://localhost:3000
-APP_RESET_PASSWORD_LINK=http://myapp.com/reset-password
+APP_CORS_ALLOWED_ORIGINS=https://${DOMAIN_NAME},http://localhost:3000
+APP_RESET_PASSWORD_LINK=https://${DOMAIN_NAME}/reset-password
 SPRING_APP_JWTSECRET=${JWT_SECRET}
 SPRING_APP_JWTEXPIRATIONMS=86400000
 SPRING_APP_JWTCOOKIENAME=dn-dental-clinic
@@ -161,7 +163,9 @@ EOL
                     "REMOTE_USER=${EC2_USER}",
                     "REMOTE_HOST=${EC2_HOST}",
                     "DOCKER_USERNAME=${DOCKER_CREDENTIALS_USR}",
-                    "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}"
+                    "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}",
+                    "DOMAIN_NAME=${DOMAIN_NAME}",
+                    "ADMIN_EMAIL=${ADMIN_EMAIL}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
@@ -213,6 +217,119 @@ EOL
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/dashboards/"
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/datasources/"
 
+                            # Setup SSL Certificate
+                            echo "Setting up SSL for domain $DOMAIN_NAME..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash << 'EOF'
+# Install Certbot if not already installed
+sudo apt-get update
+sudo apt-get install -y certbot python3-certbot-nginx
+
+# Ensure Nginx is installed
+if ! command -v nginx &> /dev/null; then
+    sudo apt-get install -y nginx
+fi
+
+# Create Nginx configuration for the domain
+echo "Creating Nginx configuration for $DOMAIN_NAME..."
+sudo tee /etc/nginx/sites-available/$DOMAIN_NAME.conf > /dev/null << EON
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+EON
+
+# Create certbot directory
+sudo mkdir -p /var/www/certbot
+
+# Enable the site
+sudo ln -sf /etc/nginx/sites-available/$DOMAIN_NAME.conf /etc/nginx/sites-enabled/
+
+# Test Nginx configuration
+sudo nginx -t
+
+# Reload Nginx to apply the basic configuration
+sudo systemctl reload nginx
+
+# Run Certbot to obtain SSL certificate
+echo "Obtaining SSL certificate for $DOMAIN_NAME..."
+sudo certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email $ADMIN_EMAIL --redirect
+
+# Verify certificate
+if [ -d "/etc/letsencrypt/live/$DOMAIN_NAME" ]; then
+    echo "SSL certificate successfully installed for $DOMAIN_NAME"
+else
+    echo "Failed to obtain SSL certificate. Using self-signed certificate instead."
+    # Create self-signed certificate as fallback
+    sudo mkdir -p /etc/ssl/private
+    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/ssl/private/$DOMAIN_NAME.key \
+        -out /etc/ssl/certs/$DOMAIN_NAME.crt \
+        -subj "/CN=$DOMAIN_NAME" \
+        -addext "subjectAltName = DNS:$DOMAIN_NAME"
+
+    # Update Nginx config with self-signed certificate
+    sudo tee /etc/nginx/sites-available/$DOMAIN_NAME.conf > /dev/null << EON
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name $DOMAIN_NAME;
+
+    ssl_certificate /etc/ssl/certs/$DOMAIN_NAME.crt;
+    ssl_certificate_key /etc/ssl/private/$DOMAIN_NAME.key;
+
+    # Rest of your configuration...
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:$SERVER_PORT/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Grafana
+    location /grafana/ {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Root path
+    location / {
+        root /var/www/html;
+        try_files $uri $uri/ /index.html;
+        index index.html;
+    }
+}
+EON
+
+    sudo nginx -t && sudo systemctl reload nginx
+fi
+
+# Setup auto-renewal
+echo "Setting up SSL auto-renewal..."
+echo "0 3 * * * root certbot renew --quiet --deploy-hook 'systemctl reload nginx'" | sudo tee -a /etc/crontab > /dev/null
+EOF
+
                             # Deploy the application
                             echo "Deploying application..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash << 'EOF'
@@ -248,6 +365,56 @@ EOF
                 }
             }
         }
+
+        stage('Verify SSL') {
+            steps {
+                withEnv([
+                    "REMOTE_USER=${EC2_USER}",
+                    "REMOTE_HOST=${EC2_HOST}",
+                    "DOMAIN_NAME=${DOMAIN_NAME}"
+                ]) {
+                    sshagent(['ec2-ssh-key']) {
+                        sh '''
+                            echo "Verifying SSL certificate for ${DOMAIN_NAME}..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST bash << 'EOF'
+# Check if certificate exists
+if [ -d "/etc/letsencrypt/live/$DOMAIN_NAME" ]; then
+    echo "Certificate exists. Checking expiration:"
+    sudo certbot certificates --domain $DOMAIN_NAME
+
+    # Check certificate using OpenSSL
+    echo "Performing SSL connection test:"
+    CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN_NAME/cert.pem -noout -enddate | cut -d= -f2)
+    echo "Certificate expires on: $CERT_EXPIRY"
+
+    # Create a test page to verify SSL on frontend
+    echo "Creating SSL verification page..."
+    sudo mkdir -p /var/www/html
+    sudo tee /var/www/html/ssl-verify.html > /dev/null << 'EOH'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSL Verification</title>
+</head>
+<body>
+    <h1>SSL Certificate is working!</h1>
+    <p>Domain: $DOMAIN_NAME</p>
+    <p>Timestamp: $(date)</p>
+</body>
+</html>
+EOH
+    sudo chown -R www-data:www-data /var/www/html
+    echo "SSL verification page created at https://$DOMAIN_NAME/ssl-verify.html"
+else
+    echo "Certificate not found for $DOMAIN_NAME"
+    exit 1
+fi
+EOF
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
@@ -267,7 +434,7 @@ EOF
             }
         }
         success {
-            echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}"
+            echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST} with HTTPS enabled for ${DOMAIN_NAME}"
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"

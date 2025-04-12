@@ -42,49 +42,49 @@ public class JwtUtils {
 
   public String generateTokenFromUsername(String username) {
     return Jwts.builder()
-        .setSubject(username)
-        .signWith(key(), SignatureAlgorithm.HS512)
-        .setIssuedAt(new Date())
-        .setExpiration(new Date(new Date().getTime() + jwtExpirationMs))
-        .compact();
+            .setSubject(username)
+            .signWith(key(), SignatureAlgorithm.HS512)
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(new Date().getTime() + jwtExpirationMs))
+            .compact();
   }
 
   public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
     String jwt = generateTokenFromUsername(userPrincipal.getUsername());
     return ResponseCookie.from(jwtCookie, jwt)
-        .path("/")
-        .maxAge(24 * 60 * 60)
-        .httpOnly(true)
-        .secure(false)
-        .sameSite("Lax")
-        .build();
+            .path("/")
+            .maxAge(24 * 60 * 60)
+            .httpOnly(true)
+            .secure(true) // Changed to true for HTTPS
+            .sameSite("Strict") // Changed to Strict for better security
+            .build();
   }
 
   public ResponseCookie getCleanJwtCookie() {
     return ResponseCookie.from(jwtCookie, "")
-        .path("/")
-        .maxAge(0)
-        .httpOnly(true)
-        .secure(false)
-        .sameSite("Lax")
-        .build();
+            .path("/")
+            .maxAge(0)
+            .httpOnly(true)
+            .secure(true) // Changed to true for HTTPS
+            .sameSite("Strict") // Changed to Strict for better security
+            .build();
   }
 
   public String getUserNameFromJwtToken(String token) {
     return Jwts.parserBuilder()
-        .setSigningKey(key())
-        .build()
-        .parseClaimsJws(token)
-        .getBody()
-        .getSubject();
+            .setSigningKey(key())
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .getSubject();
   }
 
   public boolean validateJwtToken(String authToken) {
     try {
       Jwts.parserBuilder()
-          .setSigningKey(key())
-          .build()
-          .parseClaimsJws(authToken);
+              .setSigningKey(key())
+              .build()
+              .parseClaimsJws(authToken);
       return true;
     } catch (MalformedJwtException e) {
       log.error("Invalid JWT token: {}", e.getMessage());
