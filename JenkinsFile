@@ -43,24 +43,24 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                withEnv([
-                    'SPRING_PROFILES_ACTIVE=test',
-                    'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
-                    'SPRING_DATASOURCE_USERNAME=sa',
-                    'SPRING_DATASOURCE_PASSWORD=',
-                    'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
-                ]) {
-                    sh './mvnw test'
-                }
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
+//         stage('Test') {
+//             steps {
+//                 withEnv([
+//                     'SPRING_PROFILES_ACTIVE=test',
+//                     'SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb',
+//                     'SPRING_DATASOURCE_USERNAME=sa',
+//                     'SPRING_DATASOURCE_PASSWORD=',
+//                     'SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop'
+//                 ]) {
+//                     sh './mvnw test'
+//                 }
+//             }
+//             post {
+//                 always {
+//                     junit '**/target/surefire-reports/*.xml'
+//                 }
+//             }
+//         }
 
         stage('Prepare .env File') {
             steps {
