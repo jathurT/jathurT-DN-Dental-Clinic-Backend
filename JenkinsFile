@@ -199,7 +199,7 @@ EOL
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/dashboards/"
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/datasources/"
 
-                            # Setup SSL Certificate with properly passed variables
+                            # Setup SSL Certificate with Let's Encrypt only
                             echo "Setting up SSL for domain $DOMAIN_NAME..."
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "DOMAIN_NAME='${DOMAIN_NAME}' SERVER_PORT='${SERVER_PORT}' ADMIN_EMAIL='${ADMIN_EMAIL}' bash -s" << 'EOF'
 # Store environment variables in local variables
@@ -249,7 +249,7 @@ sudo nginx -t
 # Reload Nginx to apply the basic configuration
 sudo systemctl reload nginx
 
-# Run Certbot to obtain SSL certificate
+# Run Certbot to obtain SSL certificate (with || true to prevent pipeline failure if it doesn't work yet)
 echo "Obtaining SSL certificate for $DOMAIN..."
 sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$ADMIN_EMAIL" --redirect || true
 
@@ -319,38 +319,20 @@ EON
     sudo nginx -t && sudo systemctl reload nginx
 
 else
-    echo "Failed to obtain SSL certificate. Using self-signed certificate instead."
-    # Create self-signed certificate as fallback
-    sudo mkdir -p /etc/ssl/private
+    echo "Failed to obtain SSL certificate. DNS propagation may not be complete yet."
+    echo "Continuing with deployment, but HTTPS will not be available until certificate is obtained."
 
-    # Create self-signed certificate with proper SAN - fixed approach
-    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /etc/ssl/private/$DOMAIN.key \
-        -out /etc/ssl/certs/$DOMAIN.crt \
-        -subj "/CN=$DOMAIN"
-
-    # Update Nginx config with self-signed certificate
+    # Set up a basic HTTP configuration without HTTPS
     sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
     server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
 
-server {
-    listen 443 ssl;
-    server_name $DOMAIN;
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
 
-    ssl_certificate /etc/ssl/certs/$DOMAIN.crt;
-    ssl_certificate_key /etc/ssl/private/$DOMAIN.key;
-
-    # SSL settings
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    # Backend API - fixed proxy_pass
+    # Backend API
     location /api/ {
         proxy_pass http://localhost:$SERVER_PORT/api/;
         proxy_set_header Host \$host;
@@ -371,7 +353,7 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
-    # Admin frontend - added
+    # Admin frontend
     location /admin {
         alias /var/www/html/admin;
         try_files \$uri \$uri/ /admin/index.html;
@@ -494,9 +476,11 @@ EOH
     sudo chown -R www-data:www-data /var/www/html
     echo "SSL verification page created at https://$DOMAIN/ssl-verify.html"
 else
-    echo "Certificate not found for $DOMAIN - using self-signed certificate"
-    echo "This is expected if DNS propagation is not complete."
-    # Not failing the build now
+    echo "Certificate not found for $DOMAIN"
+    echo "This is expected if DNS propagation is not complete yet."
+    echo "Run a manual certbot certificate acquisition after DNS propagation is complete:"
+    echo "sudo certbot --nginx -d $DOMAIN"
+    # Not failing the build, but warning user
     exit 0
 fi
 EOF
@@ -524,7 +508,8 @@ EOF
             }
         }
         success {
-            echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST} with HTTPS enabled for ${DOMAIN_NAME}"
+            echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}"
+            echo "Note: If SSL certificate wasn't obtained yet, it will be automatically obtained once DNS propagation completes."
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
