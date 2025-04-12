@@ -2,7 +2,6 @@ package com.uor.eng.payload.schedule;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.uor.eng.model.Booking;
-import com.uor.eng.payload.booking.BookingResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

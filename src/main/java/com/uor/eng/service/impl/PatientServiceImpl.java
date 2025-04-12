@@ -25,14 +25,17 @@ import java.util.stream.Collectors;
 @Service
 public class PatientServiceImpl implements IPatientService {
 
-  @Autowired
-  private ModelMapper modelMapper;
+  private final ModelMapper modelMapper;
+  private final PatientRepository patientRepository;
+  private final S3Service s3Service;
 
-  @Autowired
-  private PatientRepository patientRepository;
-
-  @Autowired
-  private S3Service s3Service;
+  public PatientServiceImpl(ModelMapper modelMapper,
+                            PatientRepository patientRepository,
+                            S3Service s3Service) {
+    this.modelMapper = modelMapper;
+    this.patientRepository = patientRepository;
+    this.s3Service = s3Service;
+  }
 
   @Override
   @Transactional

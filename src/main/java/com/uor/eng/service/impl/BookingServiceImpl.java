@@ -15,12 +15,11 @@ import com.uor.eng.service.IBookingService;
 import com.uor.eng.util.EmailService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
-import org.springframework.transaction.annotation.Transactional;
 import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,26 +29,30 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookingServiceImpl implements IBookingService {
-  @Autowired
-  private Counter createBookingCounter;
 
-  @Autowired
-  private Counter createBookingErrorCounter;
+  private final Counter createBookingCounter;
+  private final Counter createBookingErrorCounter;
+  private final Timer createBookingTimer;
+  private final BookingRepository bookingRepository;
+  private final ModelMapper modelMapper;
+  private final ScheduleRepository scheduleRepository;
+  private final EmailService emailService;
 
-  @Autowired
-  private Timer createBookingTimer;
-
-  @Autowired
-  private BookingRepository bookingRepository;
-
-  @Autowired
-  private ModelMapper modelMapper;
-
-  @Autowired
-  private ScheduleRepository scheduleRepository;
-
-  @Autowired
-  private EmailService emailService;
+  public BookingServiceImpl(Counter createBookingCounter,
+                            Counter createBookingErrorCounter,
+                            Timer createBookingTimer,
+                            BookingRepository bookingRepository,
+                            ModelMapper modelMapper,
+                            ScheduleRepository scheduleRepository,
+                            EmailService emailService) {
+    this.createBookingCounter = createBookingCounter;
+    this.createBookingErrorCounter = createBookingErrorCounter;
+    this.createBookingTimer = createBookingTimer;
+    this.bookingRepository = bookingRepository;
+    this.modelMapper = modelMapper;
+    this.scheduleRepository = scheduleRepository;
+    this.emailService = emailService;
+  }
 
   @Override
   @Transactional

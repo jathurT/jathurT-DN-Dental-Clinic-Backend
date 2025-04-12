@@ -12,7 +12,6 @@ import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
 import com.uor.eng.service.IReceptionistService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,20 +24,23 @@ import java.util.stream.Collectors;
 @Service
 public class ReceptionistServiceImpl implements IReceptionistService {
 
-  @Autowired
-  private UserRepository userRepository;
+  private final UserRepository userRepository;
+  private final ReceptionistRepository receptionistRepository;
+  private final ModelMapper modelMapper;
+  private final PasswordEncoder passwordEncoder;
+  private final RoleRepository roleRepository;
 
-  @Autowired
-  private ReceptionistRepository receptionistRepository;
-
-  @Autowired
-  private ModelMapper modelMapper;
-
-  @Autowired
-  private PasswordEncoder passwordEncoder;
-
-  @Autowired
-  private RoleRepository roleRepository;
+  public ReceptionistServiceImpl(UserRepository userRepository,
+                                 ReceptionistRepository receptionistRepository,
+                                 ModelMapper modelMapper,
+                                 PasswordEncoder passwordEncoder,
+                                 RoleRepository roleRepository) {
+    this.userRepository = userRepository;
+    this.receptionistRepository = receptionistRepository;
+    this.modelMapper = modelMapper;
+    this.passwordEncoder = passwordEncoder;
+    this.roleRepository = roleRepository;
+  }
 
   @Override
   @Transactional
@@ -55,7 +57,7 @@ public class ReceptionistServiceImpl implements IReceptionistService {
     receptionist.setPassword(passwordEncoder.encode(createReceptionistDTO.getPassword()));
 
     Role role = roleRepository.findByRoleName(AppRole.ROLE_RECEPTIONIST)
-        .orElseThrow(() -> new ResourceNotFoundException("Role ROLE_RECEPTIONIST not found."));
+            .orElseThrow(() -> new ResourceNotFoundException("Role ROLE_RECEPTIONIST not found."));
     receptionist.setRoles(Collections.singleton(role));
 
     Receptionist savedReceptionist = receptionistRepository.save(receptionist);
@@ -72,17 +74,17 @@ public class ReceptionistServiceImpl implements IReceptionistService {
       throw new ResourceNotFoundException("No receptionists found.");
     }
     return receptionists.stream()
-        .map(receptionist -> {
-          ReceptionistResponseDTO dto = modelMapper.map(receptionist, ReceptionistResponseDTO.class);
-          return getReceptionistResponseDTO(receptionist, dto);
-        }).collect(Collectors.toList());
+            .map(receptionist -> {
+              ReceptionistResponseDTO dto = modelMapper.map(receptionist, ReceptionistResponseDTO.class);
+              return getReceptionistResponseDTO(receptionist, dto);
+            }).collect(Collectors.toList());
   }
 
 
   @Override
   public ReceptionistResponseDTO getReceptionistById(Long id) {
     Receptionist receptionist = receptionistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
     ReceptionistResponseDTO dto = modelMapper.map(receptionist, ReceptionistResponseDTO.class);
     return getReceptionistResponseDTO(receptionist, dto);
   }
@@ -91,15 +93,15 @@ public class ReceptionistServiceImpl implements IReceptionistService {
   @Transactional
   public ReceptionistResponseDTO updateReceptionist(Long id, CreateReceptionistDTO updateReceptionistDTO) {
     Receptionist existingReceptionist = receptionistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id));
 
     if (!existingReceptionist.getUserName().equals(updateReceptionistDTO.getUserName()) &&
-        userRepository.existsByUserName(updateReceptionistDTO.getUserName())) {
+            userRepository.existsByUserName(updateReceptionistDTO.getUserName())) {
       throw new BadRequestException("Username is already taken!");
     }
 
     if (!existingReceptionist.getEmail().equals(updateReceptionistDTO.getEmail()) &&
-        userRepository.existsByEmail(updateReceptionistDTO.getEmail())) {
+            userRepository.existsByEmail(updateReceptionistDTO.getEmail())) {
       throw new BadRequestException("Email is already in use!");
     }
 
@@ -122,14 +124,14 @@ public class ReceptionistServiceImpl implements IReceptionistService {
   @Transactional
   public void deleteReceptionist(Long id) {
     Receptionist receptionist = receptionistRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id + " to delete."));
+            .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id + " to delete."));
     receptionistRepository.delete(receptionist);
   }
 
   private static ReceptionistResponseDTO getReceptionistResponseDTO(Receptionist receptionist, ReceptionistResponseDTO dto) {
     Set<String> roles = receptionist.getRoles().stream()
-        .map(roleEntity -> roleEntity.getRoleName().name())
-        .collect(Collectors.toSet());
+            .map(roleEntity -> roleEntity.getRoleName().name())
+            .collect(Collectors.toSet());
     dto.setRoles(roles);
     return dto;
   }

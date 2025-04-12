@@ -8,7 +8,6 @@ import com.uor.eng.repository.UserRepository;
 import com.uor.eng.security.jwt.AuthEntryPointJwt;
 import com.uor.eng.security.jwt.AuthTokenFilter;
 import com.uor.eng.security.services.UserDetailsServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +19,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,14 +33,17 @@ import java.util.Set;
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-  @Autowired
-  private UserDetailsServiceImpl userDetailsService;
+  private final UserDetailsServiceImpl userDetailsService;
+  private final AuthEntryPointJwt unauthorizedHandler;
+  private final CorsConfigurationSource corsConfigurationSource;
 
-  @Autowired
-  private AuthEntryPointJwt unauthorizedHandler;
-
-  @Autowired
-  private CorsConfigurationSource corsConfigurationSource;
+  public WebSecurityConfig(UserDetailsServiceImpl userDetailsService,
+                           AuthEntryPointJwt unauthorizedHandler,
+                           CorsConfigurationSource corsConfigurationSource) {
+    this.userDetailsService = userDetailsService;
+    this.unauthorizedHandler = unauthorizedHandler;
+    this.corsConfigurationSource = corsConfigurationSource;
+  }
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -63,33 +66,33 @@ public class WebSecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource))
-        .csrf(AbstractHttpConfigurer::disable)
-        .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth ->
-            auth.requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("/images/**").permitAll()
-                .requestMatchers("/api/bookings/create").permitAll()
-                .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
-                .requestMatchers("/api/schedules/{id}").permitAll()
-                .requestMatchers("/api/schedules/getSeven").permitAll()
-                .requestMatchers("/api/feedback/submit").permitAll()
-                .requestMatchers("/api/contacts/submit").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .anyRequest().authenticated()
-        );
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            .csrf(AbstractHttpConfigurer::disable)
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth ->
+                    auth.requestMatchers("/api/auth/**").permitAll()
+                            .requestMatchers("/v3/api-docs/**").permitAll()
+                            .requestMatchers("/swagger-ui/**").permitAll()
+                            .requestMatchers("/api/test/**").permitAll()
+                            .requestMatchers("/images/**").permitAll()
+                            .requestMatchers("/api/bookings/create").permitAll()
+                            .requestMatchers("/api/bookings/{referenceId}/{contactNumber}").permitAll()
+                            .requestMatchers("/api/schedules/{id}").permitAll()
+                            .requestMatchers("/api/schedules/getSeven").permitAll()
+                            .requestMatchers("/api/feedback/submit").permitAll()
+                            .requestMatchers("/api/contacts/submit").permitAll()
+                            .requestMatchers("/h2-console/**").permitAll()
+                            .requestMatchers("/actuator/**").permitAll()
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .anyRequest().authenticated()
+            );
 
     http.authenticationProvider(authenticationProvider());
 
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     http.headers(headers -> headers.frameOptions(
-        frameOptions -> frameOptions.sameOrigin()));
+            HeadersConfigurer.FrameOptionsConfig::sameOrigin));
 
     return http.build();
   }
@@ -102,12 +105,12 @@ public class WebSecurityConfig {
   @Bean
   public WebSecurityCustomizer webSecurityCustomizer() {
     return (web) -> web.ignoring().requestMatchers(
-        "/v2/api-docs",
-        "/configuration/ui",
-        "/swagger-resources/**",
-        "/configuration/security",
-        "/swagger-ui.html",
-        "/webjars/**"
+            "/v2/api-docs",
+            "/configuration/ui",
+            "/swagger-resources/**",
+            "/configuration/security",
+            "/swagger-ui.html",
+            "/webjars/**"
     );
   }
 
@@ -117,22 +120,22 @@ public class WebSecurityConfig {
     return args -> {
       // Retrieve or create roles
       Role doctorRole = roleRepository.findByRoleName(AppRole.ROLE_DENTIST)
-          .orElseGet(() -> {
-            Role newDoctorRole = new Role(AppRole.ROLE_DENTIST);
-            return roleRepository.save(newDoctorRole);
-          });
+              .orElseGet(() -> {
+                Role newDoctorRole = new Role(AppRole.ROLE_DENTIST);
+                return roleRepository.save(newDoctorRole);
+              });
 
       Role receiptoinistRole = roleRepository.findByRoleName(AppRole.ROLE_RECEPTIONIST)
-          .orElseGet(() -> {
-            Role newReceiptoinistRole = new Role(AppRole.ROLE_RECEPTIONIST);
-            return roleRepository.save(newReceiptoinistRole);
-          });
+              .orElseGet(() -> {
+                Role newReceiptoinistRole = new Role(AppRole.ROLE_RECEPTIONIST);
+                return roleRepository.save(newReceiptoinistRole);
+              });
 
       Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-          .orElseGet(() -> {
-            Role newAdminRole = new Role(AppRole.ROLE_ADMIN);
-            return roleRepository.save(newAdminRole);
-          });
+              .orElseGet(() -> {
+                Role newAdminRole = new Role(AppRole.ROLE_ADMIN);
+                return roleRepository.save(newAdminRole);
+              });
 
       Set<Role> doctorRoles = Set.of(doctorRole);
       Set<Role> receptionistRoles = Set.of(receiptoinistRole);

@@ -14,8 +14,11 @@ import java.util.List;
 @RequestMapping("/api/feedback")
 public class FeedbackController {
 
-  @Autowired
-  private IFeedbackService feedbackService;
+  private final IFeedbackService feedbackService;
+
+  public FeedbackController(IFeedbackService feedbackService) {
+    this.feedbackService = feedbackService;
+  }
 
   @PostMapping("/submit")
   public ResponseEntity<FeedbackDTO> submitFeedback(@Valid @RequestBody Feedback feedback) {

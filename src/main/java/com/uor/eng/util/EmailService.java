@@ -1,12 +1,10 @@
 package com.uor.eng.util;
 
 import com.uor.eng.exceptions.EmailSendingException;
-import com.uor.eng.model.Booking;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.other.ContactDTO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -25,8 +23,11 @@ import java.util.Map;
 @Service
 public class EmailService {
 
-  @Autowired
-  private JavaMailSender mailSender;
+  private final JavaMailSender mailSender;
+
+  public EmailService(JavaMailSender mailSender) {
+    this.mailSender = mailSender;
+  }
 
   @Value("${spring.mail.username}")
   private String fromEmail;

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PresignedUrlResponse {
+public class PresidedUrlResponse {
   private String url;
   private String key;
 }

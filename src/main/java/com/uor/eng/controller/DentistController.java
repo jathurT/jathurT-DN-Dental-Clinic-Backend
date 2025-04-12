@@ -5,7 +5,6 @@ import com.uor.eng.payload.dentist.DentistResponseDTO;
 import com.uor.eng.payload.dentist.UpdateDentistRequest;
 import com.uor.eng.service.IDentistService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,8 +16,11 @@ import java.util.List;
 @RequestMapping("/api/dentist")
 public class DentistController {
 
-  @Autowired
-  private IDentistService dentistService;
+  private final IDentistService dentistService;
+
+  public DentistController(IDentistService dentistService) {
+    this.dentistService = dentistService;
+  }
 
   @PostMapping("/create")
   public ResponseEntity<DentistResponseDTO> createDentist(@Valid @RequestBody CreateDentistDTO dentistDTO) {

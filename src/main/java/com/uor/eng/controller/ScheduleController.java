@@ -7,7 +7,6 @@ import com.uor.eng.payload.schedule.CreateScheduleDTO;
 import com.uor.eng.payload.schedule.ScheduleGetSevenCustomResponse;
 import com.uor.eng.payload.schedule.ScheduleResponseDTO;
 import com.uor.eng.service.IScheduleService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +17,11 @@ import java.util.List;
 @RequestMapping("/api/schedules")
 public class ScheduleController {
 
-  @Autowired
-  private IScheduleService scheduleService;
+  private final IScheduleService scheduleService;
+
+  public ScheduleController(IScheduleService scheduleService) {
+    this.scheduleService = scheduleService;
+  }
 
   @PostMapping("/create")
   public ResponseEntity<ScheduleResponseDTO> createSchedule(@RequestBody CreateScheduleDTO scheduleDTO) {

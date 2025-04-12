@@ -14,7 +14,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,17 +39,20 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   @Value("${app.reset-password-link}")
   private String resetPasswordLink;
 
-  @Autowired
-  private PasswordResetTokenRepository tokenRepository;
+  private final PasswordResetTokenRepository tokenRepository;
+  private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final JavaMailSender mailSender;
 
-  @Autowired
-  private UserRepository userRepository;
-
-  @Autowired
-  private PasswordEncoder passwordEncoder;
-
-  @Autowired
-  private JavaMailSender mailSender;
+  public PasswordResetServiceImpl(PasswordResetTokenRepository tokenRepository,
+                                  UserRepository userRepository,
+                                  PasswordEncoder passwordEncoder,
+                                  JavaMailSender mailSender) {
+    this.tokenRepository = tokenRepository;
+    this.userRepository = userRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.mailSender = mailSender;
+  }
 
   @Override
   @Transactional
@@ -60,7 +62,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     User user;
     try {
       user = userRepository.findByEmail(request.getEmail())
-          .orElseThrow(() -> new APIException("User with the given email does not exist"));
+              .orElseThrow(() -> new APIException("User with the given email does not exist"));
     } catch (APIException e) {
       log.warn("Password reset requested for non-existent email: {}", request.getEmail());
       throw new APIException("User with the given email does not exist");
@@ -118,9 +120,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
       String htmlTemplate = IOUtils.toString(templateResource.getInputStream(), StandardCharsets.UTF_8);
 
       String htmlContent = htmlTemplate
-          .replace("{{resetLink}}", resetLink)
-          .replace("{{expirationMinutes}}", String.valueOf(EXPIRATION_MINUTES))
-          .replace("{{currentYear}}", String.valueOf(LocalDate.now().getYear()));
+              .replace("{{resetLink}}", resetLink)
+              .replace("{{expirationMinutes}}", String.valueOf(EXPIRATION_MINUTES))
+              .replace("{{currentYear}}", String.valueOf(LocalDate.now().getYear()));
 
       MimeMessage mimeMessage = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -144,7 +146,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   public void resetPassword(ResetPasswordRequest request) {
     log.info("Resetting password for user with token: {}", request.getToken());
     PasswordResetToken resetToken = tokenRepository.findByToken(request.getToken())
-        .orElseThrow(() -> new APIException("Invalid password reset token"));
+            .orElseThrow(() -> new APIException("Invalid password reset token"));
 
     if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
       throw new APIException("Password reset token has expired");
