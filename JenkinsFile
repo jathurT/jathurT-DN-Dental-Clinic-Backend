@@ -10,6 +10,9 @@ pipeline {
         choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Select deployment environment')
         string(name: 'SERVER_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
         string(name: 'MYSQL_PORT', defaultValue: '3306', description: 'Port for MySQL to run on EC2')
+        // New parameter for Let's Encrypt environment selection
+        choice(name: 'LETSENCRYPT_ENV', choices: ['staging', 'production'],
+               description: 'Select Let\'s Encrypt environment (use staging to avoid rate limits during testing)')
     }
 
     environment {
@@ -27,6 +30,8 @@ pipeline {
         MYSQL_PORT = "${params.MYSQL_PORT}"
         DOMAIN_NAME = "dndentalclinic.com.lk"
         ADMIN_EMAIL = "ktmjathur2001@gmail.com"
+        // New environment variable for Let's Encrypt environment
+        LETSENCRYPT_ENV = "${params.LETSENCRYPT_ENV ?: 'staging'}"
     }
 
     stages {
@@ -147,7 +152,8 @@ EOL
                     "DOCKER_PASSWORD=${DOCKER_CREDENTIALS_PSW}",
                     "DOMAIN_NAME=${DOMAIN_NAME}",
                     "ADMIN_EMAIL=${ADMIN_EMAIL}",
-                    "SERVER_PORT=${SERVER_PORT}"
+                    "SERVER_PORT=${SERVER_PORT}",
+                    "LETSENCRYPT_ENV=${LETSENCRYPT_ENV}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
@@ -199,17 +205,19 @@ EOL
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/dashboards/"
                             ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "ls -la ~/app-deployment/grafana/provisioning/datasources/"
 
-                            # Setup SSL Certificate with Let's Encrypt only
-                            echo "Setting up SSL for domain $DOMAIN_NAME..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "DOMAIN_NAME='${DOMAIN_NAME}' SERVER_PORT='${SERVER_PORT}' ADMIN_EMAIL='${ADMIN_EMAIL}' bash -s" << 'EOF'
+                            # Setup SSL Certificate with Let's Encrypt
+                            echo "Setting up SSL for domain $DOMAIN_NAME using Let's Encrypt $LETSENCRYPT_ENV environment..."
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "DOMAIN_NAME='${DOMAIN_NAME}' SERVER_PORT='${SERVER_PORT}' ADMIN_EMAIL='${ADMIN_EMAIL}' LETSENCRYPT_ENV='${LETSENCRYPT_ENV}' bash -s" << 'EOF'
 # Store environment variables in local variables
 DOMAIN="${DOMAIN_NAME}"
 ADMIN_EMAIL="${ADMIN_EMAIL}"
 SERVER_PORT="${SERVER_PORT}"
+LETSENCRYPT_ENV="${LETSENCRYPT_ENV}"
 
 echo "Using domain: $DOMAIN"
 echo "Using admin email: $ADMIN_EMAIL"
 echo "Using server port: $SERVER_PORT"
+echo "Using Let's Encrypt environment: $LETSENCRYPT_ENV"
 
 # Install Certbot if not already installed
 sudo apt-get update
@@ -252,13 +260,30 @@ sudo nginx -t
 # Reload Nginx to apply the basic configuration
 sudo systemctl reload nginx
 
+# Configure certbot command based on the environment
+if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+    echo "Using Let's Encrypt STAGING environment to avoid rate limits"
+    CERTBOT_CMD="sudo certbot --nginx -d \"$DOMAIN\" --non-interactive --agree-tos --email \"$ADMIN_EMAIL\" --redirect --staging"
+else
+    echo "Using Let's Encrypt PRODUCTION environment"
+    CERTBOT_CMD="sudo certbot --nginx -d \"$DOMAIN\" --non-interactive --agree-tos --email \"$ADMIN_EMAIL\" --redirect"
+fi
+
 # Run Certbot to obtain SSL certificate (with || true to prevent pipeline failure if it doesn't work yet)
 echo "Obtaining SSL certificate for $DOMAIN..."
-sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$ADMIN_EMAIL" --redirect || true
+eval "$CERTBOT_CMD" || true
 
 # Verify certificate
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "SSL certificate successfully installed for $DOMAIN"
+
+    # Check if we're using a staging certificate and warn accordingly
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        echo "WARNING: You are using a Let's Encrypt STAGING certificate."
+        echo "These certificates are NOT trusted by browsers and will show security warnings."
+        echo "This is intentional to avoid hitting rate limits during testing."
+        echo "When ready for production, switch to LETSENCRYPT_ENV=production."
+    fi
 
     # Update the nginx config with our additional locations
     sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
@@ -316,12 +341,18 @@ server {
         try_files $uri $uri/ /index.html;
         index index.html;
     }
-}
 EON
 
     # Replace placeholders
     sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
     sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
+
+    # If using staging environment, add a visible warning banner to the NGINX configuration
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        # Insert a warning banner for staging certs at the beginning of the HTTPS server block
+        sudo sed -i '/server {/a\    # This server uses a Let\'s Encrypt STAGING certificate for testing.\n    # It is NOT secure for production use.' /etc/nginx/sites-available/$DOMAIN.conf
+        echo "Added warning to NGINX configuration about staging certificate"
+    fi
 
     sudo nginx -t && sudo systemctl reload nginx
 
@@ -449,14 +480,16 @@ EOF
                 withEnv([
                     "REMOTE_USER=${EC2_USER}",
                     "REMOTE_HOST=${EC2_HOST}",
-                    "DOMAIN_NAME=${DOMAIN_NAME}"
+                    "DOMAIN_NAME=${DOMAIN_NAME}",
+                    "LETSENCRYPT_ENV=${LETSENCRYPT_ENV}"
                 ]) {
                     sshagent(['ec2-ssh-key']) {
                         sh '''
                             echo "Verifying SSL certificate for ${DOMAIN_NAME}..."
-                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "DOMAIN_NAME='${DOMAIN_NAME}' bash -s" << 'EOF'
+                            ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "DOMAIN_NAME='${DOMAIN_NAME}' LETSENCRYPT_ENV='${LETSENCRYPT_ENV}' bash -s" << 'EOF'
 # Store domain in local variable
 DOMAIN="${DOMAIN_NAME}"
+LETSENCRYPT_ENV="${LETSENCRYPT_ENV}"
 
 # Check if certificate exists
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
@@ -468,6 +501,16 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
     echo "Certificate expires on: $CERT_EXPIRY"
 
+    # Detect if we're using a staging certificate
+    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
+    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
+        echo "WARNING: This is a Let's Encrypt STAGING certificate."
+        echo "It will not be trusted by browsers and will show security warnings."
+        echo "This is intentional during testing to avoid hitting rate limits."
+    else
+        echo "This is a Let's Encrypt PRODUCTION certificate."
+    fi
+
     # Create a test page to verify SSL on frontend
     echo "Creating SSL verification page..."
     sudo mkdir -p /var/www/html
@@ -476,21 +519,74 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
 <html>
 <head>
     <title>SSL Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        .warning { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 10px; margin: 20px 0; }
+        .success { background-color: #d4edda; border-left: 5px solid #28a745; padding: 10px; margin: 20px 0; }
+    </style>
 </head>
 <body>
-    <h1>SSL Certificate is working!</h1>
-    <p>Domain: $DOMAIN</p>
-    <p>Timestamp: $(date)</p>
+    <h1>SSL Certificate Verification</h1>
+    <p>Domain: DOMAIN_PLACEHOLDER</p>
+    <p>Timestamp: TIMESTAMP_PLACEHOLDER</p>
+
+    ENVIRONMENT_WARNING
+
+    <div class="success">
+        <h2>Connection Information:</h2>
+        <p>Your connection to this site is encrypted using SSL/TLS.</p>
+    </div>
 </body>
 </html>
 EOH
+
+    # Add environment warning if using staging
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        WARNING_HTML='<div class="warning">
+        <h2>⚠️ STAGING CERTIFICATE WARNING ⚠️</h2>
+        <p>This site is using a <strong>Let\'s Encrypt STAGING</strong> certificate for testing purposes.</p>
+        <p>Your browser will show security warnings because this certificate is not trusted.</p>
+        <p>This is expected behavior during development and testing.</p>
+    </div>'
+        sudo sed -i "s/ENVIRONMENT_WARNING/$WARNING_HTML/g" /var/www/html/ssl-verify.html
+    else
+        sudo sed -i "s/ENVIRONMENT_WARNING//g" /var/www/html/ssl-verify.html
+    fi
+
+    # Replace placeholders
+    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /var/www/html/ssl-verify.html
+    sudo sed -i "s/TIMESTAMP_PLACEHOLDER/$(date)/g" /var/www/html/ssl-verify.html
+
     sudo chown -R www-data:www-data /var/www/html
     echo "SSL verification page created at https://$DOMAIN/ssl-verify.html"
+
+    # Provide explicit instructions for manually checking the certificate
+    echo ""
+    echo "--------------------------------------------------------"
+    echo "TO VERIFY THE CERTIFICATE IN YOUR BROWSER:"
+    echo "--------------------------------------------------------"
+    echo "1. Visit https://$DOMAIN/ssl-verify.html"
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        echo "2. You WILL see a security warning (this is expected with staging certificates)"
+        echo "3. Proceed past the warning to verify the page loads"
+        echo "4. The page will show a warning banner indicating it's a staging certificate"
+    else
+        echo "2. Verify the connection is secure (look for the padlock icon)"
+        echo "3. The page should load without any security warnings"
+    fi
+    echo "--------------------------------------------------------"
+
 else
     echo "Certificate not found for $DOMAIN"
     echo "This is expected if DNS propagation is not complete yet."
     echo "Run a manual certbot certificate acquisition after DNS propagation is complete:"
-    echo "sudo certbot --nginx -d $DOMAIN"
+
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        echo "sudo certbot --nginx -d $DOMAIN --staging"
+    else
+        echo "sudo certbot --nginx -d $DOMAIN"
+    fi
+
     # Not failing the build, but warning user
     exit 0
 fi
@@ -498,6 +594,27 @@ EOF
                         '''
                     }
                 }
+            }
+        }
+
+        stage('Rate Limit Information') {
+            steps {
+                echo '''
+----------------------------------------------------------
+LET'S ENCRYPT RATE LIMIT INFORMATION
+----------------------------------------------------------
+When using the PRODUCTION environment, Let's Encrypt enforces the following limits:
+- Up to 5 certificates per exact set of hostnames every 7 days
+- Up to 50 certificates per registered domain every 7 days
+
+The STAGING environment has much higher limits:
+- Up to 30,000 certificates per exact set of hostnames every week
+- Up to 30,000 certificates per registered domain every second
+
+IMPORTANT: Staging certificates are NOT trusted by browsers and will show security warnings.
+Use staging for testing, and only switch to production for final deployment.
+----------------------------------------------------------
+'''
             }
         }
     }
@@ -519,8 +636,14 @@ EOF
             }
         }
         success {
-            echo "Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}"
-            echo "Note: If SSL certificate wasn't obtained yet, it will be automatically obtained once DNS propagation completes."
+            echo """
+Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}
+
+SSL CERTIFICATE INFORMATION:
+- Using Let's Encrypt ${LETSENCRYPT_ENV} environment
+- ${LETSENCRYPT_ENV == 'staging' ? 'WARNING: The staging certificate will not be trusted by browsers. This is expected during testing.' : 'The production certificate should be trusted by all browsers.'}
+- If SSL certificate wasn't obtained yet, it will be automatically obtained once DNS propagation completes.
+"""
         }
         failure {
             echo "Deployment to ${DEPLOY_ENV} failed"
