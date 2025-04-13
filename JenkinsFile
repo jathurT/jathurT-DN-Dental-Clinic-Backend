@@ -347,10 +347,10 @@ EON
     sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
     sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
 
-    # If using staging environment, add a visible warning banner to the NGINX configuration
+            # If using staging environment, add a visible warning banner to the NGINX configuration
     if [ "$LETSENCRYPT_ENV" = "staging" ]; then
         # Insert a warning banner for staging certs at the beginning of the HTTPS server block
-        sudo sed -i '/server {/a\    # This server uses a Let\'s Encrypt STAGING certificate for testing.\n    # It is NOT secure for production use.' /etc/nginx/sites-available/$DOMAIN.conf
+        sudo sed -i '/server {/a\\    # This server uses a Let'"'"'s Encrypt STAGING certificate for testing.\\n    # It is NOT secure for production use.' /etc/nginx/sites-available/$DOMAIN.conf
         echo "Added warning to NGINX configuration about staging certificate"
     fi
 
