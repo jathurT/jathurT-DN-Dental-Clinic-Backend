@@ -222,20 +222,23 @@ fi
 
 # Create Nginx configuration for the domain
 echo "Creating Nginx configuration for $DOMAIN..."
-sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
+        return 301 https://$host$request_uri;
     }
 }
 EON
+
+# Replace the placeholder with the actual domain
+sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
 
 # Create certbot directory
 sudo mkdir -p /var/www/certbot
@@ -258,20 +261,20 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "SSL certificate successfully installed for $DOMAIN"
 
     # Update the nginx config with our additional locations
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
 server {
     listen 80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
+    server_name DOMAIN_PLACEHOLDER;
+    return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
     # SSL configuration from LetsEncrypt
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
 
     # SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -281,40 +284,44 @@ server {
 
     # Backend API - fixed proxy_pass
     location /api/ {
-        proxy_pass http://localhost:$SERVER_PORT/api/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Grafana
     location /grafana/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     # Admin frontend - IMPORTANT: This should come before the root location
     location /admin {
         alias /var/www/html/admin;
-        try_files \$uri \$uri/ /admin/index.html;
+        try_files $uri $uri/ /admin/index.html;
         index index.html;
     }
 
     # User frontend (root path)
     location / {
         root /var/www/html;
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
         index index.html;
     }
 }
 EON
+
+    # Replace placeholders
+    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
+    sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
 
     sudo nginx -t && sudo systemctl reload nginx
 
@@ -323,10 +330,10 @@ else
     echo "Continuing with deployment, but HTTPS will not be available until certificate is obtained."
 
     # Set up a basic HTTP configuration without HTTPS
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -334,40 +341,44 @@ server {
 
     # Backend API
     location /api/ {
-        proxy_pass http://localhost:$SERVER_PORT/api/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Grafana
     location /grafana/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     # Admin frontend
     location /admin {
         alias /var/www/html/admin;
-        try_files \$uri \$uri/ /admin/index.html;
+        try_files $uri $uri/ /admin/index.html;
         index index.html;
     }
 
     # User frontend (root path)
     location / {
         root /var/www/html;
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
         index index.html;
     }
 }
 EON
+
+    # Replace placeholders
+    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
+    sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
 
     sudo nginx -t && sudo systemctl reload nginx
 fi
