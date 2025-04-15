@@ -1,8 +1,8 @@
 package com.uor.eng.util;
 
 import com.uor.eng.exceptions.FileStorageException;
-import com.uor.eng.payload.patient.logs.PresidedUrlRequest;
-import com.uor.eng.payload.patient.logs.PresidedUrlResponse;
+import com.uor.eng.payload.patient.logs.PresignedUrlRequest;
+import com.uor.eng.payload.patient.logs.PresignedUrlResponse;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -73,12 +73,12 @@ public class S3Service {
     return presignedRequest.url().toString();
   }
 
-  public PresidedUrlResponse generatePresignedUrl(PresidedUrlRequest request) {
+  public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
     String key = generateUniqueKey(request.getFileName());
 
     String url = generatePresignedUploadUrl(key, request.getContentType());
 
-    PresidedUrlResponse response = new PresidedUrlResponse();
+    PresignedUrlResponse response = new PresignedUrlResponse();
     response.setUrl(url);
     response.setKey(key);
 

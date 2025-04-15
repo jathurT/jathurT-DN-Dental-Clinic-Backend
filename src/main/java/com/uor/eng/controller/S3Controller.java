@@ -1,7 +1,7 @@
 package com.uor.eng.controller;
 
-import com.uor.eng.payload.patient.logs.PresidedUrlRequest;
-import com.uor.eng.payload.patient.logs.PresidedUrlResponse;
+import com.uor.eng.payload.patient.logs.PresignedUrlRequest;
+import com.uor.eng.payload.patient.logs.PresignedUrlResponse;
 import com.uor.eng.util.S3Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +22,8 @@ public class S3Controller {
   }
 
   @PostMapping("/generate-presigned-url")
-  public ResponseEntity<PresidedUrlResponse> generatePresignedUrl(@RequestBody PresidedUrlRequest request) {
-    PresidedUrlResponse response = s3Service.generatePresignedUrl(request);
+  public ResponseEntity<PresignedUrlResponse> generatePresignedUrl(@RequestBody PresignedUrlRequest request) {
+    PresignedUrlResponse response = s3Service.generatePresignedUrl(request);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
