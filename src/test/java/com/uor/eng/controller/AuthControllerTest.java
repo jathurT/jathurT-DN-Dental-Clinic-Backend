@@ -11,6 +11,7 @@ import com.uor.eng.repository.UserRepository;
 import com.uor.eng.security.jwt.JwtUtils;
 import com.uor.eng.security.request.LoginRequest;
 import com.uor.eng.security.request.SignupRequest;
+import com.uor.eng.security.response.UserInfoResponse;
 import com.uor.eng.security.services.UserDetailsImpl;
 import com.uor.eng.service.PasswordResetService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,9 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseCookie;
+import org.springframework.http.*;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -360,6 +360,52 @@ public class AuthControllerTest {
     // This test calls the method directly
     String username = authController.currentUserName(null).getBody();
     assertEquals("anonymousUser", username);
+  }
+
+  @Test
+  public void testGetUserDetails_WithAuthentication() {
+    // Directly test the getUserDetails method by passing an Authentication object
+    // This bypasses the security context entirely
+
+    // Arrange - We already have the authentication mock set up in the setup method
+    when(authentication.isAuthenticated()).thenReturn(true);
+    when(authentication.getPrincipal()).thenReturn(userDetails);
+
+    // Act
+    ResponseEntity<?> response = authController.getUserDetails(authentication);
+
+    // Assert
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertInstanceOf(UserInfoResponse.class, response.getBody());
+
+    UserInfoResponse userInfoResponse = (UserInfoResponse) response.getBody();
+    assertEquals(userDetails.getId(), userInfoResponse.getId());
+    assertEquals(userDetails.getUsername(), userInfoResponse.getUsername());
+    assertEquals(1, userInfoResponse.getRoles().size());
+    assertTrue(userInfoResponse.getRoles().contains(AppRole.ROLE_RECEPTIONIST.name()));
+  }
+
+  @Test
+  public void testGetUserDetails_WithUnauthenticatedUser() {
+    // Test with a non-authenticated user
+
+    // Arrange
+    when(authentication.isAuthenticated()).thenReturn(false);
+
+    // Act & Assert
+    Exception exception = assertThrows(AuthenticationCredentialsNotFoundException.class, () -> authController.getUserDetails(authentication));
+
+    assertEquals("No user is currently authenticated", exception.getMessage());
+  }
+
+  @Test
+  public void testGetUserDetails_WithNullAuthentication() {
+    // Test with null authentication
+
+    // Act & Assert
+    Exception exception = assertThrows(AuthenticationCredentialsNotFoundException.class, () -> authController.getUserDetails(null));
+
+    assertEquals("No user is currently authenticated", exception.getMessage());
   }
 
   @Test

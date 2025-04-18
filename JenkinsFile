@@ -10,9 +10,9 @@ pipeline {
         choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Select deployment environment')
         string(name: 'SERVER_PORT', defaultValue: '8081', description: 'Port for the application to run on EC2')
         string(name: 'MYSQL_PORT', defaultValue: '3306', description: 'Port for MySQL to run on EC2')
-        // New parameter for Let's Encrypt environment selection
         choice(name: 'LETSENCRYPT_ENV', choices: ['staging', 'production'],
                description: 'Select Let\'s Encrypt environment (use staging to avoid rate limits during testing)')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip running tests')
     }
 
     environment {
@@ -32,6 +32,8 @@ pipeline {
         ADMIN_EMAIL = "ktmjathur2001@gmail.com"
         // New environment variable for Let's Encrypt environment
         LETSENCRYPT_ENV = "${params.LETSENCRYPT_ENV ?: 'staging'}"
+        SONAR_PROJECT_KEY = "com.dndentalclinic:dndentalclinic"
+        SONAR_PROJECT_NAME = "dndentalclinic"
     }
 
     stages {
@@ -45,6 +47,50 @@ pipeline {
             steps {
                 sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests --no-transfer-progress'
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                sh './mvnw test --no-transfer-progress'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            environment {
+                SONAR_CREDENTIALS = credentials('sonar-token')
+            }
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        ./mvnw sonar:sonar \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=${SONAR_CREDENTIALS} \
+                        -Dsonar.java.coveragePlugin=jacoco \
+                        -Dsonar.junit.reportsPath=target/surefire-reports \
+                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+                        -Dsonar.java.binaries=target/classes \
+                        -Dsonar.sources=src/main/java
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
@@ -260,6 +306,30 @@ sudo nginx -t
 # Reload Nginx to apply the basic configuration
 sudo systemctl reload nginx
 
+# Check for existing certificate and its type
+CERTIFICATE_EXISTS=false
+IS_STAGING_CERT=false
+
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    CERTIFICATE_EXISTS=true
+    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
+    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
+        IS_STAGING_CERT=true
+    fi
+fi
+
+# Determine if we need to regenerate certificate
+REGENERATE_CERT=false
+
+# If we're switching from staging to production, regenerate
+if [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
+    echo "Detected existing staging certificate but production environment requested."
+    echo "Will remove staging certificate and generate production certificate."
+    sudo certbot delete --cert-name "$DOMAIN" --non-interactive
+    REGENERATE_CERT=true
+    CERTIFICATE_EXISTS=false
+fi
+
 # Configure certbot command based on the environment
 if [ "$LETSENCRYPT_ENV" = "staging" ]; then
     echo "Using Let's Encrypt STAGING environment to avoid rate limits"
@@ -269,20 +339,30 @@ else
     CERTBOT_CMD="sudo certbot --nginx -d \"$DOMAIN\" --non-interactive --agree-tos --email \"$ADMIN_EMAIL\" --redirect"
 fi
 
-# Run Certbot to obtain SSL certificate (with || true to prevent pipeline failure if it doesn't work yet)
-echo "Obtaining SSL certificate for $DOMAIN..."
-eval "$CERTBOT_CMD" || true
+# Run Certbot to obtain/renew SSL certificate if needed
+if [ "$CERTIFICATE_EXISTS" = false ] || [ "$REGENERATE_CERT" = true ]; then
+    echo "Obtaining SSL certificate for $DOMAIN..."
+    eval "$CERTBOT_CMD" || true
+else
+    echo "Certificate already exists for $DOMAIN - checking if renewal is needed..."
+    sudo certbot renew --nginx
+fi
 
 # Verify certificate
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "SSL certificate successfully installed for $DOMAIN"
 
     # Check if we're using a staging certificate and warn accordingly
-    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
+    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
         echo "WARNING: You are using a Let's Encrypt STAGING certificate."
         echo "These certificates are NOT trusted by browsers and will show security warnings."
         echo "This is intentional to avoid hitting rate limits during testing."
         echo "When ready for production, switch to LETSENCRYPT_ENV=production."
+        IS_STAGING_CERT=true
+    else
+        echo "Using a Let's Encrypt PRODUCTION certificate."
+        IS_STAGING_CERT=false
     fi
 
     # Update the nginx config with our additional locations
@@ -347,8 +427,8 @@ EON
     sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
     sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
 
-            # If using staging environment, add a visible warning banner to the NGINX configuration
-    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+    # If using staging environment, add a visible warning banner to the NGINX configuration
+    if [ "$IS_STAGING_CERT" = true ]; then
         # Insert a warning banner for staging certs at the beginning of the HTTPS server block
         sudo sed -i '/server {/a\\    # This server uses a Let'"'"'s Encrypt STAGING certificate for testing.\\n    # It is NOT secure for production use.' /etc/nginx/sites-available/$DOMAIN.conf
         echo "Added warning to NGINX configuration about staging certificate"
