@@ -89,6 +89,11 @@ public class UserDetailsImpl implements UserDetails {
     return true;
   }
 
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
+
   public boolean equals(Object o) {
     if (this == o) {
       return true;
