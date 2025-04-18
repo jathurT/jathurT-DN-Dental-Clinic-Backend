@@ -53,7 +53,7 @@ public class JwtUtils {
     String jwt = generateTokenFromUsername(userPrincipal.getUsername());
     return ResponseCookie.from(jwtCookie, jwt)
             .path("/")
-            .maxAge(24 * 60 * 60)
+            .maxAge(24L * 60 * 60)
             .httpOnly(true)
             .secure(true) // Changed to true for HTTPS
             .sameSite("Strict") // Changed to Strict for better security

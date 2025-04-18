@@ -8,6 +8,7 @@ import com.uor.eng.repository.UserRepository;
 import com.uor.eng.security.jwt.AuthEntryPointJwt;
 import com.uor.eng.security.jwt.AuthTokenFilter;
 import com.uor.eng.security.services.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,33 @@ import java.util.Set;
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
+
+  @Value("${app.default.admin.username}")
+  private String adminUsername;
+
+  @Value("${app.default.admin.email}")
+  private String adminEmail;
+
+  @Value("${app.default.admin.password}")
+  private String adminPassword;
+
+  @Value("${app.default.doctor.username}")
+  private String doctorUsername;
+
+  @Value("${app.default.doctor.email}")
+  private String doctorEmail;
+
+  @Value("${app.default.doctor.password}")
+  private String doctorPassword;
+
+  @Value("${app.default.receptionist.username}")
+  private String receptionistUsername;
+
+  @Value("${app.default.receptionist.email}")
+  private String receptionistEmail;
+
+  @Value("${app.default.receptionist.password}")
+  private String receptionistPassword;
 
   private final UserDetailsServiceImpl userDetailsService;
   private final AuthEntryPointJwt unauthorizedHandler;
@@ -114,7 +142,6 @@ public class WebSecurityConfig {
     );
   }
 
-
   @Bean
   public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
     return args -> {
@@ -141,35 +168,34 @@ public class WebSecurityConfig {
       Set<Role> receptionistRoles = Set.of(receiptoinistRole);
       Set<Role> adminRoles = Set.of(doctorRole, receiptoinistRole, adminRole);
 
-
-      // Create users if not already present
-      if (!userRepository.existsByUserName("doctor1")) {
-        User doctor1 = new User("doctor1", "doctor1@example.com", passwordEncoder.encode("password1"));
-        userRepository.save(doctor1);
+      // Create users if not already present, using environment variables without defaults
+      if (!userRepository.existsByUserName(doctorUsername)) {
+        User doctor = new User(doctorUsername, doctorEmail, passwordEncoder.encode(doctorPassword));
+        userRepository.save(doctor);
       }
 
-      if (!userRepository.existsByUserName("receptionist1")) {
-        User receptionist1 = new User("receptionist1", "receptionist1@example.com", passwordEncoder.encode("password2"));
-        userRepository.save(receptionist1);
+      if (!userRepository.existsByUserName(receptionistUsername)) {
+        User receptionist = new User(receptionistUsername, receptionistEmail, passwordEncoder.encode(receptionistPassword));
+        userRepository.save(receptionist);
       }
 
-      if (!userRepository.existsByUserName("admin")) {
-        User admin = new User("admin", "admin@example.com", passwordEncoder.encode("adminPass"));
+      if (!userRepository.existsByUserName(adminUsername)) {
+        User admin = new User(adminUsername, adminEmail, passwordEncoder.encode(adminPassword));
         userRepository.save(admin);
       }
 
       // Update roles for existing users
-      userRepository.findByUserName("doctor1").ifPresent(doctor -> {
+      userRepository.findByUserName(doctorUsername).ifPresent(doctor -> {
         doctor.setRoles(doctorRoles);
         userRepository.save(doctor);
       });
 
-      userRepository.findByUserName("receptionist1").ifPresent(receptionist -> {
+      userRepository.findByUserName(receptionistUsername).ifPresent(receptionist -> {
         receptionist.setRoles(receptionistRoles);
         userRepository.save(receptionist);
       });
 
-      userRepository.findByUserName("admin").ifPresent(admin -> {
+      userRepository.findByUserName(adminUsername).ifPresent(admin -> {
         admin.setRoles(adminRoles);
         userRepository.save(admin);
       });

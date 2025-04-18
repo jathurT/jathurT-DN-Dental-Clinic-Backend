@@ -12,7 +12,7 @@ pipeline {
         string(name: 'MYSQL_PORT', defaultValue: '3306', description: 'Port for MySQL to run on EC2')
         choice(name: 'LETSENCRYPT_ENV', choices: ['staging', 'production'],
                description: 'Select Let\'s Encrypt environment (use staging to avoid rate limits during testing)')
-        booleanParam(name: 'SKIP_TESTS', defaultValue: true, description: 'Skip running tests')
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip running tests')
     }
 
     environment {
@@ -34,6 +34,18 @@ pipeline {
         LETSENCRYPT_ENV = "${params.LETSENCRYPT_ENV ?: 'staging'}"
         SONAR_PROJECT_KEY = "com.dndentalclinic:dndentalclinic"
         SONAR_PROJECT_NAME = "dndentalclinic"
+
+        APP_DEFAULT_ADMIN_USERNAME = credentials('admin-username')
+        APP_DEFAULT_ADMIN_EMAIL = credentials('admin-email')
+        APP_DEFAULT_ADMIN_PASSWORD = credentials('admin-password')
+
+        APP_DEFAULT_DOCTOR_USERNAME = credentials('doctor-username')
+        APP_DEFAULT_DOCTOR_EMAIL = credentials('doctor-email')
+        APP_DEFAULT_DOCTOR_PASSWORD = credentials('doctor-password')
+
+        APP_DEFAULT_RECEPTIONIST_USERNAME = credentials('receptionist-username')
+        APP_DEFAULT_RECEPTIONIST_EMAIL = credentials('receptionist-email')
+        APP_DEFAULT_RECEPTIONIST_PASSWORD = credentials('receptionist-password')
     }
 
     stages {
@@ -131,6 +143,16 @@ AWS_ACCESSKEYID=${AWS_CREDENTIALS_USR}
 AWS_SECRETKEY=${AWS_CREDENTIALS_PSW}
 AWS_REGION=eu-north-1
 AWS_S3_BUCKET=patient-logbook-photos
+
+APP_DEFAULT_ADMIN_USERNAME=${APP_DEFAULT_ADMIN_USERNAME}
+APP_DEFAULT_ADMIN_EMAIL=${APP_DEFAULT_ADMIN_EMAIL}
+APP_DEFAULT_ADMIN_PASSWORD=${APP_DEFAULT_ADMIN_PASSWORD}
+APP_DEFAULT_DOCTOR_USERNAME=${APP_DEFAULT_DOCTOR_USERNAME}
+APP_DEFAULT_DOCTOR_EMAIL=${APP_DEFAULT_DOCTOR_EMAIL}
+APP_DEFAULT_DOCTOR_PASSWORD=${APP_DEFAULT_DOCTOR_PASSWORD}
+APP_DEFAULT_RECEPTIONIST_USERNAME=${APP_DEFAULT_RECEPTIONIST_USERNAME}
+APP_DEFAULT_RECEPTIONIST_EMAIL=${APP_DEFAULT_RECEPTIONIST_EMAIL}
+APP_DEFAULT_RECEPTIONIST_PASSWORD=${APP_DEFAULT_RECEPTIONIST_PASSWORD}
 EOL
 
                         # Verify file was created successfully
