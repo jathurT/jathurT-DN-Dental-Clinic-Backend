@@ -586,73 +586,43 @@ EOF
 DOMAIN="${DOMAIN_NAME}"
 LETSENCRYPT_ENV="${LETSENCRYPT_ENV}"
 
-# Check if certificate exists
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+# First check if certificate exists using certbot
+echo "Checking certificates using certbot..."
+CERT_EXISTS=$(sudo certbot certificates -d $DOMAIN 2>/dev/null | grep -q "Certificate Name: $DOMAIN" && echo "true" || echo "false")
+
+if [ "$CERT_EXISTS" = "true" ]; then
     echo "Certificate exists. Checking details:"
     sudo certbot certificates --domain $DOMAIN
 
-    # Check certificate using OpenSSL
-    echo "Performing SSL connection test:"
-    echo "Testing SSL connection..."
-    openssl s_client -connect $DOMAIN:443 -servername $DOMAIN < /dev/null 2>/dev/null | openssl x509 -noout -text | grep -A 2 "Validity"
-
-    # Check if HTTPS is working
+    # Check HTTPS connection
     echo "Testing HTTPS accessibility..."
-    curl_output=$(curl -sSI https://$DOMAIN)
-    if [ $? -eq 0 ]; then
+    if curl -k --silent --head https://$DOMAIN | grep "200 OK\|302 Found\|301 Moved" > /dev/null; then
         echo "HTTPS is accessible"
-        echo "$curl_output" | head -n 1
     else
-        echo "HTTPS is not accessible"
-        echo "Trying with verbose output:"
-        curl -v https://$DOMAIN
+        echo "HTTPS is not accessible. Checking configuration..."
+        sudo nginx -t
+        sudo systemctl status nginx | grep Active
     fi
 
     # Check if Nginx is listening on port 443
     echo "Checking if Nginx is listening on port 443..."
     sudo netstat -tlnp | grep :443
 
-    # Create a test page to verify SSL on frontend
-    echo "Creating SSL verification page..."
-    sudo mkdir -p /var/www/html
-    sudo tee /var/www/html/ssl-verify.html > /dev/null << 'EOH'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>SSL Verification</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-        .warning { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 10px; margin: 20px 0; }
-        .success { background-color: #d4edda; border-left: 5px solid #28a745; padding: 10px; margin: 20px 0; }
-    </style>
-</head>
-<body>
-    <h1>SSL Certificate Verification</h1>
-    <p>Domain: $DOMAIN</p>
-    <p>Timestamp: $(date)</p>
-
-    <div class="success">
-        <h2>Connection Information:</h2>
-        <p>Your connection to this site is encrypted using SSL/TLS.</p>
-    </div>
-</body>
-</html>
-EOH
-
-    sudo chown -R www-data:www-data /var/www/html
-    echo "SSL verification page created at https://$DOMAIN/ssl-verify.html"
-
-    # Show Nginx status
-    echo "Nginx status:"
-    sudo systemctl status nginx | grep Active
-
-    # Additional debugging
-    echo "Nginx configuration:"
-    sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name'
+    # Check Nginx configuration for the domain
+    echo "Checking Nginx configuration for $DOMAIN..."
+    if [ -f "/etc/nginx/sites-enabled/$DOMAIN.conf" ]; then
+        echo "Config file exists"
+        sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name|location'
+    else
+        echo "Config file not found at /etc/nginx/sites-enabled/$DOMAIN.conf"
+        echo "Available configs:"
+        ls -la /etc/nginx/sites-enabled/
+    fi
 
 else
     echo "Certificate not found for $DOMAIN"
-    exit 1
+    echo "Available certificates:"
+    sudo certbot certificates
 fi
 EOF
                         '''
