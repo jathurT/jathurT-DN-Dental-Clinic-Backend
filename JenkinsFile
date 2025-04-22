@@ -30,7 +30,6 @@ pipeline {
         MYSQL_PORT = "${params.MYSQL_PORT}"
         DOMAIN_NAME = "dndentalclinic.com.lk"
         ADMIN_EMAIL = "ktmjathur2001@gmail.com"
-        // New environment variable for Let's Encrypt environment
         LETSENCRYPT_ENV = "${params.LETSENCRYPT_ENV ?: 'staging'}"
         SONAR_PROJECT_KEY = "com.dndentalclinic:dndentalclinic"
         SONAR_PROJECT_NAME = "dndentalclinic"
@@ -289,44 +288,47 @@ echo "Using Let's Encrypt environment: $LETSENCRYPT_ENV"
 
 # Install Certbot if not already installed
 sudo apt-get update
-sudo apt-get install -y certbot python3-certbot-nginx
+sudo apt-get install -y certbot python3-certbot-nginx nginx
 
-# Ensure Nginx is installed
-if ! command -v nginx &> /dev/null; then
-    sudo apt-get install -y nginx
-fi
+# Stop nginx if it's running
+sudo systemctl stop nginx
 
-# Create Nginx configuration for the domain
-echo "Creating Nginx configuration for $DOMAIN..."
-sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
+# Clean up existing configurations
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/$DOMAIN.conf
+
+# Create directory for certbot
+sudo mkdir -p /var/www/certbot
+sudo chown -R www-data:www-data /var/www/certbot
+
+# Create initial Nginx configuration for the domain - simplified version
+sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
-    server_name DOMAIN_PLACEHOLDER;
+    listen [::]:80;
+    server_name $DOMAIN;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://\$host\$request_uri;
     }
 }
 EON
 
-# Replace the placeholder with the actual domain
-sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
-
-# Create certbot directory
-sudo mkdir -p /var/www/certbot
-
 # Enable the site
 sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+
+# Start nginx again
+sudo systemctl start nginx
 
 # Test Nginx configuration
 sudo nginx -t
 
-# Reload Nginx to apply the basic configuration
-sudo systemctl reload nginx
+# Wait a bit for nginx to start properly
+sleep 5
 
 # Check for existing certificate and its type
 CERTIFICATE_EXISTS=false
@@ -334,191 +336,165 @@ IS_STAGING_CERT=false
 
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     CERTIFICATE_EXISTS=true
+    # Check if it's a staging certificate
     ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
-    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
+    if [[ $ISSUER == *"Fake"* || $ISSUER == *"Staging"* ]]; then
         IS_STAGING_CERT=true
     fi
+
+    # Check certificate expiration
+    CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
+    CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s)
+    CURRENT_EPOCH=$(date +%s)
+    DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
+
+    echo "Certificate exists. Expires in $DAYS_UNTIL_EXPIRY days"
 fi
 
 # Determine if we need to regenerate certificate
-REGENERATE_CERT=false
+NEED_NEW_CERT=false
 
-# If we're switching from staging to production, regenerate
-if [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
-    echo "Detected existing staging certificate but production environment requested."
-    echo "Will remove staging certificate and generate production certificate."
-    sudo certbot delete --cert-name "$DOMAIN" --non-interactive
-    REGENERATE_CERT=true
-    CERTIFICATE_EXISTS=false
+if [ "$CERTIFICATE_EXISTS" = false ]; then
+    echo "No certificate exists. Will obtain new certificate."
+    NEED_NEW_CERT=true
+elif [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
+    echo "Existing certificate is staging but production requested. Will obtain new certificate."
+    NEED_NEW_CERT=true
+elif [ "$IS_STAGING_CERT" = false ] && [ "$LETSENCRYPT_ENV" = "staging" ]; then
+    echo "Existing certificate is production but staging requested. Will obtain new certificate."
+    NEED_NEW_CERT=true
+elif [ "$DAYS_UNTIL_EXPIRY" -lt 30 ]; then
+    echo "Certificate expires in less than 30 days. Will renew."
+    NEED_NEW_CERT=true
+else
+    echo "Valid certificate exists. No need to obtain new certificate."
 fi
 
 # Configure certbot command based on the environment
-if [ "$LETSENCRYPT_ENV" = "staging" ]; then
-    echo "Using Let's Encrypt STAGING environment to avoid rate limits"
-    CERTBOT_CMD="sudo certbot --nginx -d \"$DOMAIN\" --non-interactive --agree-tos --email \"$ADMIN_EMAIL\" --redirect --staging"
-else
-    echo "Using Let's Encrypt PRODUCTION environment"
-    CERTBOT_CMD="sudo certbot --nginx -d \"$DOMAIN\" --non-interactive --agree-tos --email \"$ADMIN_EMAIL\" --redirect"
-fi
+if [ "$NEED_NEW_CERT" = true ]; then
+    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        echo "Using Let's Encrypt STAGING environment to avoid rate limits"
+        CERTBOT_CMD="sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL --staging"
+    else
+        echo "Using Let's Encrypt PRODUCTION environment"
+        CERTBOT_CMD="sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL"
+    fi
 
-# Run Certbot to obtain/renew SSL certificate if needed
-if [ "$CERTIFICATE_EXISTS" = false ] || [ "$REGENERATE_CERT" = true ]; then
+    # If switching from staging to production or vice versa, delete existing cert first
+    if [ "$CERTIFICATE_EXISTS" = true ] && [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
+        echo "Removing existing staging certificate..."
+        sudo certbot delete --cert-name "$DOMAIN" --non-interactive
+    elif [ "$CERTIFICATE_EXISTS" = true ] && [ "$IS_STAGING_CERT" = false ] && [ "$LETSENCRYPT_ENV" = "staging" ]; then
+        echo "Removing existing production certificate..."
+        sudo certbot delete --cert-name "$DOMAIN" --non-interactive
+    fi
+
+    # Run Certbot to obtain SSL certificate
     echo "Obtaining SSL certificate for $DOMAIN..."
-    eval "$CERTBOT_CMD" || true
+    eval "$CERTBOT_CMD"
 else
-    echo "Certificate already exists for $DOMAIN - checking if renewal is needed..."
-    sudo certbot renew --nginx
+    echo "Using existing certificate"
 fi
 
 # Verify certificate
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "SSL certificate successfully installed for $DOMAIN"
 
-    # Check if we're using a staging certificate and warn accordingly
-    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
-    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
-        echo "WARNING: You are using a Let's Encrypt STAGING certificate."
-        echo "These certificates are NOT trusted by browsers and will show security warnings."
-        echo "This is intentional to avoid hitting rate limits during testing."
-        echo "When ready for production, switch to LETSENCRYPT_ENV=production."
-        IS_STAGING_CERT=true
-    else
-        echo "Using a Let's Encrypt PRODUCTION certificate."
-        IS_STAGING_CERT=false
-    fi
-
-    # Update the nginx config with our additional locations
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
+    # Update the nginx config with HTTPS configuration
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
-    server_name DOMAIN_PLACEHOLDER;
-    return 301 https://$host$request_uri;
+    listen [::]:80;
+    server_name $DOMAIN;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
 }
 
 server {
-    listen 443 ssl;
-    server_name DOMAIN_PLACEHOLDER;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name $DOMAIN;
 
-    # SSL configuration from LetsEncrypt
-    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
 
-    # SSL settings
+    # Strong SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
+    ssl_session_tickets off;
 
-    # Backend API - fixed proxy_pass
+    # HSTS (optional but recommended)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Backend API
     location /api/ {
-        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://localhost:$SERVER_PORT/api/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
     }
 
     # Grafana
     location /grafana/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 
     # Admin frontend - IMPORTANT: This should come before the root location
     location /admin {
         alias /var/www/html/admin;
-        try_files $uri $uri/ /admin/index.html;
+        try_files \$uri \$uri/ /admin/index.html;
         index index.html;
     }
 
     # User frontend (root path)
     location / {
         root /var/www/html;
-        try_files $uri $uri/ /index.html;
-        index index.html;
-    }
-EON
-
-    # Replace placeholders
-    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
-    sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
-
-    # If using staging environment, add a visible warning banner to the NGINX configuration
-    if [ "$IS_STAGING_CERT" = true ]; then
-        # Insert a warning banner for staging certs at the beginning of the HTTPS server block
-        sudo sed -i '/server {/a\\    # This server uses a Let'"'"'s Encrypt STAGING certificate for testing.\\n    # It is NOT secure for production use.' /etc/nginx/sites-available/$DOMAIN.conf
-        echo "Added warning to NGINX configuration about staging certificate"
-    fi
-
-    sudo nginx -t && sudo systemctl reload nginx
-
-else
-    echo "Failed to obtain SSL certificate. DNS propagation may not be complete yet."
-    echo "Continuing with deployment, but HTTPS will not be available until certificate is obtained."
-
-    # Set up a basic HTTP configuration without HTTPS
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'EON'
-server {
-    listen 80;
-    server_name DOMAIN_PLACEHOLDER;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Grafana
-    location /grafana/ {
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-
-    # Admin frontend
-    location /admin {
-        alias /var/www/html/admin;
-        try_files $uri $uri/ /admin/index.html;
-        index index.html;
-    }
-
-    # User frontend (root path)
-    location / {
-        root /var/www/html;
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
         index index.html;
     }
 }
 EON
 
-    # Replace placeholders
-    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
-    sudo sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
+    # Test the configuration
+    sudo nginx -t
 
-    sudo nginx -t && sudo systemctl reload nginx
+    if [ $? -eq 0 ]; then
+        # Reload nginx if test succeeds
+        sudo systemctl reload nginx
+        echo "HTTPS configuration completed successfully"
+    else
+        echo "Nginx configuration test failed"
+        exit 1
+    fi
+
+else
+    echo "Failed to obtain SSL certificate"
+    exit 1
 fi
 
 # Setup auto-renewal
 echo "Setting up SSL auto-renewal..."
-echo "0 3 * * * root certbot renew --quiet --deploy-hook 'systemctl reload nginx'" | sudo tee -a /etc/crontab > /dev/null
+(crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'") | sudo crontab -
 EOF
 
                             # Deploy the application with enhanced Docker cleanup
@@ -595,23 +571,27 @@ LETSENCRYPT_ENV="${LETSENCRYPT_ENV}"
 
 # Check if certificate exists
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "Certificate exists. Checking expiration:"
+    echo "Certificate exists. Checking details:"
     sudo certbot certificates --domain $DOMAIN
 
     # Check certificate using OpenSSL
     echo "Performing SSL connection test:"
-    CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
-    echo "Certificate expires on: $CERT_EXPIRY"
+    echo "Testing SSL connection..."
+    openssl s_client -connect $DOMAIN:443 -servername $DOMAIN < /dev/null 2>/dev/null | openssl x509 -noout -text | grep -A 2 "Validity"
 
-    # Detect if we're using a staging certificate
-    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
-    if [[ $ISSUER == *"Fake"* || $ISSUER == *"staging"* || $ISSUER == *"Staging"* ]]; then
-        echo "WARNING: This is a Let's Encrypt STAGING certificate."
-        echo "It will not be trusted by browsers and will show security warnings."
-        echo "This is intentional during testing to avoid hitting rate limits."
+    # Check if HTTPS is working
+    echo "Testing HTTPS accessibility..."
+    curl_output=$(curl -sSI https://$DOMAIN)
+    if [ $? -eq 0 ]; then
+        echo "HTTPS is accessible"
+        echo "$curl_output" | head -n 1
     else
-        echo "This is a Let's Encrypt PRODUCTION certificate."
+        echo "HTTPS is not accessible"
     fi
+
+    # Check if Nginx is listening on port 443
+    echo "Checking if Nginx is listening on port 443..."
+    sudo netstat -tlnp | grep :443
 
     # Create a test page to verify SSL on frontend
     echo "Creating SSL verification page..."
@@ -629,10 +609,8 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
 </head>
 <body>
     <h1>SSL Certificate Verification</h1>
-    <p>Domain: DOMAIN_PLACEHOLDER</p>
-    <p>Timestamp: TIMESTAMP_PLACEHOLDER</p>
-
-    ENVIRONMENT_WARNING
+    <p>Domain: $DOMAIN</p>
+    <p>Timestamp: $(date)</p>
 
     <div class="success">
         <h2>Connection Information:</h2>
@@ -642,55 +620,16 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
 </html>
 EOH
 
-    # Add environment warning if using staging
-    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
-        WARNING_HTML='<div class="warning">
-        <h2>⚠️ STAGING CERTIFICATE WARNING ⚠️</h2>
-        <p>This site is using a <strong>Let\'s Encrypt STAGING</strong> certificate for testing purposes.</p>
-        <p>Your browser will show security warnings because this certificate is not trusted.</p>
-        <p>This is expected behavior during development and testing.</p>
-    </div>'
-        sudo sed -i "s/ENVIRONMENT_WARNING/$WARNING_HTML/g" /var/www/html/ssl-verify.html
-    else
-        sudo sed -i "s/ENVIRONMENT_WARNING//g" /var/www/html/ssl-verify.html
-    fi
-
-    # Replace placeholders
-    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /var/www/html/ssl-verify.html
-    sudo sed -i "s/TIMESTAMP_PLACEHOLDER/$(date)/g" /var/www/html/ssl-verify.html
-
     sudo chown -R www-data:www-data /var/www/html
     echo "SSL verification page created at https://$DOMAIN/ssl-verify.html"
 
-    # Provide explicit instructions for manually checking the certificate
-    echo ""
-    echo "--------------------------------------------------------"
-    echo "TO VERIFY THE CERTIFICATE IN YOUR BROWSER:"
-    echo "--------------------------------------------------------"
-    echo "1. Visit https://$DOMAIN/ssl-verify.html"
-    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
-        echo "2. You WILL see a security warning (this is expected with staging certificates)"
-        echo "3. Proceed past the warning to verify the page loads"
-        echo "4. The page will show a warning banner indicating it's a staging certificate"
-    else
-        echo "2. Verify the connection is secure (look for the padlock icon)"
-        echo "3. The page should load without any security warnings"
-    fi
-    echo "--------------------------------------------------------"
+    # Show Nginx status
+    echo "Nginx status:"
+    sudo systemctl status nginx | grep Active
 
 else
     echo "Certificate not found for $DOMAIN"
-    echo "This is expected if DNS propagation is not complete yet."
-    echo "Run a manual certbot certificate acquisition after DNS propagation is complete:"
-
-    if [ "$LETSENCRYPT_ENV" = "staging" ]; then
-        echo "sudo certbot --nginx -d $DOMAIN --staging"
-    else
-        echo "sudo certbot --nginx -d $DOMAIN"
-    fi
-
-    # Not failing the build, but warning user
-    exit 0
+    exit 1
 fi
 EOF
                         '''
@@ -744,7 +683,7 @@ Successfully deployed to ${DEPLOY_ENV} environment at ${EC2_HOST}
 SSL CERTIFICATE INFORMATION:
 - Using Let's Encrypt ${LETSENCRYPT_ENV} environment
 - ${LETSENCRYPT_ENV == 'staging' ? 'WARNING: The staging certificate will not be trusted by browsers. This is expected during testing.' : 'The production certificate should be trusted by all browsers.'}
-- If SSL certificate wasn't obtained yet, it will be automatically obtained once DNS propagation completes.
+- HTTPS should now be working at https://${DOMAIN_NAME}
 """
         }
         failure {
