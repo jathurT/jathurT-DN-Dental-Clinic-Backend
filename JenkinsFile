@@ -306,32 +306,134 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo rm -f /etc/nginx/sites-enabled/$DOMAIN.conf
 sudo rm -f /etc/nginx/sites-available/$DOMAIN.conf
 
-# Check if certificate already exists
-CERTIFICATE_EXISTS=false
-if sudo certbot certificates | grep -q "$DOMAIN"; then
-    CERTIFICATE_EXISTS=true
+# Identify certificate directory structure
+echo "Checking for existing certificates..."
+sudo certbot certificates | grep -q "$DOMAIN"
+CERT_CHECK_RESULT=$?
+
+if [ $CERT_CHECK_RESULT -eq 0 ]; then
     echo "Certificate already exists for $DOMAIN"
 
     # Display certificate information
     sudo certbot certificates --cert-name "$DOMAIN"
 
-    # Check if certificate is valid
-    if [ -f "/etc/letsencrypt/live/$DOMAIN/cert.pem" ]; then
-        # Check expiration
-        CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
-        CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s)
-        CURRENT_EPOCH=$(date +%s)
-        DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
+    # Fix permissions for Let's Encrypt directories
+    echo "Setting proper permissions on certificate directories..."
+    sudo chmod -R 755 /etc/letsencrypt/archive/
+    sudo chmod -R 755 /etc/letsencrypt/live/
 
-        echo "Certificate expires in $DAYS_UNTIL_EXPIRY days"
+    # Check if certificate files are accessible
+    if sudo test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem && sudo test -f /etc/letsencrypt/live/$DOMAIN/privkey.pem; then
+        echo "Certificate files are accessible"
 
-        # Only renew if expiring soon
-        if [ "$DAYS_UNTIL_EXPIRY" -lt 30 ]; then
-            echo "Certificate expires soon. Attempting renewal..."
-            sudo certbot renew --force-renewal
+        # Check symlinks
+        echo "Checking certificate symlinks..."
+        FULLCHAIN_PATH=$(sudo readlink -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem)
+        PRIVKEY_PATH=$(sudo readlink -f /etc/letsencrypt/live/$DOMAIN/privkey.pem)
+
+        echo "Fullchain path: $FULLCHAIN_PATH"
+        echo "Private key path: $PRIVKEY_PATH"
+
+        # Verify files exist
+        if sudo test -f "$FULLCHAIN_PATH" && sudo test -f "$PRIVKEY_PATH"; then
+            echo "Certificate files and symlinks are valid"
+
+            # Check expiration
+            CERT_EXPIRY=$(sudo openssl x509 -in "$FULLCHAIN_PATH" -noout -enddate | cut -d= -f2)
+            CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s)
+            CURRENT_EPOCH=$(date +%s)
+            DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
+
+            echo "Certificate expires in $DAYS_UNTIL_EXPIRY days"
+
+            # Only renew if expiring soon
+            if [ "$DAYS_UNTIL_EXPIRY" -lt 30 ]; then
+                echo "Certificate expires soon. Attempting renewal..."
+                sudo certbot renew --force-renewal
+            else
+                echo "Certificate is valid and not expiring soon. Using existing certificate."
+            fi
         else
-            echo "Certificate is valid and not expiring soon. Using existing certificate."
+            echo "Certificate files or symlinks are invalid. Attempting to obtain new certificate."
+            # Remove and recreate certificate
+            sudo certbot delete --cert-name "$DOMAIN" --non-interactive || true
+
+            # Create initial HTTP configuration for challenge
+            sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+EON
+
+            # Enable the site
+            sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+
+            # Test and reload nginx
+            sudo nginx -t && sudo systemctl reload nginx
+
+            # Obtain new certificate
+            if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+                echo "Using Let's Encrypt STAGING environment"
+                sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL --staging
+            else
+                echo "Using Let's Encrypt PRODUCTION environment"
+                sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL
+            fi
+
+            # Fix permissions again after new certificate
+            sudo chmod -R 755 /etc/letsencrypt/archive/
+            sudo chmod -R 755 /etc/letsencrypt/live/
         fi
+    else
+        echo "Certificate files not accessible. Attempting to obtain new certificate."
+        # Remove and recreate certificate
+        sudo certbot delete --cert-name "$DOMAIN" --non-interactive || true
+
+        # Create initial HTTP configuration for challenge
+        sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+EON
+
+        # Enable the site
+        sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+
+        # Test and reload nginx
+        sudo nginx -t && sudo systemctl reload nginx
+
+        # Obtain new certificate
+        if [ "$LETSENCRYPT_ENV" = "staging" ]; then
+            echo "Using Let's Encrypt STAGING environment"
+            sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL --staging
+        else
+            echo "Using Let's Encrypt PRODUCTION environment"
+            sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL
+        fi
+
+        # Fix permissions again after new certificate
+        sudo chmod -R 755 /etc/letsencrypt/archive/
+        sudo chmod -R 755 /etc/letsencrypt/live/
     fi
 else
     echo "No existing certificate found. Obtaining new certificate..."
@@ -369,14 +471,26 @@ EON
         echo "Using Let's Encrypt PRODUCTION environment"
         sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL
     fi
+
+    # Fix permissions after obtaining certificate
+    sudo chmod -R 755 /etc/letsencrypt/archive/
+    sudo chmod -R 755 /etc/letsencrypt/live/
 fi
 
-# Now configure Nginx with SSL (regardless of whether certificate existed or we just obtained it)
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "Configuring Nginx with SSL..."
+# Verify certificate files exist before continuing
+if ! sudo test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem || ! sudo test -f /etc/letsencrypt/live/$DOMAIN/privkey.pem; then
+    echo "ERROR: Certificate files not found at /etc/letsencrypt/live/$DOMAIN/"
+    echo "Stopping deployment due to missing certificate files"
+    sudo ls -la /etc/letsencrypt/live/ || true
+    sudo ls -la /etc/letsencrypt/live/$DOMAIN/ || true
+    exit 1
+fi
 
-    # Create the complete Nginx configuration
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << NGINX_CONF
+# Now configure Nginx with SSL
+echo "Configuring Nginx with SSL..."
+
+# Create the complete Nginx configuration
+sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << NGINX_CONF
 server {
     listen 80;
     listen [::]:80;
@@ -444,22 +558,26 @@ server {
 }
 NGINX_CONF
 
-    # Enable the updated configuration
-    sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+# Enable the updated configuration
+sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
 
-    # Test and reload Nginx
-    echo "Testing final Nginx configuration..."
-    if sudo nginx -t; then
-        echo "Configuration test passed, reloading Nginx..."
-        sudo systemctl reload nginx
-        echo "Nginx configuration updated successfully!"
+# Test and reload Nginx
+echo "Testing final Nginx configuration..."
+if sudo nginx -t; then
+    echo "Configuration test passed, reloading Nginx..."
+    sudo systemctl reload nginx
+    echo "Nginx configuration updated successfully!"
+
+    # Verify SSL is working after reload
+    echo "Verifying SSL setup..."
+    if curl -k --silent --head https://$DOMAIN | grep -E "200 OK|302 Found|301 Moved" > /dev/null; then
+        echo "HTTPS is accessible!"
     else
-        echo "Nginx configuration test failed!"
-        sudo nginx -t
-        exit 1
+        echo "Warning: HTTPS may not be accessible yet. This could be due to DNS propagation delay."
     fi
 else
-    echo "Certificate files not found in /etc/letsencrypt/live/$DOMAIN"
+    echo "Nginx configuration test failed!"
+    sudo nginx -t
     exit 1
 fi
 
@@ -470,6 +588,13 @@ if ! sudo crontab -l | grep -q "certbot renew"; then
 fi
 
 echo "SSL setup completed successfully!"
+
+# Final comprehensive certificate verification
+echo "Performing final certificate verification:"
+sudo certbot certificates --cert-name "$DOMAIN"
+sudo ls -la /etc/letsencrypt/live/$DOMAIN/
+sudo ls -la $(sudo readlink -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem | sed 's|/[^/]*$||')
+echo "Certificate verification complete."
 EOF
 
                             # Deploy the application with enhanced Docker cleanup
