@@ -286,22 +286,26 @@ echo "Using admin email: $ADMIN_EMAIL"
 echo "Using server port: $SERVER_PORT"
 echo "Using Let's Encrypt environment: $LETSENCRYPT_ENV"
 
-# Install Certbot if not already installed
+# Install required packages
 sudo apt-get update
 sudo apt-get install -y certbot python3-certbot-nginx nginx
 
-# Stop nginx if it's running
-sudo systemctl stop nginx
+# Check if port 443 is open
+echo "Checking if port 443 is accessible..."
+sudo netstat -tuln | grep :443 || echo "Port 443 not currently in use"
 
 # Clean up existing configurations
+echo "Cleaning up existing configurations..."
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo rm -f /etc/nginx/sites-enabled/$DOMAIN.conf
+sudo rm -f /etc/nginx/sites-available/$DOMAIN.conf
 
 # Create directory for certbot
 sudo mkdir -p /var/www/certbot
 sudo chown -R www-data:www-data /var/www/certbot
 
-# Create initial Nginx configuration for the domain - simplified version
+# Create initial HTTP configuration for certificate challenge
+echo "Creating initial HTTP configuration..."
 sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
@@ -321,14 +325,9 @@ EON
 # Enable the site
 sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
 
-# Start nginx again
-sudo systemctl start nginx
-
-# Test Nginx configuration
-sudo nginx -t
-
-# Wait a bit for nginx to start properly
-sleep 5
+# Test and reload nginx
+echo "Testing Nginx configuration..."
+sudo nginx -t && sudo systemctl reload nginx
 
 # Check for existing certificate and its type
 CERTIFICATE_EXISTS=false
@@ -396,11 +395,12 @@ else
     echo "Using existing certificate"
 fi
 
-# Verify certificate
+# Verify certificate was obtained
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "SSL certificate successfully installed for $DOMAIN"
+    echo "Certificate successfully obtained/exists!"
 
-    # Update the nginx config with HTTPS configuration
+    # Create full Nginx configuration with HTTPS
+    echo "Creating full Nginx configuration with HTTPS..."
     sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
@@ -421,11 +421,10 @@ server {
     listen [::]:443 ssl http2;
     server_name $DOMAIN;
 
-    # SSL configuration
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
 
-    # Strong SSL settings
+    # SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
@@ -433,7 +432,7 @@ server {
     ssl_session_timeout 10m;
     ssl_session_tickets off;
 
-    # HSTS (optional but recommended)
+    # HSTS
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     # Backend API
@@ -443,8 +442,6 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
     }
 
     # Grafana
@@ -454,19 +451,16 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
     }
 
-    # Admin frontend - IMPORTANT: This should come before the root location
+    # Admin frontend
     location /admin {
         alias /var/www/html/admin;
         try_files \$uri \$uri/ /admin/index.html;
         index index.html;
     }
 
-    # User frontend (root path)
+    # User frontend
     location / {
         root /var/www/html;
         try_files \$uri \$uri/ /index.html;
@@ -475,26 +469,49 @@ server {
 }
 EON
 
-    # Test the configuration
+    # Test configuration
+    echo "Testing final Nginx configuration..."
     sudo nginx -t
 
     if [ $? -eq 0 ]; then
-        # Reload nginx if test succeeds
+        echo "Configuration test passed, reloading Nginx..."
         sudo systemctl reload nginx
-        echo "HTTPS configuration completed successfully"
-    else
-        echo "Nginx configuration test failed"
-        exit 1
-    fi
 
+        # Verify HTTPS is working
+        echo "Verifying HTTPS setup..."
+        sleep 5
+        curl -sSI https://$DOMAIN > /dev/null
+        if [ $? -eq 0 ]; then
+            echo "HTTPS is working!"
+            # Show what's listening on port 443
+            sudo netstat -tuln | grep :443
+        else
+            echo "HTTPS test failed. Checking logs..."
+            sudo tail -n 50 /var/log/nginx/error.log
+        fi
+    else
+        echo "Nginx configuration test failed. Showing error details:"
+        sudo nginx -t
+    fi
 else
-    echo "Failed to obtain SSL certificate"
-    exit 1
+    echo "Failed to obtain certificate. Checking Let's Encrypt logs..."
+    sudo tail -n 50 /var/log/letsencrypt/letsencrypt.log
 fi
 
-# Setup auto-renewal
-echo "Setting up SSL auto-renewal..."
-(crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'") | sudo crontab -
+# Final status check
+echo "Final status check:"
+echo "Nginx status:"
+sudo systemctl status nginx | head -n 10
+echo "SSL certificates status:"
+sudo certbot certificates
+echo "Open ports:"
+sudo netstat -tuln | grep -E ':80|:443'
+
+# Setup auto-renewal if certificate exists
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    echo "Setting up SSL auto-renewal..."
+    (crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 3 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'") | sudo crontab -
+fi
 EOF
 
                             # Deploy the application with enhanced Docker cleanup
@@ -587,6 +604,8 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
         echo "$curl_output" | head -n 1
     else
         echo "HTTPS is not accessible"
+        echo "Trying with verbose output:"
+        curl -v https://$DOMAIN
     fi
 
     # Check if Nginx is listening on port 443
@@ -626,6 +645,10 @@ EOH
     # Show Nginx status
     echo "Nginx status:"
     sudo systemctl status nginx | grep Active
+
+    # Additional debugging
+    echo "Nginx configuration:"
+    sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name'
 
 else
     echo "Certificate not found for $DOMAIN"
