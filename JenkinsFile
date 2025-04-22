@@ -290,7 +290,7 @@ echo "Using Let's Encrypt environment: $LETSENCRYPT_ENV"
 sudo apt-get update
 sudo apt-get install -y certbot python3-certbot-nginx nginx
 
-# Create necessary directories upfront
+# Create necessary directories
 echo "Creating necessary directories..."
 sudo mkdir -p /var/www/html
 sudo mkdir -p /var/www/html/admin
@@ -300,19 +300,45 @@ sudo chown -R www-data:www-data /var/www/certbot
 sudo chmod -R 755 /var/www/html
 sudo chmod -R 755 /var/www/html/admin
 
-# Check if port 443 is open
-echo "Checking if port 443 is accessible..."
-sudo netstat -tuln | grep :443 || echo "Port 443 not currently in use"
-
 # Clean up existing configurations
 echo "Cleaning up existing configurations..."
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo rm -f /etc/nginx/sites-enabled/$DOMAIN.conf
 sudo rm -f /etc/nginx/sites-available/$DOMAIN.conf
 
-# Create initial HTTP configuration for certificate challenge
-echo "Creating initial HTTP configuration..."
-sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+# Check if certificate already exists
+CERTIFICATE_EXISTS=false
+if sudo certbot certificates | grep -q "$DOMAIN"; then
+    CERTIFICATE_EXISTS=true
+    echo "Certificate already exists for $DOMAIN"
+
+    # Display certificate information
+    sudo certbot certificates --cert-name "$DOMAIN"
+
+    # Check if certificate is valid
+    if [ -f "/etc/letsencrypt/live/$DOMAIN/cert.pem" ]; then
+        # Check expiration
+        CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
+        CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s)
+        CURRENT_EPOCH=$(date +%s)
+        DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
+
+        echo "Certificate expires in $DAYS_UNTIL_EXPIRY days"
+
+        # Only renew if expiring soon
+        if [ "$DAYS_UNTIL_EXPIRY" -lt 30 ]; then
+            echo "Certificate expires soon. Attempting renewal..."
+            sudo certbot renew --force-renewal
+        else
+            echo "Certificate is valid and not expiring soon. Using existing certificate."
+        fi
+    fi
+else
+    echo "No existing certificate found. Obtaining new certificate..."
+
+    # Create initial HTTP configuration for certificate challenge
+    echo "Creating initial HTTP configuration..."
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
 server {
     listen 80;
     listen [::]:80;
@@ -328,107 +354,50 @@ server {
 }
 EON
 
-# Enable the site
-sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+    # Enable the site
+    sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
 
-# Test and reload nginx
-echo "Testing Nginx configuration..."
-sudo nginx -t && sudo systemctl reload nginx
+    # Test and reload nginx
+    echo "Testing Nginx configuration..."
+    sudo nginx -t && sudo systemctl reload nginx
 
-# Check for existing certificate and its type
-CERTIFICATE_EXISTS=false
-IS_STAGING_CERT=false
-
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    CERTIFICATE_EXISTS=true
-    # Check if it's a staging certificate
-    ISSUER=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -issuer)
-    if [[ $ISSUER == *"Fake"* || $ISSUER == *"Staging"* ]]; then
-        IS_STAGING_CERT=true
-    fi
-
-    # Check certificate expiration
-    CERT_EXPIRY=$(sudo openssl x509 -in /etc/letsencrypt/live/$DOMAIN/cert.pem -noout -enddate | cut -d= -f2)
-    CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s)
-    CURRENT_EPOCH=$(date +%s)
-    DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
-
-    echo "Certificate exists. Expires in $DAYS_UNTIL_EXPIRY days"
-fi
-
-# Determine if we need to regenerate certificate
-NEED_NEW_CERT=false
-
-if [ "$CERTIFICATE_EXISTS" = false ]; then
-    echo "No certificate exists. Will obtain new certificate."
-    NEED_NEW_CERT=true
-elif [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
-    echo "Existing certificate is staging but production requested. Will obtain new certificate."
-    NEED_NEW_CERT=true
-elif [ "$IS_STAGING_CERT" = false ] && [ "$LETSENCRYPT_ENV" = "staging" ]; then
-    echo "Existing certificate is production but staging requested. Will obtain new certificate."
-    NEED_NEW_CERT=true
-elif [ "$DAYS_UNTIL_EXPIRY" -lt 30 ]; then
-    echo "Certificate expires in less than 30 days. Will renew."
-    NEED_NEW_CERT=true
-else
-    echo "Valid certificate exists. No need to obtain new certificate."
-fi
-
-# Configure certbot command based on the environment
-if [ "$NEED_NEW_CERT" = true ]; then
+    # Obtain new certificate
     if [ "$LETSENCRYPT_ENV" = "staging" ]; then
         echo "Using Let's Encrypt STAGING environment to avoid rate limits"
-        CERTBOT_CMD="sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL --staging"
+        sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL --staging
     else
         echo "Using Let's Encrypt PRODUCTION environment"
-        CERTBOT_CMD="sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL"
+        sudo certbot certonly --nginx -d $DOMAIN --non-interactive --agree-tos --email $ADMIN_EMAIL
     fi
-
-    # If switching from staging to production or vice versa, delete existing cert first
-    if [ "$CERTIFICATE_EXISTS" = true ] && [ "$IS_STAGING_CERT" = true ] && [ "$LETSENCRYPT_ENV" = "production" ]; then
-        echo "Removing existing staging certificate..."
-        sudo certbot delete --cert-name "$DOMAIN" --non-interactive
-    elif [ "$CERTIFICATE_EXISTS" = true ] && [ "$IS_STAGING_CERT" = false ] && [ "$LETSENCRYPT_ENV" = "staging" ]; then
-        echo "Removing existing production certificate..."
-        sudo certbot delete --cert-name "$DOMAIN" --non-interactive
-    fi
-
-    # Run Certbot to obtain SSL certificate
-    echo "Obtaining SSL certificate for $DOMAIN..."
-    eval "$CERTBOT_CMD"
-else
-    echo "Using existing certificate"
 fi
 
-# Verify certificate was obtained
+# Now configure Nginx with SSL (regardless of whether certificate existed or we just obtained it)
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "Certificate successfully obtained/exists!"
+    echo "Configuring Nginx with SSL..."
 
     # Create the complete Nginx configuration
-    echo "Creating complete Nginx configuration file..."
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'NGINX_CONF'
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << NGINX_CONF
 server {
     listen 80;
     listen [::]:80;
-    server_name DOMAIN_PLACEHOLDER;
+    server_name $DOMAIN;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://\$host\$request_uri;
     }
 }
 
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name DOMAIN_PLACEHOLDER;
+    server_name $DOMAIN;
 
-    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
 
     # SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -443,103 +412,64 @@ server {
 
     # Backend API
     location /api/ {
-        proxy_pass http://localhost:SERVER_PORT_PLACEHOLDER/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://localhost:$SERVER_PORT/api/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     # Grafana
     location /grafana/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     # Admin frontend
     location /admin {
         alias /var/www/html/admin;
-        try_files $uri $uri/ /admin/index.html;
+        try_files \$uri \$uri/ /admin/index.html;
         index index.html;
     }
 
     # User frontend
     location / {
         root /var/www/html;
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
         index index.html;
     }
 }
 NGINX_CONF
 
-    # Replace the placeholders with actual values
-    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
-    sudo sed -i "s/SERVER_PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
+    # Enable the updated configuration
+    sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
 
-    # Test configuration
+    # Test and reload Nginx
     echo "Testing final Nginx configuration..."
-    sudo nginx -t
-
-    if [ $? -eq 0 ]; then
+    if sudo nginx -t; then
         echo "Configuration test passed, reloading Nginx..."
         sudo systemctl reload nginx
-
-        # Verify the configuration was written correctly
-        echo "Verifying Nginx configuration..."
-        if [ -f "/etc/nginx/sites-available/$DOMAIN.conf" ]; then
-            echo "Configuration file exists"
-            echo "File size: $(stat -c%s "/etc/nginx/sites-available/$DOMAIN.conf") bytes"
-            echo "Showing configuration content:"
-            sudo cat /etc/nginx/sites-available/$DOMAIN.conf
-        else
-            echo "ERROR: Configuration file not found!"
-            exit 1
-        fi
-
-        # Verify HTTPS is working
-        echo "Verifying HTTPS setup..."
-        sleep 5
-        curl -sSI https://$DOMAIN > /dev/null
-        if [ $? -eq 0 ]; then
-            echo "HTTPS is working!"
-            # Show what's listening on port 443
-            sudo netstat -tuln | grep :443
-        else
-            echo "HTTPS test failed. Checking logs..."
-            sudo tail -n 50 /var/log/nginx/error.log
-        fi
+        echo "Nginx configuration updated successfully!"
     else
-        echo "Nginx configuration test failed. Showing error details:"
+        echo "Nginx configuration test failed!"
         sudo nginx -t
-        echo "Configuration file content:"
-        sudo cat /etc/nginx/sites-available/$DOMAIN.conf
         exit 1
     fi
 else
-    echo "Failed to obtain certificate. Checking Let's Encrypt logs..."
-    sudo tail -n 50 /var/log/letsencrypt/letsencrypt.log
+    echo "Certificate files not found in /etc/letsencrypt/live/$DOMAIN"
     exit 1
 fi
 
-# Final status check
-echo "Final status check:"
-echo "Nginx status:"
-sudo systemctl status nginx | head -n 10
-echo "SSL certificates status:"
-sudo certbot certificates
-echo "Open ports:"
-sudo netstat -tuln | grep -E ':80|:443'
-echo "Nginx configuration file contents:"
-sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf
-
-# Setup auto-renewal if certificate exists
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+# Setup auto-renewal (only if not already set up)
+if ! sudo crontab -l | grep -q "certbot renew"; then
     echo "Setting up SSL auto-renewal..."
-    (crontab -l 2>/dev/null | grep -v "certbot renew" ; echo "0 3 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'") | sudo crontab -
+    (sudo crontab -l 2>/dev/null || true; echo "0 3 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'") | sudo crontab -
 fi
+
+echo "SSL setup completed successfully!"
 EOF
 
                             # Deploy the application with enhanced Docker cleanup
@@ -614,7 +544,7 @@ EOF
 DOMAIN="${DOMAIN_NAME}"
 LETSENCRYPT_ENV="${LETSENCRYPT_ENV}"
 
-# First check if certificate exists using certbot
+# Check if certificate exists using certbot
 echo "Checking certificates using certbot..."
 CERT_EXISTS=$(sudo certbot certificates -d $DOMAIN 2>/dev/null | grep -q "Certificate Name: $DOMAIN" && echo "true" || echo "false")
 
@@ -634,7 +564,7 @@ if [ "$CERT_EXISTS" = "true" ]; then
 
     # Check if Nginx is listening on port 443
     echo "Checking if Nginx is listening on port 443..."
-    sudo netstat -tlnp | grep :443
+    sudo netstat -tlnp | grep :443 || echo "Port 443 not in use"
 
     # Check Nginx configuration for the domain
     echo "Checking Nginx configuration for $DOMAIN..."
