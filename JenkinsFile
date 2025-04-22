@@ -290,6 +290,16 @@ echo "Using Let's Encrypt environment: $LETSENCRYPT_ENV"
 sudo apt-get update
 sudo apt-get install -y certbot python3-certbot-nginx nginx
 
+# Create necessary directories upfront
+echo "Creating necessary directories..."
+sudo mkdir -p /var/www/html
+sudo mkdir -p /var/www/html/admin
+sudo mkdir -p /var/www/certbot
+sudo chown -R www-data:www-data /var/www/html
+sudo chown -R www-data:www-data /var/www/certbot
+sudo chmod -R 755 /var/www/html
+sudo chmod -R 755 /var/www/html/admin
+
 # Check if port 443 is open
 echo "Checking if port 443 is accessible..."
 sudo netstat -tuln | grep :443 || echo "Port 443 not currently in use"
@@ -299,10 +309,6 @@ echo "Cleaning up existing configurations..."
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo rm -f /etc/nginx/sites-enabled/$DOMAIN.conf
 sudo rm -f /etc/nginx/sites-available/$DOMAIN.conf
-
-# Create directory for certbot
-sudo mkdir -p /var/www/certbot
-sudo chown -R www-data:www-data /var/www/certbot
 
 # Create initial HTTP configuration for certificate challenge
 echo "Creating initial HTTP configuration..."
@@ -399,30 +405,32 @@ fi
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "Certificate successfully obtained/exists!"
 
-    # Create full Nginx configuration with HTTPS
+    # Create full Nginx configuration with HTTPS using a template
     echo "Creating full Nginx configuration with HTTPS..."
-    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << EON
+
+    # Create a temporary file for the configuration
+    cat > /tmp/nginx-$DOMAIN.conf << 'NGINX_EOF'
 server {
     listen 80;
     listen [::]:80;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
+        return 301 https://$host$request_uri;
     }
 }
 
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
 
     # SSL settings
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -437,37 +445,48 @@ server {
 
     # Backend API
     location /api/ {
-        proxy_pass http://localhost:$SERVER_PORT/api/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Grafana
     location /grafana/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Admin frontend
     location /admin {
         alias /var/www/html/admin;
-        try_files \$uri \$uri/ /admin/index.html;
+        try_files $uri $uri/ /admin/index.html;
         index index.html;
     }
 
     # User frontend
     location / {
         root /var/www/html;
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
         index index.html;
     }
 }
-EON
+NGINX_EOF
+
+    # Replace placeholders with actual values
+    sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /tmp/nginx-$DOMAIN.conf
+    sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /tmp/nginx-$DOMAIN.conf
+
+    # Copy the configuration to the proper location
+    sudo cp /tmp/nginx-$DOMAIN.conf /etc/nginx/sites-available/$DOMAIN.conf
+    sudo rm /tmp/nginx-$DOMAIN.conf
+
+    # Enable the site
+    sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
 
     # Test configuration
     echo "Testing final Nginx configuration..."
@@ -476,6 +495,17 @@ EON
     if [ $? -eq 0 ]; then
         echo "Configuration test passed, reloading Nginx..."
         sudo systemctl reload nginx
+
+        # Verify the configuration was written correctly
+        echo "Verifying Nginx configuration..."
+        if [ -f "/etc/nginx/sites-available/$DOMAIN.conf" ]; then
+            echo "Configuration file exists"
+            echo "File size: $(stat -c%s "/etc/nginx/sites-available/$DOMAIN.conf") bytes"
+            echo "File permissions: $(stat -c "%a %n" "/etc/nginx/sites-available/$DOMAIN.conf")"
+        else
+            echo "ERROR: Configuration file not found!"
+            exit 1
+        fi
 
         # Verify HTTPS is working
         echo "Verifying HTTPS setup..."
@@ -492,10 +522,14 @@ EON
     else
         echo "Nginx configuration test failed. Showing error details:"
         sudo nginx -t
+        echo "Configuration file content:"
+        sudo cat /etc/nginx/sites-available/$DOMAIN.conf
+        exit 1
     fi
 else
     echo "Failed to obtain certificate. Checking Let's Encrypt logs..."
     sudo tail -n 50 /var/log/letsencrypt/letsencrypt.log
+    exit 1
 fi
 
 # Final status check
@@ -506,6 +540,8 @@ echo "SSL certificates status:"
 sudo certbot certificates
 echo "Open ports:"
 sudo netstat -tuln | grep -E ':80|:443'
+echo "Nginx configuration file contents:"
+sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf
 
 # Setup auto-renewal if certificate exists
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
@@ -612,11 +648,29 @@ if [ "$CERT_EXISTS" = "true" ]; then
     echo "Checking Nginx configuration for $DOMAIN..."
     if [ -f "/etc/nginx/sites-enabled/$DOMAIN.conf" ]; then
         echo "Config file exists"
-        sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name|location'
+        echo "Config file size: $(stat -c%s "/etc/nginx/sites-enabled/$DOMAIN.conf") bytes"
+        echo "Showing important configuration sections:"
+        sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name|location|proxy_pass|root|alias'
     else
         echo "Config file not found at /etc/nginx/sites-enabled/$DOMAIN.conf"
         echo "Available configs:"
         ls -la /etc/nginx/sites-enabled/
+    fi
+
+    # Verify frontend directories exist
+    echo "Checking frontend directories..."
+    if [ -d "/var/www/html" ]; then
+        echo "User frontend directory exists"
+        ls -la /var/www/html | head -n 10
+    else
+        echo "User frontend directory missing!"
+    fi
+
+    if [ -d "/var/www/html/admin" ]; then
+        echo "Admin frontend directory exists"
+        ls -la /var/www/html/admin | head -n 10
+    else
+        echo "Admin frontend directory missing!"
     fi
 
 else
