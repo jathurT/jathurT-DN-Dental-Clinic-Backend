@@ -405,11 +405,9 @@ fi
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
     echo "Certificate successfully obtained/exists!"
 
-    # Create full Nginx configuration with HTTPS using a template
-    echo "Creating full Nginx configuration with HTTPS..."
-
-    # Create a temporary file for the configuration
-    cat > /tmp/nginx-$DOMAIN.conf << 'NGINX_EOF'
+    # Create the complete Nginx configuration
+    echo "Creating complete Nginx configuration file..."
+    sudo tee /etc/nginx/sites-available/$DOMAIN.conf > /dev/null << 'NGINX_CONF'
 server {
     listen 80;
     listen [::]:80;
@@ -445,7 +443,7 @@ server {
 
     # Backend API
     location /api/ {
-        proxy_pass http://localhost:PORT_PLACEHOLDER/api/;
+        proxy_pass http://localhost:SERVER_PORT_PLACEHOLDER/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -475,18 +473,11 @@ server {
         index index.html;
     }
 }
-NGINX_EOF
+NGINX_CONF
 
-    # Replace placeholders with actual values
-    sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /tmp/nginx-$DOMAIN.conf
-    sed -i "s/PORT_PLACEHOLDER/$SERVER_PORT/g" /tmp/nginx-$DOMAIN.conf
-
-    # Copy the configuration to the proper location
-    sudo cp /tmp/nginx-$DOMAIN.conf /etc/nginx/sites-available/$DOMAIN.conf
-    sudo rm /tmp/nginx-$DOMAIN.conf
-
-    # Enable the site
-    sudo ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+    # Replace the placeholders with actual values
+    sudo sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN.conf
+    sudo sed -i "s/SERVER_PORT_PLACEHOLDER/$SERVER_PORT/g" /etc/nginx/sites-available/$DOMAIN.conf
 
     # Test configuration
     echo "Testing final Nginx configuration..."
@@ -501,7 +492,8 @@ NGINX_EOF
         if [ -f "/etc/nginx/sites-available/$DOMAIN.conf" ]; then
             echo "Configuration file exists"
             echo "File size: $(stat -c%s "/etc/nginx/sites-available/$DOMAIN.conf") bytes"
-            echo "File permissions: $(stat -c "%a %n" "/etc/nginx/sites-available/$DOMAIN.conf")"
+            echo "Showing configuration content:"
+            sudo cat /etc/nginx/sites-available/$DOMAIN.conf
         else
             echo "ERROR: Configuration file not found!"
             exit 1
@@ -649,8 +641,8 @@ if [ "$CERT_EXISTS" = "true" ]; then
     if [ -f "/etc/nginx/sites-enabled/$DOMAIN.conf" ]; then
         echo "Config file exists"
         echo "Config file size: $(stat -c%s "/etc/nginx/sites-enabled/$DOMAIN.conf") bytes"
-        echo "Showing important configuration sections:"
-        sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf | grep -E 'listen|ssl_certificate|server_name|location|proxy_pass|root|alias'
+        echo "Config file content:"
+        sudo cat /etc/nginx/sites-enabled/$DOMAIN.conf
     else
         echo "Config file not found at /etc/nginx/sites-enabled/$DOMAIN.conf"
         echo "Available configs:"
