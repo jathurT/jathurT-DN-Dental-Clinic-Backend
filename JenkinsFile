@@ -596,7 +596,7 @@ if [ "$CERT_EXISTS" = "true" ]; then
 
     # Check HTTPS connection
     echo "Testing HTTPS accessibility..."
-    if curl -k --silent --head https://$DOMAIN | grep "200 OK\|302 Found\|301 Moved" > /dev/null; then
+    if curl -k --silent --head https://$DOMAIN | grep -E "200 OK|302 Found|301 Moved" > /dev/null; then
         echo "HTTPS is accessible"
     else
         echo "HTTPS is not accessible. Checking configuration..."
