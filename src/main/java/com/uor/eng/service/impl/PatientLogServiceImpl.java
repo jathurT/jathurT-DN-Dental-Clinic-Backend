@@ -1,6 +1,7 @@
 package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.ResourceNotFoundException;
+import com.uor.eng.exceptions.UnauthorizedAccessException;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Patient;
 import com.uor.eng.model.PatientLog;
@@ -257,6 +258,28 @@ public class PatientLogServiceImpl implements PatientLogService {
     }
 
     return photoResponses;
+  }
+
+  @Override
+  @Transactional
+  public void deletePhoto(Long patientId, Long logId, Long photoId) {
+    Patient patient = patientRepository.findById(patientId)
+            .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
+
+    PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
+
+    PatientLogPhoto photo = patientLogPhotoRepository.findById(photoId)
+            .orElseThrow(() -> new ResourceNotFoundException("Photo not found with id: " + photoId));
+
+    if (!photo.getPatientLog().getId().equals(logId)) {
+      throw new UnauthorizedAccessException("Photo does not belong to the specified log");
+    }
+
+    s3Service.deleteFile(photo.getS3Key());
+    patientLogPhotoRepository.delete(photo);
+    patientLog.setTimestamp(LocalDateTime.now());
+    patientLogRepository.save(patientLog);
   }
 
   private PatientLogResponse mapToResponse(PatientLog log) {

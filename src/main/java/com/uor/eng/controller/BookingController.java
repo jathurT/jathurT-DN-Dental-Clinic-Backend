@@ -3,6 +3,8 @@ package com.uor.eng.controller;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
 import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
+import com.uor.eng.payload.other.MessageResponse;
+import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.service.IBookingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,5 +70,11 @@ public class BookingController {
   public ResponseEntity<MonthlyBookingStatsResponse> getCurrentMonthBookingStats() {
     MonthlyBookingStatsResponse stats = bookingService.getCurrentMonthBookingStats();
     return new ResponseEntity<>(stats, HttpStatus.OK);
+  }
+
+  @PostMapping("/{bookingId}/get-or-create-patient")
+  public ResponseEntity<PatientResponse> getOrCreatePatientFromBooking(@PathVariable String bookingId) {
+    PatientResponse patientResponse = bookingService.getOrCreatePatientFromBookingId(bookingId);
+    return new ResponseEntity<>(patientResponse, HttpStatus.OK);
   }
 }

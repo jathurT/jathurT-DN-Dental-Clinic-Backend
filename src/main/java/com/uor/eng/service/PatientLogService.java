@@ -19,4 +19,6 @@ public interface PatientLogService {
   List<PatientLogPhotoResponse> associatePhotosWithLog(Long patientId, Long logId, AssociatePhotosRequest request);
 
   List<PatientLogPhotoResponse> getPhotos(Long patientId, Long logId);
+
+  void deletePhoto(Long patientId, Long logId, Long photoId);
 }

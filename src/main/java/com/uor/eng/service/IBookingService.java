@@ -1,8 +1,11 @@
 package com.uor.eng.service;
 
+import com.uor.eng.model.Booking;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
 import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
+import com.uor.eng.payload.patient.PatientResponse;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,4 +25,9 @@ public interface IBookingService {
   BookingResponseDTO updateBookingStatus(String id, String status);
 
   MonthlyBookingStatsResponse getCurrentMonthBookingStats();
+
+  PatientResponse getOrCreatePatientFromBookingId(String bookingId);
+
+  @Transactional
+  PatientResponse getOrCreatePatientFromBooking(Booking booking);
 }

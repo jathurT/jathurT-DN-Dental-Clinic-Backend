@@ -2,19 +2,19 @@ package com.uor.eng.service.impl;
 
 import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
-import com.uor.eng.model.Booking;
-import com.uor.eng.model.BookingStatus;
-import com.uor.eng.model.Schedule;
-import com.uor.eng.model.ScheduleStatus;
+import com.uor.eng.model.*;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
 import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
+import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.repository.BookingRepository;
+import com.uor.eng.repository.PatientRepository;
 import com.uor.eng.repository.ScheduleRepository;
 import com.uor.eng.service.IBookingService;
 import com.uor.eng.util.EmailService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -22,12 +22,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class BookingServiceImpl implements IBookingService {
 
   private final Counter createBookingCounter;
@@ -37,6 +39,7 @@ public class BookingServiceImpl implements IBookingService {
   private final ModelMapper modelMapper;
   private final ScheduleRepository scheduleRepository;
   private final EmailService emailService;
+  private final PatientRepository patientRepository;
 
   public BookingServiceImpl(Counter createBookingCounter,
                             Counter createBookingErrorCounter,
@@ -44,7 +47,8 @@ public class BookingServiceImpl implements IBookingService {
                             BookingRepository bookingRepository,
                             ModelMapper modelMapper,
                             ScheduleRepository scheduleRepository,
-                            EmailService emailService) {
+                            EmailService emailService,
+                            PatientRepository patientRepository) {
     this.createBookingCounter = createBookingCounter;
     this.createBookingErrorCounter = createBookingErrorCounter;
     this.createBookingTimer = createBookingTimer;
@@ -52,6 +56,7 @@ public class BookingServiceImpl implements IBookingService {
     this.modelMapper = modelMapper;
     this.scheduleRepository = scheduleRepository;
     this.emailService = emailService;
+    this.patientRepository = patientRepository;
   }
 
   @Override
@@ -60,38 +65,26 @@ public class BookingServiceImpl implements IBookingService {
     Timer.Sample sample = Timer.start();
     try {
       Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
-          .orElseThrow(() -> {
-            createBookingErrorCounter.increment();
-            return new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule.");
-          });
+              .orElseThrow(() -> {
+                createBookingErrorCounter.increment();
+                return new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule.");
+              });
 
       if (schedule.getAvailableSlots() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
         createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently full.");
       } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE ||
-          schedule.getStatus() == ScheduleStatus.CANCELLED ||
-          schedule.getStatus() == ScheduleStatus.FINISHED ||
-          schedule.getStatus() == ScheduleStatus.ON_GOING ||
-          schedule.getStatus() == ScheduleStatus.ACTIVE
+              schedule.getStatus() == ScheduleStatus.CANCELLED ||
+              schedule.getStatus() == ScheduleStatus.FINISHED ||
+              schedule.getStatus() == ScheduleStatus.ON_GOING ||
+              schedule.getStatus() == ScheduleStatus.ACTIVE
       ) {
         createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently unavailable.");
       }
 
       Booking booking = modelMapper.map(bookingDTO, Booking.class);
-      schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
-      booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
-
-      if (schedule.getAvailableSlots() == 0) {
-        schedule.setStatus(ScheduleStatus.FULL);
-      }
-      Booking savedBooking = bookingRepository.save(booking);
-      scheduleRepository.save(schedule);
-
-      BookingResponseDTO bookingResponseDTO = mapToResponse(savedBooking);
-      emailService.sendBookingConfirmation(bookingResponseDTO);
-      createBookingCounter.increment();
-      return bookingResponseDTO;
+      return getBookingResponseDTO(schedule, booking);
     } catch (OptimisticLockingFailureException e) {
       createBookingErrorCounter.increment();
       throw new BadRequestException("Unable to create booking due to high demand. Please try again.");
@@ -111,25 +104,25 @@ public class BookingServiceImpl implements IBookingService {
     }
 
     return bookings.stream()
-        .map(this::mapToResponse)
-        .collect(Collectors.toList());
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
   }
 
   @Override
   public BookingResponseDTO getBookingByReferenceIdAndContactNumber(String referenceId, String contactNumber) {
     return bookingRepository.findByReferenceIdAndContactNumber(referenceId, contactNumber)
-        .map(this::mapToResponse)
-        .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference ID " + referenceId + " and contact number " + contactNumber + ". Please verify the details and try again."));
+            .map(this::mapToResponse)
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference ID " + referenceId + " and contact number " + contactNumber + ". Please verify the details and try again."));
   }
 
   @Override
   public BookingResponseDTO getBookingById(String id) {
     return bookingRepository.findById(id)
-        .map(booking -> {
-          modelMapper.getConfiguration().setPropertyCondition(Conditions.isNotNull());
-          return mapToResponse(booking);
-        })
-        .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
+            .map(booking -> {
+              modelMapper.getConfiguration().setPropertyCondition(Conditions.isNotNull());
+              return mapToResponse(booking);
+            })
+            .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
   }
 
   @Override
@@ -147,7 +140,7 @@ public class BookingServiceImpl implements IBookingService {
   @Transactional
   public BookingResponseDTO updateBooking(String id, CreateBookingDTO bookingDTO) {
     Booking booking = bookingRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
+            .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
     modelMapper.map(bookingDTO, booking);
     Booking updatedBooking = bookingRepository.save(booking);
     return mapToResponse(updatedBooking);
@@ -157,7 +150,7 @@ public class BookingServiceImpl implements IBookingService {
   @Transactional
   public BookingResponseDTO updateBookingStatus(String id, String status) {
     Booking booking = bookingRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
+            .orElseThrow(() -> new ResourceNotFoundException("Booking with ID " + id + " not found. Please check the ID and try again."));
     BookingStatus updatedStatus;
     try {
       updatedStatus = BookingStatus.valueOf(status.toUpperCase());
@@ -176,36 +169,91 @@ public class BookingServiceImpl implements IBookingService {
     int currentYear = now.getYear();
 
     List<Booking> currentMonthBookings = bookingRepository.findAll().stream()
-        .filter(booking -> {
-          LocalDate bookingDate = booking.getDate();
-          return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
-              bookingDate.getYear() == currentYear;
-        })
-        .toList();
+            .filter(booking -> {
+              LocalDate bookingDate = booking.getDate();
+              return Objects.equals(String.valueOf(bookingDate.getMonth()), currentMonth) &&
+                      bookingDate.getYear() == currentYear;
+            })
+            .toList();
 
     int total = currentMonthBookings.size();
     int finished = (int) currentMonthBookings.stream()
-        .filter(booking -> booking.getStatus() == BookingStatus.FINISHED)
-        .count();
+            .filter(booking -> booking.getStatus() == BookingStatus.FINISHED)
+            .count();
     int cancelled = (int) currentMonthBookings.stream()
-        .filter(booking -> booking.getStatus() == BookingStatus.CANCELLED)
-        .count();
+            .filter(booking -> booking.getStatus() == BookingStatus.CANCELLED)
+            .count();
     int pending = (int) currentMonthBookings.stream()
-        .filter(booking -> booking.getStatus() == BookingStatus.PENDING)
-        .count();
+            .filter(booking -> booking.getStatus() == BookingStatus.PENDING)
+            .count();
 
     return MonthlyBookingStatsResponse.builder()
-        .month(currentMonth)
-        .totalBookings(total)
-        .finishedBookings(finished)
-        .cancelledBookings(cancelled)
-        .pendingBookings(pending)
-        .build();
+            .month(currentMonth)
+            .totalBookings(total)
+            .finishedBookings(finished)
+            .cancelledBookings(cancelled)
+            .pendingBookings(pending)
+            .build();
+  }
+
+  @Override
+  @Transactional
+  public PatientResponse getOrCreatePatientFromBookingId(String bookingId) {
+    Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + bookingId));
+
+    return getOrCreatePatientFromBooking(booking);
+  }
+
+  @Transactional
+  @Override
+  public PatientResponse getOrCreatePatientFromBooking(Booking booking) {
+    String nic = booking.getNic();
+    if (nic == null || nic.isEmpty()) {
+      throw new BadRequestException("NIC is required to create or find a patient");
+    }
+
+    Optional<Patient> existingPatient = patientRepository.findByNic(nic);
+    Patient patient;
+
+    if (existingPatient.isPresent()) {
+      log.info("Found existing patient with NIC: {}", nic);
+      patient = existingPatient.get();
+    } else {
+      log.info("Creating new patient with NIC: {}", nic);
+      patient = new Patient();
+      patient.setName(booking.getName());
+      patient.setEmail(booking.getEmail());
+      patient.setNic(nic);
+      patient.setContactNumbers(Collections.singletonList(booking.getContactNumber()));
+
+      patient = patientRepository.save(patient);
+      log.info("Created new patient: ID={}, NIC={}, Name={}", patient.getId(), nic, booking.getName());
+    }
+
+    return modelMapper.map(patient, PatientResponse.class);
+  }
+
+  private BookingResponseDTO getBookingResponseDTO(Schedule schedule, Booking booking) {
+    schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
+    booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
+
+    if (schedule.getAvailableSlots() == 0) {
+      schedule.setStatus(ScheduleStatus.FULL);
+    }
+
+    Booking savedBooking = bookingRepository.save(booking);
+    scheduleRepository.save(schedule);
+
+    BookingResponseDTO bookingResponseDTO = mapToResponse(savedBooking);
+    emailService.sendBookingConfirmation(bookingResponseDTO);
+    createBookingCounter.increment();
+    return bookingResponseDTO;
   }
 
   private Schedule getSchedule(Long scheduleId) {
     return scheduleRepository.findById(scheduleId)
-        .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
+            .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + scheduleId + " not found. Please select a valid schedule."));
   }
 
   private BookingResponseDTO mapToResponse(Booking booking) {
