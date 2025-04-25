@@ -5,10 +5,7 @@ import com.uor.eng.payload.patient.logs.PresignedUrlResponse;
 import com.uor.eng.util.S3Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -31,5 +28,11 @@ public class S3Controller {
   public ResponseEntity<String> uploadFile(@RequestBody MultipartFile file) {
     String fileKey = s3Service.uploadFile(file);
     return ResponseEntity.ok(fileKey);
+  }
+
+  @DeleteMapping("/delete/{key}")
+  public ResponseEntity<Void> deleteFile(@PathVariable String key) {
+    s3Service.deleteFile(key);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 }

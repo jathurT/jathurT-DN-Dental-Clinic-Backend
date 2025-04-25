@@ -74,4 +74,13 @@ public class PatientLogController {
     List<PatientLogPhotoResponse> responses = patientLogService.getPhotos(patientId, logId);
     return new ResponseEntity<>(responses, HttpStatus.OK);
   }
+
+  @DeleteMapping("/{patientId}/logs/{logId}/photos/{photoId}")
+  public ResponseEntity<Void> deletePhoto(
+          @PathVariable Long patientId,
+          @PathVariable Long logId,
+          @PathVariable Long photoId) {
+    patientLogService.deletePhoto(patientId, logId, photoId);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
 }

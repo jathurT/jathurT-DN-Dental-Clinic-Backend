@@ -140,20 +140,33 @@ public class ScheduleServiceImpl implements IScheduleService {
   public ScheduleResponseDTO updateSchedule(Long id, CreateScheduleDTO scheduleDTO) {
     Schedule schedule = scheduleRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
+
+    // Get the current status of the schedule
+    ScheduleStatus currentStatus = schedule.getStatus();
+
+    // Get the requested status update
+    ScheduleStatus requestedStatus;
+    try {
+      requestedStatus = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
+              ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
+    }
+
+    // Check if the status transition is allowed
+    validateStatusTransition(currentStatus, requestedStatus);
+
+    // Update date if provided
     LocalDate date = scheduleDTO.getDate();
     if (date != null) {
       schedule.setDate(date);
       schedule.setDayOfWeek(date.getDayOfWeek().toString());
     }
-    ScheduleStatus updatedStatus;
-    try {
-      updatedStatus = ScheduleStatus.valueOf(scheduleDTO.getStatus().toUpperCase());
-    } catch (IllegalArgumentException | NullPointerException e) {
-      throw new BadRequestException("Invalid schedule status: " + scheduleDTO.getStatus() +
-              ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
-    }
-    scheduleUpdateTriggerActions(schedule, updatedStatus, scheduleDTO.getCapacity());
 
+    // Apply the status change and trigger related actions
+    scheduleUpdateTriggerActions(schedule, requestedStatus, scheduleDTO.getCapacity());
+
+    // Update other fields if provided
     if (scheduleDTO.getStartTime() != null) {
       schedule.setStartTime(scheduleDTO.getStartTime());
     }
@@ -168,10 +181,32 @@ public class ScheduleServiceImpl implements IScheduleService {
               .orElseThrow(() -> new BadRequestException("Dentist with ID " + scheduleDTO.getDentistId() + " not found."));
       schedule.setDentist(dentist);
     }
+
     Schedule updatedSchedule = scheduleRepository.save(schedule);
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
     return responseDTO;
+  }
+
+  private void validateStatusTransition(ScheduleStatus currentStatus, ScheduleStatus requestedStatus) {
+    // List of statuses that cannot be transitioned back to active-like states
+    List<ScheduleStatus> finalStates = List.of(ScheduleStatus.CANCELLED, ScheduleStatus.FINISHED);
+
+    // List of statuses that represent active-like states
+    List<ScheduleStatus> activeStates = List.of(
+            ScheduleStatus.AVAILABLE,
+            ScheduleStatus.FULL,
+            ScheduleStatus.UNAVAILABLE
+    );
+
+    // Check if current status is final and requested status is active
+    if (finalStates.contains(currentStatus) && activeStates.contains(requestedStatus)) {
+      throw new BadRequestException(
+              "Cannot change schedule status from " + currentStatus + " to " + requestedStatus + ". " +
+                      "Schedules with status " + currentStatus + " cannot be changed to " +
+                      activeStates.stream().map(Enum::name).collect(Collectors.joining(", ")) + "."
+      );
+    }
   }
 
   @Override
@@ -246,14 +281,21 @@ public class ScheduleServiceImpl implements IScheduleService {
   public ScheduleResponseDTO updateScheduleStatus(Long id, String status) {
     Schedule schedule = scheduleRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Schedule with ID " + id + " not found."));
-    ScheduleStatus updatedStatus;
+
+    ScheduleStatus currentStatus = schedule.getStatus();
+    ScheduleStatus requestedStatus;
+
     try {
-      updatedStatus = ScheduleStatus.valueOf(status.toUpperCase());
+      requestedStatus = ScheduleStatus.valueOf(status.toUpperCase());
     } catch (IllegalArgumentException | NullPointerException e) {
       throw new BadRequestException("Invalid schedule status: " + status +
               ". Allowed statuses: AVAILABLE, UNAVAILABLE, CANCELLED, FULL, FINISHED.");
     }
-    scheduleUpdateTriggerActions(schedule, updatedStatus, schedule.getCapacity());
+
+    // Validate the status transition is allowed
+    validateStatusTransition(currentStatus, requestedStatus);
+
+    scheduleUpdateTriggerActions(schedule, requestedStatus, schedule.getCapacity());
     Schedule updatedSchedule = scheduleRepository.save(schedule);
     ScheduleResponseDTO responseDTO = modelMapper.map(updatedSchedule, ScheduleResponseDTO.class);
     responseDTO.setNumberOfBookings(updatedSchedule.getBookings() != null ? updatedSchedule.getBookings().size() : 0);
