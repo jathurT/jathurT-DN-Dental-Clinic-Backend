@@ -218,7 +218,7 @@ public class BookingServiceImpl implements IBookingService {
 
     if (existingPatient.isPresent()) {
       log.info("Found existing patient with NIC: {}", nic);
-      patient = existingPatient.get();
+      throw new BadRequestException("Patient with NIC " + nic + " already exists. Please use a different NIC.");
     } else {
       log.info("Creating new patient with NIC: {}", nic);
       patient = new Patient();
@@ -226,12 +226,21 @@ public class BookingServiceImpl implements IBookingService {
       patient.setEmail(booking.getEmail());
       patient.setNic(nic);
       patient.setContactNumbers(Collections.singletonList(booking.getContactNumber()));
+      patient.setPatientLogs(Collections.emptyList());
 
       patient = patientRepository.save(patient);
       log.info("Created new patient: ID={}, NIC={}, Name={}", patient.getId(), nic, booking.getName());
     }
 
-    return modelMapper.map(patient, PatientResponse.class);
+    PatientResponse response = new PatientResponse();
+    response.setId(patient.getId());
+    response.setName(patient.getName());
+    response.setEmail(patient.getEmail());
+    response.setNic(patient.getNic());
+    response.setContactNumbers(patient.getContactNumbers());
+    response.setLogs(Collections.emptyList());
+
+    return response;
   }
 
   private BookingResponseDTO getBookingResponseDTO(Schedule schedule, Booking booking) {
