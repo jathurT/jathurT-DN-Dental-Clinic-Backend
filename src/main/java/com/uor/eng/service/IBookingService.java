@@ -28,6 +28,5 @@ public interface IBookingService {
 
   PatientResponse getOrCreatePatientFromBookingId(String bookingId);
 
-  @Transactional
   PatientResponse getOrCreatePatientFromBooking(Booking booking);
 }
