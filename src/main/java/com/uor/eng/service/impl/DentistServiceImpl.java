@@ -86,8 +86,15 @@ public class DentistServiceImpl implements IDentistService {
 
   @Override
   public void deleteDentist(Long id) {
+    if (!dentistRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Dentist not found with id: " + id);
+    }
     Dentist dentist = findDentistById(id);
-    dentistRepository.delete(dentist);
+    if (dentist.getSchedules().isEmpty()) {
+      dentistRepository.deleteById(id);
+    } else {
+      throw new BadRequestException("Cannot delete dentist with existing schedules.");
+    }
   }
 
   @Override

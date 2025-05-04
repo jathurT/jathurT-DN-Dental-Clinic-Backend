@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -70,9 +73,11 @@ public class Schedule {
   @JsonManagedReference
   private List<Booking> bookings;
 
-  @ManyToOne(fetch = FetchType.EAGER ,cascade = CascadeType.ALL)
-  @JoinColumn(name = "dentist_id",nullable = false)
+  @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+  @JoinColumn(name = "dentist_id", nullable = false)
   @JsonManagedReference
   private Dentist dentist;
 
+  @Version
+  private Long version;
 }

@@ -1,77 +1,353 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Booking Activation Confirmation</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      color: #333333;
-      line-height: 1.6;
-      padding: 20px;
-    }
-    .container {
-      background-color: #ffffff;
-      padding: 30px;
-      border-radius: 8px;
-      max-width: 600px;
-      margin: auto;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .header {
-      border-bottom: 2px solid #e0e0e0;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-    }
-    .header h2 {
-      margin: 0;
-      color: #4CAF50;
-    }
-    .content p {
-      margin: 10px 0;
-    }
-    .footer {
-      border-top: 2px solid #e0e0e0;
-      padding-top: 10px;
-      margin-top: 20px;
-      text-align: center;
-      font-size: 12px;
-      color: #777777;
-    }
-    .button {
-      display: inline-block;
-      padding: 10px 20px;
-      background-color: #4CAF50;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 4px;
-      margin-top: 20px;
-    }
-    .button:hover {
-      background-color: #45a049;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Activation</title>
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f1f8f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #00897b, #00695c);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .checkmark-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .checkmark {
+            color: #00897b;
+            font-size: 32px;
+        }
+
+        .status-badge {
+            background-color: #26a69a;
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin: 15px 0;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .welcome-message {
+            background-color: #e0f2f1;
+            border-left: 4px solid #00897b;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .appointment-card {
+            background-color: #f1f8f4;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 2px 8px rgba(0, 137, 123, 0.1);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .card-header h3 {
+            color: #00695c;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            width: 36px;
+            height: 36px;
+            background-color: #e0f2f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .detail-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: #00695c;
+        }
+
+        .detail-content {
+            flex: 1;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #00695c;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            color: #424242;
+            font-size: 15px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background-color: #00897b;
+            color: #ffffff;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background-color: #80cbc4;
+            color: #ffffff;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            background-color: #00695c;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:hover {
+            background-color: #4db6ac;
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin: 5px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .contact-info {
+            color: #00897b;
+            text-decoration: none;
+        }
+
+        /* Responsive adjustments */
+        @media screen and (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+                width: 100%;
+            }
+
+            .header, .content, .footer {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .checkmark-circle {
+                width: 50px;
+                height: 50px;
+            }
+
+            .checkmark {
+                font-size: 26px;
+            }
+
+            .appointment-card {
+                padding: 15px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h2>Booking Activation Confirmation</h2>
-  </div>
-  <div class="content">
-    <p>Dear {{name}},</p>
-    <p>We are pleased to inform you that your appointment with <strong>{{doctorName}}</strong> has been activated.</p>
-    <p><strong>Reference ID:</strong> {{referenceId}}</p>
-    <p><strong>Appointment Number:</strong> {{appointmentNumber}}</p>
-    <p><strong>Scheduled Date:</strong> {{scheduleDate}} ({{scheduleDayOfWeek}})</p>
-    <p><strong>Scheduled Time:</strong> {{scheduleStartTime}}</p>
-    <p><strong>Status:</strong> {{status}}</p>
-    <p>We look forward to serving you. If you have any questions or need to make further changes, please feel free to reach out.</p>
-    <a href="https://www.yourwebsite.com/dashboard" class="button">View Your Appointment</a>
-  </div>
-  <div class="footer">
-    <p>&copy; {{currentYear}} Your Company Name. All rights reserved.</p>
-  </div>
+<div class="email-container">
+    <div class="header">
+        <h1>Appointment Activated</h1>
+        <div class="checkmark-circle">
+            <span class="checkmark">✓</span>
+        </div>
+        <div class="status-badge">ACTIVE</div>
+    </div>
+
+    <div class="content">
+        <h2 style="color: #00695c; font-size: 20px;">Dear {{name}},</h2>
+
+        <div class="welcome-message">
+            <strong>Great news!</strong> Your appointment has been activated and we're looking forward to serving you.
+        </div>
+
+        <p>Your appointment is now confirmed and active. Please see the details below:</p>
+
+        <div class="appointment-card">
+            <div class="card-header">
+                <h3>Appointment Details</h3>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value">{{scheduleDate}} ({{scheduleDayOfWeek}})</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <span class="detail-label">Time</span>
+                    <span class="detail-value">{{scheduleStartTime}}</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <span class="detail-label">Doctor</span>
+                    <span class="detail-value">Dr. {{doctorName}}</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <span class="detail-label">Reference ID</span>
+                    <span class="detail-value">{{referenceId}}</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2V9h-2V7h4v10z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <span class="detail-label">Appointment #</span>
+                    <span class="detail-value">{{appointmentNumber}}</span>
+                </div>
+            </div>
+        </div>
+
+        <p style="text-align: center; font-weight: 600; color: #00897b;">
+            🗓️ Please save this information and arrive 15 minutes early
+        </p>
+
+        <div class="action-buttons">
+            <a href="https://dental-clinic.com/appointments" class="btn-primary">View Appointment</a>
+            <a href="https://dental-clinic.com/prepare" class="btn-secondary">Preparation Guide</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>DN Dental Clinic</strong></p>
+        <p>123 Dental Street, Healthcare City, HC 12345</p>
+        <p>Phone: <a href="tel:+1234567890" class="contact-info">(123) 456-7890</a> | Email: <a
+                href="mailto:info@dndentalclinic.com" class="contact-info">info@dndentalclinic.com</a></p>
+        <p style="font-size: 12px; margin-top: 15px;">&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
+    </div>
 </div>
 </body>
 </html>

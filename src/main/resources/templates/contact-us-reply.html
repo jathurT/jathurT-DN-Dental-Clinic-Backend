@@ -1,90 +1,314 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Response</title>
     <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #f4f4f4;
-            font-family: Arial, sans-serif;
-            color: #333333;
-            line-height: 1.6;
-            padding: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f1f8f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        .container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+        .email-container {
             max-width: 600px;
-            margin: auto;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
+            overflow: hidden;
         }
+
         .header {
-            background-color: #007E85;
+            background: linear-gradient(135deg, #00c853, #00b248);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
             color: #ffffff;
-            padding: 10px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
         }
+
+        .reply-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .reply-icon svg {
+            width: 30px;
+            height: 30px;
+            fill: #00c853;
+        }
+
         .content {
+            padding: 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .original-message {
+            background-color: #f1f8f4;
+            border-left: 4px solid #00c853;
             padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
         }
-        .details-table {
-            width: 100%;
-            border-collapse: collapse;
+
+        .message-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .details-table th, .details-table td {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #dddddd;
+
+        .message-content {
+            margin: 0;
+            line-height: 1.6;
         }
-        .details-table th {
-            background-color: #f2f2f2;
-            width: 40%;
+
+        .reply-section {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
         }
-        .footer {
+
+        .reply-header {
+            font-weight: 600;
+            color: #1b5e20;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .reply-content {
+            line-height: 1.7;
+            color: #333;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 30px 0;
+            border: none;
+        }
+
+        .support-message {
             text-align: center;
-            font-size: 12px;
-            color: #777777;
-            margin-top: 20px;
+            color: #00c853;
+            font-weight: 600;
+            margin: 25px 0;
         }
-        a {
-            color: #007E85;
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background-color: #00c853;
+            color: #ffffff;
+            padding: 12px 30px;
+            border-radius: 8px;
             text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
         }
-        a:hover {
+
+        .btn-secondary {
+            display: inline-block;
+            background-color: #f1f8f4;
+            color: #00c853;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 2px solid #00c853;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            background-color: #00b248;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e8f5e9;
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin: 5px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .social-links a {
+            color: #00c853;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .social-links a:hover {
             text-decoration: underline;
+        }
+
+        .social-divider {
+            color: #ccc;
+        }
+
+        /* Responsive adjustments */
+        @media screen and (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+                width: 100%;
+            }
+
+            .header, .content, .footer {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .reply-icon {
+                width: 50px;
+                height: 50px;
+                margin: 15px 0;
+            }
+
+            .message-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+
+            .social-links {
+                gap: 10px;
+                justify-content: center;
+            }
+
+            .social-divider {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container">
+<div class="email-container">
     <div class="header">
-        <h1>Contact Response</h1>
+        <h1>Response to Your Inquiry</h1>
+        <div class="reply-icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+        </div>
     </div>
+
     <div class="content">
-        <p>Dear {{name}},</p>
-        <p>Thank you for reaching out to us. We have received the following information from your message:</p>
-        <table class="details-table">
-            <tr>
-                <th>Name:</th>
-                <td>{{name}}</td>
-            </tr>
-            <tr>
-                <th>Email:</th>
-                <td>{{email}}</td>
-            </tr>
-            <tr>
-                <th>Message:</th>
-                <td>{{message}}</td>
-            </tr>
-        </table>
-        <p>We have reviewed your inquiry. Below is our reply:</p>
-        <p>{{reply}}</p>
+        <p class="greeting">Dear {{name}},</p>
+
+        <p>Thank you for contacting DN Dental Clinic. We have carefully reviewed your message and appreciate you
+            reaching out to us.</p>
+
+        <div class="original-message">
+            <strong>Your Original Message:</strong>
+            <div class="message-info">
+                <span>📧 {{email}}</span>
+                <span>📅 Received Today</span>
+            </div>
+            <p class="message-content">{{message}}</p>
+        </div>
+
+        <div class="reply-section">
+            <div class="reply-header">Our Response:</div>
+            <p class="reply-content">{{reply}}</p>
+        </div>
+
+        <hr class="divider">
+
+        <p class="support-message">
+            Need further assistance? We're here to help!
+        </p>
+
+        <div class="action-buttons">
+            <a href="https://dental-clinic.com/contact" class="btn-primary">Start New Conversation</a>
+            <a href="https://dental-clinic.com/book" class="btn-secondary">Book Appointment</a>
+        </div>
     </div>
+
     <div class="footer">
-        <p>&copy; {{currentYear}} Your Company. All rights reserved.</p>
-        <p>Your Company Address | Phone: (123) 456-7890 | <a href="mailto:support@yourcompany.com">support@yourcompany.com</a></p>
+        <p><strong>DN Dental Clinic</strong></p>
+        <p>123 Dental Street, Healthcare City, HC 12345</p>
+        <p>Phone: <a href="tel:+1234567890" class="contact-info">(123) 456-7890</a> | Email: <a
+                href="mailto:info@dndentalclinic.com" class="contact-info">info@dndentalclinic.com</a></p>
+
+        <div class="social-links">
+            <a href="#" aria-label="Facebook">Facebook</a>
+            <span class="social-divider">|</span>
+            <a href="#" aria-label="Instagram">Instagram</a>
+            <span class="social-divider">|</span>
+            <a href="#" aria-label="LinkedIn">LinkedIn</a>
+        </div>
+
+        <p style="font-size: 12px; margin-top: 15px;">&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
     </div>
 </div>
 </body>

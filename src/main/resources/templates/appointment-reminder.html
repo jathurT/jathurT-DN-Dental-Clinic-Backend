@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appointment Cancellation</title>
+    <title>Appointment Reminder</title>
     <style>
         /* Base styles */
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f5f5f5;
+            background-color: #f1f8f4;
             margin: 0;
             padding: 0;
             color: #333;
@@ -27,12 +27,12 @@
             margin: 40px auto;
             background-color: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #d50000, #c62828);
+            background: linear-gradient(135deg, #1b5e20, #2e7d32);
             padding: 30px;
             text-align: center;
         }
@@ -44,8 +44,8 @@
             font-weight: 600;
         }
 
-        .status-badge {
-            background-color: #ef5350;
+        .reminder-badge {
+            background-color: #388e3c;
             color: #ffffff;
             padding: 8px 20px;
             border-radius: 25px;
@@ -58,19 +58,34 @@
             padding: 30px;
         }
 
-        .cancellation-notice {
-            background-color: #ffebee;
-            border-left: 4px solid #f44336;
+        .greeting {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .alert-box {
+            background-color: #e8f5e9;
+            border-left: 4px solid #43a047;
             padding: 15px 20px;
             margin: 20px 0;
             border-radius: 0 8px 8px 0;
         }
 
-        .appointment-details {
-            background-color: #f9f9f9;
+        .appointment-card {
+            background-color: #f1f8f4;
             border-radius: 12px;
             padding: 25px;
             margin: 25px 0;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.1);
+        }
+
+        .appointment-header {
+            font-size: 22px;
+            color: #1b5e20;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         .detail-row {
@@ -86,7 +101,7 @@
         .detail-icon {
             width: 36px;
             height: 36px;
-            background-color: #ffcdd2;
+            background-color: #e8f5e9;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -98,7 +113,7 @@
         .detail-icon svg {
             width: 20px;
             height: 20px;
-            fill: #d32f2f;
+            fill: #1b5e20;
         }
 
         .detail-content {
@@ -107,9 +122,9 @@
 
         .detail-label {
             font-weight: 600;
-            color: #c62828;
-            margin-bottom: 3px;
+            color: #1b5e20;
             display: block;
+            margin-bottom: 3px;
         }
 
         .detail-value {
@@ -117,19 +132,30 @@
             font-size: 15px;
         }
 
+        .important-notice {
+            text-align: center;
+            color: #43a047;
+            font-weight: 600;
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
         .action-buttons {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            margin-top: 30px;
             gap: 15px;
+            margin-top: 30px;
         }
 
-        .btn-book-new {
+        .btn-primary {
             display: inline-block;
-            background-color: #00c33c;
+            background-color: #43a047;
             color: #ffffff;
-            padding: 12px 30px;
+            padding: 12px 25px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
@@ -137,36 +163,26 @@
             text-align: center;
         }
 
-        .btn-contact {
+        .btn-secondary {
             display: inline-block;
-            background-color: #f5f5f5;
-            color: #424242;
-            padding: 12px 30px;
+            background-color: #a5d6a7;
+            color: #1b5e20;
+            padding: 12px 25px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
-            border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
             text-align: center;
         }
 
-        .btn-book-new:hover {
-            background-color: #009e31;
+        .btn-primary:hover {
+            background-color: #388e3c;
             transform: translateY(-2px);
         }
 
-        .btn-contact:hover {
-            border-color: #bdbdbd;
+        .btn-secondary:hover {
+            background-color: #81c784;
             transform: translateY(-2px);
-        }
-
-        .sympathy-message {
-            background-color: #e8f5e9;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-            color: #2e7d32;
         }
 
         .footer {
@@ -183,7 +199,7 @@
         }
 
         .contact-info {
-            color: #00c33c;
+            color: #43a047;
             text-decoration: none;
         }
 
@@ -203,17 +219,20 @@
                 font-size: 22px;
             }
 
-            .appointment-details {
+            .appointment-card {
                 padding: 15px;
+            }
+
+            .appointment-header {
+                font-size: 20px;
             }
 
             .action-buttons {
                 flex-direction: column;
             }
 
-            .btn-book-new, .btn-contact {
+            .btn-primary, .btn-secondary {
                 width: 100%;
-                margin: 5px 0;
             }
         }
     </style>
@@ -221,20 +240,21 @@
 <body>
 <div class="email-container">
     <div class="header">
-        <h1>Appointment Cancellation</h1>
-        <div class="status-badge">CANCELLED</div>
+        <h1>Appointment Reminder</h1>
+        <div class="reminder-badge">Tomorrow's Appointment</div>
     </div>
 
     <div class="content">
-        <h2 style="color: #424242; font-size: 20px;">Dear {{name}},</h2>
+        <p class="greeting">Dear {{name}},</p>
 
-        <div class="cancellation-notice">
-            <strong>Your appointment has been cancelled.</strong> We apologize for any inconvenience this may cause.
+        <div class="alert-box">
+            <strong>Reminder:</strong> You have an appointment scheduled for tomorrow. Please make sure to arrive 15
+            minutes early.
         </div>
 
-        <p>Unfortunately, we had to cancel your appointment. The details of the cancelled appointment are:</p>
+        <div class="appointment-card">
+            <div class="appointment-header">Upcoming Appointment</div>
 
-        <div class="appointment-details">
             <div class="detail-row">
                 <div class="detail-icon">
                     <svg viewBox="0 0 24 24">
@@ -243,7 +263,7 @@
                 </div>
                 <div class="detail-content">
                     <div class="detail-label">Date</div>
-                    <div class="detail-value">{{scheduleDate}} ({{scheduleDayOfWeek}})</div>
+                    <div class="detail-value">{{scheduleDate}}</div>
                 </div>
             </div>
 
@@ -283,15 +303,30 @@
                     <div class="detail-value">{{referenceId}}</div>
                 </div>
             </div>
+
+            <div class="detail-row">
+                <div class="detail-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2V9h-2V7h4v10z"/>
+                    </svg>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-label">Appointment #</div>
+                    <div class="detail-value">{{appointmentNumber}}</div>
+                </div>
+            </div>
         </div>
 
-        <div class="sympathy-message">
-            We understand this may be disappointing. We're here to help you reschedule at your convenience.
-        </div>
+        <p class="important-notice">
+            <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: #43a047;">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            Important: Please bring your ID and any previous medical records
+        </p>
 
         <div class="action-buttons">
-            <a href="https://dental-clinic.com/book" class="btn-book-new">Book New Appointment</a>
-            <a href="https://dental-clinic.com/contact" class="btn-contact">Contact Us</a>
+            <a href="https://dental-clinic.com/checkin" class="btn-primary">Check In Online</a>
+            <a href="https://dental-clinic.com/reschedule" class="btn-secondary">Reschedule</a>
         </div>
     </div>
 

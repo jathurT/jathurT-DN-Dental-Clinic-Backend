@@ -19,6 +19,5 @@ public class ReceptionistResponseDTO {
   private String firstName;
   private String phoneNumber;
   private String nic;
-  private String shiftTiming;
   private Set<String> roles;
 }

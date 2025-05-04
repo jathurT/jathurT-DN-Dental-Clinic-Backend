@@ -21,7 +21,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,10 +59,12 @@ public class ScheduleServiceImpl implements IScheduleService {
     if (scheduleDTO == null) {
       throw new BadRequestException("Schedule data cannot be null.");
     }
+
     LocalDate date = scheduleDTO.getDate();
     if (date == null) {
       throw new BadRequestException("Schedule date cannot be null.");
     }
+
     String dayOfWeek = date.getDayOfWeek().toString();
     dayOfWeek = dayOfWeek.charAt(0) + dayOfWeek.substring(1).toLowerCase();
 
@@ -247,32 +248,130 @@ public class ScheduleServiceImpl implements IScheduleService {
 
   @Override
   @Transactional
-  @Scheduled(cron = "0 0/15 * * * ?")
+  public void updateExpiredSchedules() {
+    LocalDate today = LocalDate.now();
+    LocalTime nowTime = LocalTime.now();
+    List<ScheduleStatus> excludedStatuses = List.of(
+            ScheduleStatus.ON_GOING,
+            ScheduleStatus.FULL,
+            ScheduleStatus.FINISHED,
+            ScheduleStatus.CANCELLED
+    );
+
+    log.info("Updating expired schedules for date: {} and time: {}", today, nowTime);
+    List<Schedule> expiredSchedules = scheduleRepository.findSchedulesToFinish(today, nowTime, excludedStatuses);
+
+    if (!expiredSchedules.isEmpty()) {
+      for (Schedule schedule : expiredSchedules) {
+        processExpiredSchedule(schedule);
+      }
+      scheduleRepository.saveAll(expiredSchedules);
+      log.info("Updated {} schedules to FINISHED", expiredSchedules.size());
+    } else {
+      log.debug("No schedules to update at this time.");
+    }
+  }
+
+  @Override
+  @Transactional
   public void initialUpdaterScheduleOnStartup() {
     LocalDate today = LocalDate.now();
     LocalTime nowTime = LocalTime.now();
-    List<ScheduleStatus> excludedStatuses = List.of(ScheduleStatus.ON_GOING, ScheduleStatus.FULL);
 
-    log.info("Updating schedule statuses for date: {} and time: {}", today, nowTime);
-    List<Schedule> schedulesToFinish = scheduleRepository.findSchedulesToFinish(today, nowTime, excludedStatuses);
+    // Find schedules that are still AVAILABLE but should be cancelled
+    List<Schedule> schedules = scheduleRepository.findByDate(today);
+    List<Schedule> expiredSchedules = schedules.stream()
+            .filter(schedule -> schedule.getStatus() == ScheduleStatus.AVAILABLE && schedule.getStartTime().isBefore(nowTime))
+            .toList();
 
-    if (!schedulesToFinish.isEmpty()) {
-      for (Schedule schedule : schedulesToFinish) {
-        schedule.setStatus(ScheduleStatus.FINISHED);
-        List<Booking> bookings = schedule.getBookings();
-        if (bookings != null && !bookings.isEmpty()) {
-          bookings.forEach(booking -> {
-            booking.setStatus(BookingStatus.FINISHED);
+    log.info("Found {} expired schedules that need to be cancelled", expiredSchedules.size());
+
+    if (!expiredSchedules.isEmpty()) {
+      for (Schedule schedule : expiredSchedules) {
+        log.info("Cancelling expired schedule ID: {}, scheduled for {} at {}",
+                schedule.getId(), schedule.getDate(), schedule.getStartTime());
+
+        schedule.setStatus(ScheduleStatus.CANCELLED);
+
+        // Update any associated bookings
+        if (schedule.getBookings() != null && !schedule.getBookings().isEmpty()) {
+          for (Booking booking : schedule.getBookings()) {
+            booking.setStatus(BookingStatus.CANCELLED);
             bookingRepository.save(booking);
-            log.info("Booking ID {} marked as FINISHED", booking.getReferenceId());
-          });
+            try {
+              BookingResponseDTO bookingResponseDTO = mapToResponse(booking);
+              emailService.sendBookingCancellation(bookingResponseDTO);
+              log.info("Sent cancellation email for booking ID: {}", booking.getReferenceId());
+            } catch (Exception e) {
+              log.error("Failed to send cancellation email for booking ID: {}", booking.getReferenceId(), e);
+            }
+          }
         }
-        log.info("Schedule ID {} marked as FINISHED", schedule.getId());
+        scheduleRepository.save(schedule);
       }
-      scheduleRepository.saveAll(schedulesToFinish);
-      log.info("Updated {} schedules to FINISHED", schedulesToFinish.size());
+      log.info("Successfully cancelled {} expired schedules", expiredSchedules.size());
     } else {
-      log.info("No schedules to update at this time.");
+      log.debug("No expired schedules found to cancel");
+    }
+  }
+
+  private void processExpiredSchedule(Schedule schedule) {
+    schedule.setStatus(ScheduleStatus.FINISHED);
+
+    if (schedule.getBookings() != null && !schedule.getBookings().isEmpty()) {
+      for (Booking booking : schedule.getBookings()) {
+        if (booking.getStatus() != BookingStatus.CANCELLED) {
+          booking.setStatus(BookingStatus.FINISHED);
+          bookingRepository.save(booking);
+          log.debug("Booking ID {} marked as FINISHED", booking.getReferenceId());
+        }
+      }
+    }
+    log.debug("Schedule ID {} marked as FINISHED", schedule.getId());
+  }
+
+  @Override
+  @Transactional
+  public void processDailySchedules() {
+    LocalDate today = LocalDate.now();
+    // Process schedules for the day
+    List<Schedule> todaySchedules = scheduleRepository.findByDate(today);
+
+    log.info("Processing daily schedules for date: {}", today);
+
+    // Add any daily processing logic here
+    // For example, you could check for schedules that need to be activated
+    for (Schedule schedule : todaySchedules) {
+      if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE &&
+              schedule.getDate().isEqual(today)) {
+        // Mark as available if it's today and was unavailable
+        schedule.setStatus(ScheduleStatus.AVAILABLE);
+        scheduleRepository.save(schedule);
+        log.debug("Schedule ID {} activated for today", schedule.getId());
+      }
+    }
+  }
+
+  @Override
+  @Transactional
+  public void sendAppointmentReminders() {
+    LocalDate tomorrow = LocalDate.now().plusDays(1);
+    List<Schedule> tomorrowSchedules = scheduleRepository.findByDate(tomorrow);
+
+    log.info("Sending appointment reminders for date: {}", tomorrow);
+
+    for (Schedule schedule : tomorrowSchedules) {
+      for (Booking booking : schedule.getBookings()) {
+        if (booking.getStatus() == BookingStatus.ACTIVE || booking.getStatus() == BookingStatus.PENDING) {
+          try {
+            BookingResponseDTO bookingDTO = mapToResponse(booking);
+            emailService.sendAppointmentReminder(bookingDTO);
+            log.debug("Sent reminder for booking ID: {}", booking.getReferenceId());
+          } catch (Exception e) {
+            log.error("Failed to send reminder for booking ID: {}", booking.getReferenceId(), e);
+          }
+        }
+      }
     }
   }
 
@@ -400,16 +499,16 @@ public class ScheduleServiceImpl implements IScheduleService {
     BookingResponseDTO bookingResponseDTO = modelMapper.map(booking, BookingResponseDTO.class);
     Long scheduleId = booking.getSchedule().getId();
     Schedule schedule = getSchedule(scheduleId);
-    BookingResponseDTO.builder()
-            .scheduleId(scheduleId)
-            .scheduleDate(schedule.getDate())
-            .scheduleDayOfWeek(schedule.getDayOfWeek())
-            .scheduleStartTime(schedule.getStartTime())
-            .doctorName(schedule.getDentist().getFirstName())
-            .scheduleStatus(schedule.getStatus())
-            .dayOfWeek(schedule.getDayOfWeek())
-            .status(booking.getStatus())
-            .build();
+
+    // Set the fields properly
+    bookingResponseDTO.setScheduleId(scheduleId);
+    bookingResponseDTO.setScheduleDate(schedule.getDate());
+    bookingResponseDTO.setScheduleDayOfWeek(schedule.getDayOfWeek());
+    bookingResponseDTO.setScheduleStartTime(schedule.getStartTime());
+    bookingResponseDTO.setDoctorName(schedule.getDentist().getFirstName());
+    bookingResponseDTO.setScheduleStatus(schedule.getStatus());
+    bookingResponseDTO.setDayOfWeek(schedule.getDayOfWeek());
+
     return bookingResponseDTO;
   }
 }

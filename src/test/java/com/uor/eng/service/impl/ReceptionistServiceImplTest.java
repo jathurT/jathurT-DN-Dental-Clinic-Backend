@@ -66,7 +66,6 @@ class ReceptionistServiceImplTest {
     receptionist.setFirstName("John");
     receptionist.setNic("123456789V");
     receptionist.setPhoneNumber("0771234567");
-    receptionist.setShiftTiming("Day");
     receptionist.setRoles(Set.of(role));
 
     createDTO = CreateReceptionistDTO.builder()
@@ -77,7 +76,6 @@ class ReceptionistServiceImplTest {
         .firstName("John")
         .nic("123456789V")
         .phoneNumber("0771234567")
-        .shiftTiming("Day")
         .build();
 
     responseDTO = ReceptionistResponseDTO.builder()
@@ -88,7 +86,6 @@ class ReceptionistServiceImplTest {
         .firstName("John")
         .nic("123456789V")
         .phoneNumber("0771234567")
-        .shiftTiming("Day")
         .roles(Set.of("ROLE_RECEPTIONIST"))
         .build();
   }
@@ -197,7 +194,6 @@ class ReceptionistServiceImplTest {
         .firstName("Jane")
         .nic("987654321V")
         .phoneNumber("0777654321")
-        .shiftTiming("Night")
         .build();
 
     Receptionist updatedReceptionist = new Receptionist();

@@ -61,7 +61,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     Set<String> roles = new HashSet<>();
     roles.add("ROLE_RECEPTIONIST");
@@ -74,7 +73,6 @@ public class ReceptionistControllerTest {
     response.setGender("MALE");
     response.setPhoneNumber("0771234567");
     response.setNic("123456789V");
-    response.setShiftTiming("Morning");
     response.setRoles(roles);
 
     when(receptionistService.createReceptionist(any(CreateReceptionistDTO.class))).thenReturn(response);
@@ -104,7 +102,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.createReceptionist(any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("Username is already taken!"));
@@ -129,7 +126,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.createReceptionist(any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("Email is already in use!"));
@@ -154,7 +150,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("987654321V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.createReceptionist(any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("NIC is already in use!"));
@@ -223,7 +218,6 @@ public class ReceptionistControllerTest {
     receptionist1.setGender("MALE");
     receptionist1.setPhoneNumber("0771234567");
     receptionist1.setNic("123456789V");
-    receptionist1.setShiftTiming("Morning");
     receptionist1.setRoles(roles);
 
     ReceptionistResponseDTO receptionist2 = new ReceptionistResponseDTO();
@@ -234,7 +228,6 @@ public class ReceptionistControllerTest {
     receptionist2.setGender("FEMALE");
     receptionist2.setPhoneNumber("0777654321");
     receptionist2.setNic("987654321V");
-    receptionist2.setShiftTiming("Evening");
     receptionist2.setRoles(roles);
 
     return Arrays.asList(receptionist1, receptionist2);
@@ -286,7 +279,6 @@ public class ReceptionistControllerTest {
     receptionist.setGender("MALE");
     receptionist.setPhoneNumber("0771234567");
     receptionist.setNic("123456789V");
-    receptionist.setShiftTiming("Morning");
     receptionist.setRoles(roles);
     return receptionist;
   }
@@ -315,7 +307,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Afternoon");
 
     ReceptionistResponseDTO response = getResponseDTO();
 
@@ -346,7 +337,6 @@ public class ReceptionistControllerTest {
     response.setGender("MALE");
     response.setPhoneNumber("0771234567");
     response.setNic("123456789V");
-    response.setShiftTiming("Afternoon");
     response.setRoles(roles);
     return response;
   }
@@ -362,7 +352,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("Username is already taken!"));
@@ -387,7 +376,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("Email is already in use!"));
@@ -412,7 +400,6 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("987654321V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("NIC is already in use!"));
@@ -437,7 +424,6 @@ public class ReceptionistControllerTest {
     request.setGender("MALE");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
-    request.setShiftTiming("Morning");
 
     when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class)))
             .thenThrow(new ResourceNotFoundException("Receptionist not found with id: 999"));
