@@ -39,9 +39,4 @@ public class Receptionist extends User {
   @NotBlank(message = "Gender is mandatory")
   @Size(min = 4, max = 6, message = "Gender must be between 4 and 6 characters")
   private String gender;
-
-  @Column(name = "shift_timing", nullable = false, length = 50)
-  @NotBlank(message = "Shift timing is mandatory")
-  @Size(min = 3, max = 50)
-  private String shiftTiming;
 }

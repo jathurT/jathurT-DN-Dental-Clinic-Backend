@@ -20,8 +20,8 @@ public class CreateReceptionistDTO {
   @Size(max = 50, message = "Email must be at most 50 characters")
   private String email;
 
-  @NotBlank(message ="Gender is mandatory")
-  @Size(min = 4, max = 6, message ="Gender must be between 4 and 6 characters")
+  @NotBlank(message = "Gender is mandatory")
+  @Size(min = 4, max = 6, message = "Gender must be between 4 and 6 characters")
   private String gender;
 
   @NotBlank(message = "Password is mandatory")
@@ -41,9 +41,4 @@ public class CreateReceptionistDTO {
   @NotBlank(message = "Phone number is mandatory")
   @Size(min = 10, max = 10, message = "Phone number must be 10 characters")
   private String phoneNumber;
-
-  @NotBlank(message = "Shift timing is mandatory")
-  @Size(min = 2, max = 30, message = "Shift timing must be between 2 and 30 characters")
-  private String shiftTiming;
-
 }

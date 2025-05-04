@@ -24,8 +24,6 @@ public interface IScheduleService {
 
   List<ScheduleGetSevenCustomResponse> getNextSevenSchedulesCustom();
 
-  void initialUpdaterScheduleOnStartup();
-
   ScheduleResponseDTO updateScheduleStatus(Long id, String status);
 
   List<CancelledScheduleResponse> getCancelledSchedules();
@@ -33,4 +31,12 @@ public interface IScheduleService {
   List<UpcomingScheduleResponse> getUpcomingSchedules();
 
   List<ScheduleHistoryResponse> getScheduleHistory();
+
+  void updateExpiredSchedules();
+
+  void initialUpdaterScheduleOnStartup();
+
+  void processDailySchedules();
+
+  void sendAppointmentReminders();
 }

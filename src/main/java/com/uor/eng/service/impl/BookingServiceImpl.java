@@ -15,9 +15,11 @@ import com.uor.eng.util.EmailService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.StaleObjectStateException;
 import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,36 +63,108 @@ public class BookingServiceImpl implements IBookingService {
 
   @Override
   @Transactional
-  public synchronized BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
+  public BookingResponseDTO createBooking(CreateBookingDTO bookingDTO) {
     Timer.Sample sample = Timer.start();
     try {
+      // First perform a quick check without locking
       Schedule schedule = scheduleRepository.findById(bookingDTO.getScheduleId())
               .orElseThrow(() -> {
                 createBookingErrorCounter.increment();
-                return new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found. Please select a valid schedule.");
+                return new ResourceNotFoundException("Schedule with ID " + bookingDTO.getScheduleId() + " not found.");
               });
 
-      if (schedule.getAvailableSlots() == 0 || schedule.getStatus() == ScheduleStatus.FULL) {
+      // Initial validation
+      if (schedule.getAvailableSlots() <= 0 || schedule.getStatus() == ScheduleStatus.FULL) {
         createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently full.");
       } else if (schedule.getStatus() == ScheduleStatus.UNAVAILABLE ||
               schedule.getStatus() == ScheduleStatus.CANCELLED ||
               schedule.getStatus() == ScheduleStatus.FINISHED ||
               schedule.getStatus() == ScheduleStatus.ON_GOING ||
-              schedule.getStatus() == ScheduleStatus.ACTIVE
-      ) {
+              schedule.getStatus() == ScheduleStatus.ACTIVE) {
         createBookingErrorCounter.increment();
         throw new BadRequestException("Cannot create booking. The selected schedule is currently unavailable.");
       }
 
+      // Prepare the booking object
       Booking booking = modelMapper.map(bookingDTO, Booking.class);
-      return getBookingResponseDTO(schedule, booking);
-    } catch (OptimisticLockingFailureException e) {
+
+      // Use optimistic locking with retries
+      int maxRetries = 3;
+
+      for (int attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          // Get a fresh copy of the schedule with a pessimistic lock
+          schedule = scheduleRepository.findByIdWithLock(bookingDTO.getScheduleId())
+                  .orElseThrow(() -> new ResourceNotFoundException("Schedule no longer exists"));
+
+          // Revalidate with latest data
+          if (schedule.getAvailableSlots() <= 0 || schedule.getStatus() != ScheduleStatus.AVAILABLE) {
+            createBookingErrorCounter.increment();
+            throw new BadRequestException("Schedule is no longer available");
+          }
+
+          // Update the schedule
+          schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
+          booking.setSchedule(schedule);
+          booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
+
+          if (schedule.getAvailableSlots() == 0) {
+            schedule.setStatus(ScheduleStatus.FULL);
+          }
+
+          // Save both entities
+          scheduleRepository.save(schedule);
+          Booking savedBooking = bookingRepository.save(booking);
+
+          // Process confirmation
+          BookingResponseDTO response = mapToResponse(savedBooking);
+          emailService.sendBookingConfirmation(response);
+          createBookingCounter.increment();
+
+          return response;
+
+        } catch (ObjectOptimisticLockingFailureException | StaleObjectStateException e) {
+          log.info("Concurrent booking detected, attempt {}/{}", attempt + 1, maxRetries);
+
+          if (attempt >= maxRetries - 1) {
+            createBookingErrorCounter.increment();
+            throw new BadRequestException("System is currently busy. Please try again shortly.");
+          }
+
+          // Add a delay before retry
+          try {
+            Thread.sleep((long) Math.pow(2, attempt + 1) * 50);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new BadRequestException("Booking process was interrupted.");
+          }
+        } catch (PessimisticLockingFailureException e) {
+          log.warn("Lock acquisition failure, attempt {}/{}", attempt + 1, maxRetries);
+
+          if (attempt >= maxRetries - 1) {
+            createBookingErrorCounter.increment();
+            throw new BadRequestException("System is experiencing high demand. Please try again.");
+          }
+
+          try {
+            Thread.sleep((long) Math.pow(2, attempt + 1) * 100);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new BadRequestException("Booking process was interrupted.");
+          }
+        }
+      }
+
       createBookingErrorCounter.increment();
-      throw new BadRequestException("Unable to create booking due to high demand. Please try again.");
+      throw new BadRequestException("Unable to process booking request after multiple attempts.");
+
+    } catch (BadRequestException | ResourceNotFoundException e) {
+      throw e;
     } catch (Exception e) {
       createBookingErrorCounter.increment();
-      throw new BadRequestException("Unable to create booking. Please check the details and try again.");
+      log.error("Unexpected error during booking creation", e);
+      throw new BadRequestException("Unable to create booking. Please try again later.");
     } finally {
       sample.stop(createBookingTimer);
     }
@@ -241,23 +315,6 @@ public class BookingServiceImpl implements IBookingService {
     response.setLogs(Collections.emptyList());
 
     return response;
-  }
-
-  private BookingResponseDTO getBookingResponseDTO(Schedule schedule, Booking booking) {
-    schedule.setAvailableSlots(schedule.getAvailableSlots() - 1);
-    booking.setAppointmentNumber(schedule.getCapacity() - schedule.getAvailableSlots());
-
-    if (schedule.getAvailableSlots() == 0) {
-      schedule.setStatus(ScheduleStatus.FULL);
-    }
-
-    Booking savedBooking = bookingRepository.save(booking);
-    scheduleRepository.save(schedule);
-
-    BookingResponseDTO bookingResponseDTO = mapToResponse(savedBooking);
-    emailService.sendBookingConfirmation(bookingResponseDTO);
-    createBookingCounter.increment();
-    return bookingResponseDTO;
   }
 
   private Schedule getSchedule(Long scheduleId) {
