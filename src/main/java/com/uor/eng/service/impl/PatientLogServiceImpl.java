@@ -16,12 +16,12 @@ import com.uor.eng.util.S3Service;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PatientLogServiceImpl implements PatientLogService {
@@ -47,7 +47,6 @@ public class PatientLogServiceImpl implements PatientLogService {
   @Transactional
   @Override
   public PatientLogResponse createPatientLog(Long patientId, @Valid PatientLogRequestNoPhotos request) {
-
     Patient patient = patientRepository.findById(patientId)
             .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
@@ -71,26 +70,10 @@ public class PatientLogServiceImpl implements PatientLogService {
             .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + patientId));
 
     List<PatientLog> patientLogs = patientLogRepository.findByPatientId(patient.getId());
-    List<PatientLogResponse> responses = new ArrayList<>();
-    for (PatientLog patientLog : patientLogs) {
-      List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientId(patientLog.getId());
-
-      List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
-      for (PatientLogPhoto photo : photos) {
-        PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
-        photoResponse.setId(photo.getId());
-        photoResponse.setUrl(s3Service.getFileUrl(photo.getS3Key()));
-        photoResponse.setDescription(photo.getDescription());
-        photoResponse.setTimestamp(photo.getTimestamp());
-
-        photoResponses.add(photoResponse);
-      }
-      PatientLogResponse response = mapToResponse(patientLog);
-      response.getPhotos().addAll(photoResponses);
-      responses.add(response);
-    }
-
-    return responses;
+    // Simply map each log to a response - photos are already handled in mapToResponse
+    return patientLogs.stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -102,19 +85,8 @@ public class PatientLogServiceImpl implements PatientLogService {
     PatientLog patientLog = (PatientLog) patientLogRepository.findByIdAndPatientId(logId, patient.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
-    List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientId(patientLog.getId());
-    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
-    for (PatientLogPhoto photo : photos) {
-      PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
-      photoResponse.setId(photo.getId());
-      photoResponse.setUrl(s3Service.getFileUrl(photo.getS3Key()));
-      photoResponse.setDescription(photo.getDescription());
-      photoResponse.setTimestamp(photo.getTimestamp());
-      photoResponses.add(photoResponse);
-    }
-    PatientLogResponse response = mapToResponse(patientLog);
-    response.getPhotos().addAll(photoResponses);
-    return response;
+    // Just return the response with photos already loaded in mapToResponse
+    return mapToResponse(patientLog);
   }
 
   @Override
@@ -162,7 +134,6 @@ public class PatientLogServiceImpl implements PatientLogService {
       }
     }
 
-    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
     if (request.getNewPhotoKeys() != null && !request.getNewPhotoKeys().isEmpty()) {
       for (String s3Key : request.getNewPhotoKeys()) {
         PatientLogPhoto photo = new PatientLogPhoto();
@@ -170,23 +141,21 @@ public class PatientLogServiceImpl implements PatientLogService {
         photo.setPatientLog(log);
         photo.setTimestamp(LocalDateTime.now());
         photo.setDescription("");
-        photo.setUrl(s3Service.getFileUrl(s3Key));
         patientLogPhotoRepository.save(photo);
-        photoResponses.add(mapToPhotoResponse(photo));
       }
     }
+
     log.setTimestamp(LocalDateTime.now());
     patientLogRepository.save(log);
-    PatientLogResponse response = mapToResponse(log);
-    response.getPhotos().addAll(photoResponses);
 
-    return response;
+    // Return a fresh response with all the updated data
+    return mapToResponse(log);
   }
 
   private PatientLogPhotoResponse mapToPhotoResponse(PatientLogPhoto photo) {
     PatientLogPhotoResponse response = new PatientLogPhotoResponse();
     response.setId(photo.getId());
-    response.setUrl(photo.getUrl());
+    response.setUrl(s3Service.getFileUrl(photo.getS3Key()));
     response.setDescription(photo.getDescription());
     response.setTimestamp(photo.getTimestamp());
     return response;
@@ -247,17 +216,9 @@ public class PatientLogServiceImpl implements PatientLogService {
             .orElseThrow(() -> new ResourceNotFoundException("Patient log not found with id: " + logId));
 
     List<PatientLogPhoto> photos = patientLogPhotoRepository.findByPatientLogId(patientLog.getId());
-    List<PatientLogPhotoResponse> photoResponses = new ArrayList<>();
-    for (PatientLogPhoto photo : photos) {
-      PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
-      photoResponse.setId(photo.getId());
-      photoResponse.setUrl(s3Service.getFileUrl(photo.getS3Key()));
-      photoResponse.setDescription(photo.getDescription());
-      photoResponse.setTimestamp(photo.getTimestamp());
-      photoResponses.add(photoResponse);
-    }
-
-    return photoResponses;
+    return photos.stream()
+            .map(this::mapToPhotoResponse)
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -300,31 +261,8 @@ public class PatientLogServiceImpl implements PatientLogService {
         photoResponse.setTimestamp(photo.getTimestamp());
         photoResponses.add(photoResponse);
       }
-    } else {
-      response.setPhotos(new ArrayList<>());
     }
     response.setPhotos(photoResponses);
     return response;
-  }
-
-  public void MapToPhotoResponse(PatientLog patientLog, List<PatientLogPhotoResponse> photoResponses, MultipartFile file) {
-    if (!file.isEmpty()) {
-      String s3Key = s3Service.uploadFile(file);
-
-      PatientLogPhoto photo = new PatientLogPhoto();
-      photo.setPatientLog(patientLog);
-      photo.setS3Key(s3Key);
-      photo.setDescription("");
-      photo.setTimestamp(LocalDateTime.now());
-      patientLogPhotoRepository.save(photo);
-
-      PatientLogPhotoResponse photoResponse = new PatientLogPhotoResponse();
-      photoResponse.setId(photo.getId());
-      photoResponse.setUrl(s3Service.getFileUrl(s3Key));
-      photoResponse.setDescription(photo.getDescription());
-      photoResponse.setTimestamp(photo.getTimestamp());
-
-      photoResponses.add(photoResponse);
-    }
   }
 }

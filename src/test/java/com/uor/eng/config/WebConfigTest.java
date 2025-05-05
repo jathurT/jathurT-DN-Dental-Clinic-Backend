@@ -1,5 +1,7 @@
 package com.uor.eng.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.junit.jupiter.api.Test;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.config.Configuration.AccessLevel;
@@ -26,7 +28,7 @@ public class WebConfigTest {
 
     // Assert that the returned object is not null and is a ModelMapper instance
     assertNotNull(modelMapper, "ModelMapper should not be null");
-    assertTrue(modelMapper instanceof ModelMapper, "Bean should be an instance of ModelMapper");
+    assertInstanceOf(ModelMapper.class, modelMapper, "Bean should be an instance of ModelMapper");
   }
 
   /**
@@ -36,19 +38,17 @@ public class WebConfigTest {
   public void testModelMapperBeanRegistration() {
     // Create a Spring application context with our configuration
     AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-    context.register(WebConfig.class);
-    context.refresh();
 
-    try {
+    try (context) {
+      context.register(WebConfig.class);
+      context.refresh();
       // Get the ModelMapper bean from the context
       ModelMapper modelMapper = context.getBean(ModelMapper.class);
 
       // Assert that the bean is found and is a ModelMapper instance
       assertNotNull(modelMapper, "ModelMapper bean should be registered in the context");
-    } finally {
-      // Always close the context to release resources
-      context.close();
     }
+    // Always close the context to release resources
   }
 
   /**
@@ -58,20 +58,18 @@ public class WebConfigTest {
   public void testModelMapperSingletonScope() {
     // Create a Spring application context with our configuration
     AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-    context.register(WebConfig.class);
-    context.refresh();
 
-    try {
+    try (context) {
+      context.register(WebConfig.class);
+      context.refresh();
       // Get the ModelMapper bean twice from the context
       ModelMapper firstInstance = context.getBean(ModelMapper.class);
       ModelMapper secondInstance = context.getBean(ModelMapper.class);
 
       // Assert that both references point to the same object (singleton scope)
       assertSame(firstInstance, secondInstance, "ModelMapper bean should be a singleton");
-    } finally {
-      // Always close the context to release resources
-      context.close();
     }
+    // Always close the context to release resources
   }
 
   /**
@@ -126,49 +124,23 @@ public class WebConfigTest {
   /**
    * Test class for ModelMapper functionality test
    */
+  @Setter
+  @Getter
   private static class Source {
     private String name;
     private int value;
 
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public int getValue() {
-      return value;
-    }
-
-    public void setValue(int value) {
-      this.value = value;
-    }
   }
 
   /**
    * Test class for ModelMapper functionality test
    */
+  @Setter
+  @Getter
   private static class Destination {
     private String name;
     private int value;
 
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    public int getValue() {
-      return value;
-    }
-
-    public void setValue(int value) {
-      this.value = value;
-    }
   }
 
   /**
@@ -231,87 +203,35 @@ public class WebConfigTest {
   /**
    * Test nested classes for complex mapping test
    */
+  @Setter
+  @Getter
   private static class NestedSource {
     private String description;
 
-    public String getDescription() {
-      return description;
-    }
-
-    public void setDescription(String description) {
-      this.description = description;
-    }
   }
 
+  @Setter
+  @Getter
   private static class NestedDestination {
     private String description;
 
-    public String getDescription() {
-      return description;
-    }
-
-    public void setDescription(String description) {
-      this.description = description;
-    }
   }
 
+  @Setter
+  @Getter
   private static class ComplexSource {
     private int id;
     private String title;
     private NestedSource nested;
 
-    public int getId() {
-      return id;
-    }
-
-    public void setId(int id) {
-      this.id = id;
-    }
-
-    public String getTitle() {
-      return title;
-    }
-
-    public void setTitle(String title) {
-      this.title = title;
-    }
-
-    public NestedSource getNested() {
-      return nested;
-    }
-
-    public void setNested(NestedSource nested) {
-      this.nested = nested;
-    }
   }
 
+  @Setter
+  @Getter
   private static class ComplexDestination {
     private int id;
     private String title;
     private NestedDestination nested;
 
-    public int getId() {
-      return id;
-    }
-
-    public void setId(int id) {
-      this.id = id;
-    }
-
-    public String getTitle() {
-      return title;
-    }
-
-    public void setTitle(String title) {
-      this.title = title;
-    }
-
-    public NestedDestination getNested() {
-      return nested;
-    }
-
-    public void setNested(NestedDestination nested) {
-      this.nested = nested;
-    }
   }
 }
