@@ -120,6 +120,46 @@ public class PatientLogControllerTest {
   }
 
   @Test
+  public void testDeletePhoto_Success() throws Exception {
+    // Arrange
+    Long patientId = 1L;
+    Long logId = 1L;
+    Long photoId = 1L;
+
+    // Mock the service method to do nothing (void return type)
+    doNothing().when(patientLogService).deletePhoto(patientId, logId, photoId);
+
+    // Act & Assert
+    mockMvc.perform(delete("/api/patients/{patientId}/logs/{logId}/photos/{photoId}", patientId, logId, photoId))
+            .andDo(print())
+            .andExpect(status().isNoContent());
+
+    // Verify that the service method was called once with the correct parameters
+    verify(patientLogService, times(1)).deletePhoto(patientId, logId, photoId);
+  }
+
+  @Test
+  public void testDeletePhoto_NotFound() throws Exception {
+    // Arrange
+    Long patientId = 1L;
+    Long logId = 1L;
+    Long photoId = 999L; // Non-existent photo ID
+
+    // Mock the service to throw ResourceNotFoundException when trying to delete a non-existent photo
+    doThrow(new ResourceNotFoundException("Photo not found"))
+            .when(patientLogService).deletePhoto(patientId, logId, photoId);
+
+    // Act & Assert
+    mockMvc.perform(delete("/api/patients/{patientId}/logs/{logId}/photos/{photoId}", patientId, logId, photoId))
+            .andDo(print())
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.details.error").value("Photo not found"));
+
+    // Verify that the service method was called once with the correct parameters
+    verify(patientLogService, times(1)).deletePhoto(patientId, logId, photoId);
+  }
+
+  @Test
   public void testGetPatientLog_Success() throws Exception {
     // Arrange
     PatientLogResponse log = new PatientLogResponse();

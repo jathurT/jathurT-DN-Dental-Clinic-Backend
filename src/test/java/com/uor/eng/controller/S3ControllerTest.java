@@ -1,6 +1,7 @@
 package com.uor.eng.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uor.eng.exceptions.FileStorageException;
 import com.uor.eng.payload.patient.logs.PresignedUrlRequest;
 import com.uor.eng.payload.patient.logs.PresignedUrlResponse;
 import com.uor.eng.util.S3Service;
@@ -16,9 +17,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -86,5 +86,41 @@ public class S3ControllerTest {
             .andDo(print())
             .andExpect(status().isOk())
             .andExpect(content().string("12345_test.jpg"));
+  }
+
+  @Test
+  public void testDeleteFile_Success() throws Exception {
+    // Arrange
+    String fileKey = "12345_test.jpg";
+
+    // Mock the service method to do nothing (void return type)
+    doNothing().when(s3Service).deleteFile(fileKey);
+
+    // Act & Assert
+    mockMvc.perform(delete("/api/s3/delete/{key}", fileKey))
+            .andDo(print())
+            .andExpect(status().isNoContent());
+
+    // Verify that the service method was called once with the correct parameter
+    verify(s3Service, times(1)).deleteFile(fileKey);
+  }
+
+  @Test
+  public void testDeleteFile_Error() throws Exception {
+    // Arrange
+    String fileKey = "nonexistent_file.jpg";
+
+    // Mock the service to throw FileStorageException when trying to delete a non-existent file
+    doThrow(new FileStorageException("Failed to delete file from S3"))
+            .when(s3Service).deleteFile(fileKey);
+
+    // Act & Assert
+    mockMvc.perform(delete("/api/s3/delete/{key}", fileKey))
+            .andDo(print())
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.details.error").value("An unexpected error occurred: Failed to delete file from S3"));
+
+    // Verify that the service method was called once with the correct parameter
+    verify(s3Service, times(1)).deleteFile(fileKey);
   }
 }
