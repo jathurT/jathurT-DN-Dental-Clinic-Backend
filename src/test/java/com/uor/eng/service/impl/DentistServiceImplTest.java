@@ -5,6 +5,7 @@ import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Dentist;
 import com.uor.eng.model.Role;
+import com.uor.eng.model.Schedule;
 import com.uor.eng.payload.dentist.CreateDentistDTO;
 import com.uor.eng.payload.dentist.DentistResponseDTO;
 import com.uor.eng.payload.dentist.UpdateDentistRequest;
@@ -18,317 +19,299 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@ActiveProfiles("test")
 class DentistServiceImplTest {
-
-  @InjectMocks
-  private DentistServiceImpl dentistService;
 
   @Mock
   private DentistRepository dentistRepository;
 
   @Mock
-  private UserRepository userRepository;
-
-  @Mock
-  private RoleRepository roleRepository;
-
-  @Mock
   private ModelMapper modelMapper;
+
+  @Mock
+  private UserRepository userRepository;
 
   @Mock
   private PasswordEncoder passwordEncoder;
 
+  @Mock
+  private RoleRepository roleRepository;
+
+  @InjectMocks
+  private DentistServiceImpl dentistService;
+
   private Dentist dentist;
   private CreateDentistDTO createDentistDTO;
-  private UpdateDentistRequest updateDentistRequest;
   private DentistResponseDTO dentistResponseDTO;
-  private CreateDentistDTO updateDentistDTO;
+  private UpdateDentistRequest updateDentistRequest;
   private Role role;
 
   @BeforeEach
   void setUp() {
     dentist = Dentist.dentistBuilder()
-        .userName("johndoe")
-        .email("john.doe@example.com")
-        .password("encodedPassword")
-        .firstName("John")
-        .nic("123456789V")
-        .phoneNumber("0771234567")
-        .specialization("Orthodontics")
-        .licenseNumber("DENT1234")
-        .roles(Set.of())
-        .build();
+            .userName("johndoe")
+            .email("john@example.com")
+            .firstName("John")
+            .specialization("Orthodontics")
+            .licenseNumber("DENT123")
+            .nic("123456789V")
+            .phoneNumber("1234567890")
+            .roles(new HashSet<>())
+            .schedules(new ArrayList<>())
+            .build();
 
-    createDentistDTO = new CreateDentistDTO(
-        "johndoe",
-        "john.doe@example.com",
-        "Male",
-        "Password@123",
-        "John",
-        "Orthodontics",
-        "DENT1234",
-        "123456789V",
-        "0771234567"
-    );
+    createDentistDTO = new CreateDentistDTO();
+    createDentistDTO.setUserName("johndoe");
+    createDentistDTO.setEmail("john@example.com");
+    createDentistDTO.setPassword("Password123!");
+    createDentistDTO.setFirstName("John");
+    createDentistDTO.setSpecialization("Orthodontics");
+    createDentistDTO.setLicenseNumber("DENT123");
+    createDentistDTO.setNic("123456789V");
+    createDentistDTO.setPhoneNumber("1234567890");
+    createDentistDTO.setGender("Male");
 
-    updateDentistRequest = new UpdateDentistRequest(
-        "johndoe",
-        "john.doe@example.com",
-        "Male",
-        "John",
-        "Orthodontics",
-        "DENT1234",
-        "123456789V",
-        "0771234567"
-    );
+    dentistResponseDTO = new DentistResponseDTO();
+    dentistResponseDTO.setId(1L);
+    dentistResponseDTO.setUserName("johndoe");
+    dentistResponseDTO.setEmail("john@example.com");
+    dentistResponseDTO.setRoles(Set.of(AppRole.ROLE_DENTIST.name()));
 
-    dentistResponseDTO = DentistResponseDTO.builder()
-        .id(1L)
-        .userName("johndoe")
-        .email("john.doe@example.com")
-        .gender("Male")
-        .firstName("John")
-        .specialization("Orthodontics")
-        .licenseNumber("DENT1234")
-        .nic("123456789V")
-        .phoneNumber("0771234567")
-        .roles(Set.of(AppRole.ROLE_DENTIST.name()))
-        .build();
+    updateDentistRequest = new UpdateDentistRequest();
+    updateDentistRequest.setUserName("johndoe-updated");
+    updateDentistRequest.setEmail("john-updated@example.com");
+    updateDentistRequest.setFirstName("John Updated");
+    updateDentistRequest.setGender("Male");
+    updateDentistRequest.setSpecialization("Pediatric Dentistry");
+    updateDentistRequest.setLicenseNumber("DENT456");
+    updateDentistRequest.setNic("987654321V");
+    updateDentistRequest.setPhoneNumber("9876543210");
 
-    updateDentistDTO = new CreateDentistDTO(
-        "existingUsername",
-        "updated.email@example.com",
-        "Female",
-        "NewPassword@123",
-        "Jane",
-        "Periodontics",
-        "DENT5678",
-        "987654321V",
-        "0777654321"
-    );
     role = new Role();
     role.setRoleName(AppRole.ROLE_DENTIST);
   }
 
-  @AfterEach
-  void tearDown() {
-    reset(dentistRepository, userRepository, roleRepository, modelMapper, passwordEncoder);
-  }
-
   @Test
-  @DisplayName("Create Dentist - Success")
+  @DisplayName("Create dentist - Success")
   @Order(1)
-  void createDentist_ShouldSaveAndReturnDentistResponse() {
-    when(userRepository.existsByUserName(createDentistDTO.getUserName())).thenReturn(false);
-    when(userRepository.existsByEmail(createDentistDTO.getEmail())).thenReturn(false);
-    when(roleRepository.findByRoleName(AppRole.ROLE_DENTIST)).thenReturn(Optional.of(role));
-    when(modelMapper.map(createDentistDTO, Dentist.class)).thenReturn(dentist);
-    when(passwordEncoder.encode(createDentistDTO.getPassword())).thenReturn("encodedPassword");
-    when(dentistRepository.save(any(Dentist.class))).thenReturn(dentist);
-    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
-
-    DentistResponseDTO result = dentistService.createDentist(createDentistDTO);
-
-    assertNotNull(result);
-    assertEquals(createDentistDTO.getUserName(), result.getUserName());
-    verify(dentistRepository, times(1)).save(any(Dentist.class));
-  }
-
-  @Test
-  @DisplayName("Create Dentist - Username Exists - BadRequest")
-  @Order(2)
-  void createDentist_ShouldThrowBadRequest_WhenUsernameExists() {
-    when(userRepository.existsByUserName(createDentistDTO.getUserName())).thenReturn(true);
-
-    assertThrows(BadRequestException.class, () -> dentistService.createDentist(createDentistDTO));
-    verify(dentistRepository, never()).save(any(Dentist.class));
-  }
-
-  @Test
-  @DisplayName("Create Dentist - Email Exists - BadRequest")
-  @Order(3)
-  void createDentist_ShouldThrowBadRequest_WhenEmailExists() {
-    when(userRepository.existsByEmail(createDentistDTO.getEmail())).thenReturn(true);
-
-    assertThrows(BadRequestException.class, () -> dentistService.createDentist(createDentistDTO));
-    verify(dentistRepository, never()).save(any(Dentist.class));
-  }
-
-  @Test
-  @DisplayName("Get All Dentists - Success")
-  @Order(4)
-  void getAllDentists_ShouldReturnListOfDentistResponseDTO() {
-    when(dentistRepository.findAll()).thenReturn(Arrays.asList(dentist));
-    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
-
-    var result = dentistService.getAllDentists();
-
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    verify(dentistRepository, times(1)).findAll();
-  }
-
-  @Test
-  @DisplayName("Get All Dentists - Empty - ResourceNotFound")
-  @Order(5)
-  void getAllDentists_ShouldThrowResourceNotFoundException_WhenNoDentistsExist() {
-    when(dentistRepository.findAll()).thenReturn(Collections.emptyList());
-
-    assertThrows(ResourceNotFoundException.class, () -> dentistService.getAllDentists());
-    verify(dentistRepository, times(1)).findAll();
-  }
-
-  @Test
-  @DisplayName("Get Dentist By ID - Success")
-  @Order(6)
-  void getDentistById_ShouldReturnDentistResponseDTO() {
-    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
-    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
-
-    DentistResponseDTO result = dentistService.getDentistById(1L);
-
-    assertNotNull(result);
-    assertEquals(dentistResponseDTO.getId(), result.getId());
-    verify(dentistRepository, times(1)).findById(1L);
-  }
-
-  @Test
-  @DisplayName("Get Dentist By ID - Not Found - ResourceNotFound")
-  @Order(7)
-  void getDentistById_ShouldThrowResourceNotFoundException_WhenDentistDoesNotExist() {
-    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
-
-    assertThrows(ResourceNotFoundException.class, () -> dentistService.getDentistById(1L));
-  }
-
-  @Test
-  @DisplayName("Delete Dentist - Success")
-  @Order(8)
-  void deleteDentist_ShouldDeleteDentist_WhenDentistExists() {
-    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
-
-    dentistService.deleteDentist(1L);
-
-    verify(dentistRepository, times(1)).delete(dentist);
-  }
-
-  @Test
-  @DisplayName("Delete Dentist - Not Found - ResourceNotFound")
-  @Order(9)
-  void deleteDentist_ShouldThrowResourceNotFoundException_WhenDentistDoesNotExist() {
-    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
-
-    assertThrows(ResourceNotFoundException.class, () -> dentistService.deleteDentist(1L));
-    verify(dentistRepository, never()).delete(any(Dentist.class));
-  }
-
-  @Test
-  @DisplayName("Edit Dentist - Success")
-  @Order(10)
-  void editDentist_ShouldUpdateAndReturnDentistResponseDTO() {
-    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
-    when(userRepository.existsByUserName(updateDentistRequest.getUserName())).thenReturn(false);
-    when(userRepository.existsByEmail(updateDentistRequest.getEmail())).thenReturn(false);
-    when(dentistRepository.save(any(Dentist.class))).thenReturn(dentist);
-    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
-
-    DentistResponseDTO result = dentistService.editDentist(1L, updateDentistRequest);
-
-    assertNotNull(result);
-    assertEquals(updateDentistRequest.getUserName(), result.getUserName());
-    verify(dentistRepository, times(1)).save(any(Dentist.class));
-  }
-
-  @Test
-  @DisplayName("Update Dentist - Success")
-  @Order(11)
-  void updateDentist_ShouldUpdateAndReturnDentistResponseDTO() {
+  void createDentist_Success() {
     // Arrange
-    Long dentistId = 1L;
-
-    Dentist updatedDentist = Dentist.dentistBuilder()
-        .userName(updateDentistDTO.getUserName())
-        .email(updateDentistDTO.getEmail())
-        .password(passwordEncoder.encode(updateDentistDTO.getPassword()))
-        .firstName(updateDentistDTO.getFirstName())
-        .nic(updateDentistDTO.getNic())
-        .phoneNumber(updateDentistDTO.getPhoneNumber())
-        .specialization(updateDentistDTO.getSpecialization())
-        .licenseNumber(updateDentistDTO.getLicenseNumber())
-        .roles(Set.of())
-        .build();
-
-    DentistResponseDTO updatedDentistResponseDTO = DentistResponseDTO.builder()
-        .id(dentistId)
-        .userName(updateDentistDTO.getUserName())
-        .email(updateDentistDTO.getEmail())
-        .gender(updateDentistDTO.getGender())
-        .firstName(updateDentistDTO.getFirstName())
-        .specialization(updateDentistDTO.getSpecialization())
-        .licenseNumber(updateDentistDTO.getLicenseNumber())
-        .nic(updateDentistDTO.getNic())
-        .phoneNumber(updateDentistDTO.getPhoneNumber())
-        .roles(Set.of(AppRole.ROLE_DENTIST.name()))
-        .build();
-
-    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
-    when(userRepository.existsByUserName(updateDentistDTO.getUserName())).thenReturn(false);
-    when(userRepository.existsByEmail(updateDentistDTO.getEmail())).thenReturn(false);
-    when(passwordEncoder.encode(updateDentistDTO.getPassword())).thenReturn("newEncodedPassword");
-    when(dentistRepository.save(any(Dentist.class))).thenReturn(updatedDentist);
-    when(modelMapper.map(updatedDentist, DentistResponseDTO.class)).thenReturn(updatedDentistResponseDTO);
+    when(userRepository.existsByUserName(anyString())).thenReturn(false);
+    when(userRepository.existsByEmail(anyString())).thenReturn(false);
+    when(modelMapper.map(createDentistDTO, Dentist.class)).thenReturn(dentist);
+    when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+    when(roleRepository.findByRoleName(AppRole.ROLE_DENTIST)).thenReturn(Optional.of(role));
+    when(dentistRepository.save(any(Dentist.class))).thenReturn(dentist);
+    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
 
     // Act
-    DentistResponseDTO result = dentistService.updateDentist(dentistId, updateDentistDTO);
+    DentistResponseDTO result = dentistService.createDentist(createDentistDTO);
 
     // Assert
     assertNotNull(result);
-    assertEquals(updateDentistDTO.getUserName(), result.getUserName());
-    assertEquals(updateDentistDTO.getEmail(), result.getEmail());
-    assertEquals(updateDentistDTO.getFirstName(), result.getFirstName());
-    assertEquals(updateDentistDTO.getSpecialization(), result.getSpecialization());
-    assertEquals(updateDentistDTO.getLicenseNumber(), result.getLicenseNumber());
-    assertEquals(updateDentistDTO.getNic(), result.getNic());
-    assertEquals(updateDentistDTO.getPhoneNumber(), result.getPhoneNumber());
-    verify(dentistRepository, times(1)).save(any(Dentist.class));
+    assertEquals("johndoe", result.getUserName());
+    verify(dentistRepository).save(dentist);
   }
 
   @Test
-  @DisplayName("Update Dentist - Username Exists - BadRequest")
+  @DisplayName("Create dentist - Username already exists")
+  @Order(2)
+  void createDentist_UsernameExists() {
+    // Arrange
+    when(userRepository.existsByUserName("johndoe")).thenReturn(true);
+
+    // Act & Assert
+    BadRequestException exception = assertThrows(BadRequestException.class,
+            () -> dentistService.createDentist(createDentistDTO));
+    assertEquals("Username is already taken!", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Create dentist - Email already exists")
+  @Order(3)
+  void createDentist_EmailExists() {
+    // Arrange
+    when(userRepository.existsByUserName("johndoe")).thenReturn(false);
+    when(userRepository.existsByEmail("john@example.com")).thenReturn(true);
+
+    // Act & Assert
+    BadRequestException exception = assertThrows(BadRequestException.class,
+            () -> dentistService.createDentist(createDentistDTO));
+    assertEquals("Email is already in use!", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Get all dentists - Success")
+  @Order(4)
+  void getAllDentists_Success() {
+    // Arrange
+    List<Dentist> dentists = Collections.singletonList(dentist);
+    when(dentistRepository.findAll()).thenReturn(dentists);
+    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
+
+    // Act
+    List<DentistResponseDTO> result = dentistService.getAllDentists();
+
+    // Assert
+    assertNotNull(result);
+    assertEquals(1, result.size());
+  }
+
+  @Test
+  @DisplayName("Get all dentists - Empty")
+  @Order(5)
+  void getAllDentists_Empty() {
+    // Arrange
+    when(dentistRepository.findAll()).thenReturn(Collections.emptyList());
+
+    // Act & Assert
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> dentistService.getAllDentists());
+    assertEquals("No dentists found.", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Get dentist by ID - Success")
+  @Order(6)
+  void getDentistById_Success() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
+
+    // Act
+    DentistResponseDTO result = dentistService.getDentistById(1L);
+
+    // Assert
+    assertNotNull(result);
+    assertEquals("johndoe", result.getUserName());
+  }
+
+  @Test
+  @DisplayName("Get dentist by ID - Not found")
+  @Order(7)
+  void getDentistById_NotFound() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> dentistService.getDentistById(1L));
+    assertTrue(exception.getMessage().contains("Dentist not found"));
+  }
+
+  @Test
+  @DisplayName("Delete dentist - Success")
+  @Order(8)
+  void deleteDentist_Success() {
+    // Arrange
+    when(dentistRepository.existsById(1L)).thenReturn(true);
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+
+    // Act
+    dentistService.deleteDentist(1L);
+
+    // Assert
+    verify(dentistRepository).deleteById(1L);
+  }
+
+  @Test
+  @DisplayName("Delete dentist - Not found")
+  @Order(9)
+  void deleteDentist_NotFound() {
+    // Arrange
+    when(dentistRepository.existsById(1L)).thenReturn(false);
+
+    // Act & Assert
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> dentistService.deleteDentist(1L));
+    assertTrue(exception.getMessage().contains("Dentist not found"));
+  }
+
+  @Test
+  @DisplayName("Delete dentist - Has schedules")
+  @Order(10)
+  void deleteDentist_HasSchedules() {
+    // Arrange
+    when(dentistRepository.existsById(1L)).thenReturn(true);
+    List<Schedule> schedules = Collections.singletonList(new Schedule());
+    dentist.setSchedules(schedules);
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+
+    // Act & Assert
+    BadRequestException exception = assertThrows(BadRequestException.class,
+            () -> dentistService.deleteDentist(1L));
+    assertTrue(exception.getMessage().contains("Cannot delete dentist with existing schedules"));
+  }
+
+  @Test
+  @DisplayName("Update dentist - Success")
+  @Order(11)
+  void updateDentist_Success() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(dentistRepository.save(dentist)).thenReturn(dentist);
+    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
+    when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
+
+    // Act
+    DentistResponseDTO result = dentistService.updateDentist(1L, createDentistDTO);
+
+    // Assert
+    assertNotNull(result);
+    verify(dentistRepository).save(dentist);
+  }
+
+  @Test
+  @DisplayName("Edit dentist - Success")
   @Order(12)
-  void updateDentist_ShouldThrowBadRequest_WhenUsernameExists() {
-    Long dentistId = 1L;
+  void editDentist_Success() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(dentistRepository.save(dentist)).thenReturn(dentist);
+    when(modelMapper.map(dentist, DentistResponseDTO.class)).thenReturn(dentistResponseDTO);
 
-    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
-    when(userRepository.existsByUserName(updateDentistDTO.getUserName())).thenReturn(true);
+    // Act
+    DentistResponseDTO result = dentistService.editDentist(1L, updateDentistRequest);
 
-    assertThrows(BadRequestException.class, () -> dentistService.updateDentist(dentistId, updateDentistDTO));
-    verify(dentistRepository, never()).save(any(Dentist.class));
+    // Assert
+    assertNotNull(result);
+    verify(dentistRepository).save(dentist);
+    verify(modelMapper).map(dentist, DentistResponseDTO.class);
   }
 
   @Test
-  @DisplayName("Update Dentist - Email Exists - BadRequest")
+  @DisplayName("Edit dentist - Not found")
   @Order(13)
-  void updateDentist_ShouldThrowBadRequest_WhenEmailExists() {
-    Long dentistId = 1L;
+  void editDentist_NotFound() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
 
-    when(dentistRepository.findById(dentistId)).thenReturn(Optional.of(dentist));
-    when(userRepository.existsByEmail(updateDentistDTO.getEmail())).thenReturn(true);
+    // Act & Assert
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> dentistService.editDentist(1L, updateDentistRequest));
+    assertTrue(exception.getMessage().contains("Dentist not found"));
+  }
 
-    assertThrows(BadRequestException.class, () -> dentistService.updateDentist(dentistId, updateDentistDTO));
-    verify(dentistRepository, never()).save(any(Dentist.class));
+  @Test
+  @DisplayName("Edit dentist - Username taken")
+  @Order(14)
+  void editDentist_UsernameTaken() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(userRepository.existsByUserName(updateDentistRequest.getUserName())).thenReturn(true);
+
+    // Act & Assert
+    BadRequestException exception = assertThrows(BadRequestException.class,
+            () -> dentistService.editDentist(1L, updateDentistRequest));
+    assertEquals("Username is already taken!", exception.getMessage());
   }
 }

@@ -17,15 +17,13 @@ public class RoleRepositoryTest {
   @Autowired
   private RoleRepository roleRepository;
 
-  private Role dentistRole;
   private Role adminRole;
-  private Role receptionistRole;
 
   @BeforeEach
   void setUp() {
-    dentistRole = new Role(AppRole.ROLE_DENTIST);
+    Role dentistRole = new Role(AppRole.ROLE_DENTIST);
     adminRole = new Role(AppRole.ROLE_ADMIN);
-    receptionistRole = new Role(AppRole.ROLE_RECEPTIONIST);
+    Role receptionistRole = new Role(AppRole.ROLE_RECEPTIONIST);
 
     roleRepository.save(dentistRole);
     roleRepository.save(adminRole);

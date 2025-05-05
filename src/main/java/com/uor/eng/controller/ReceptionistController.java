@@ -2,6 +2,7 @@ package com.uor.eng.controller;
 
 import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
 import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.UpdateReceptionistRequest;
 import com.uor.eng.service.IReceptionistService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,5 +50,11 @@ public class ReceptionistController {
   public ResponseEntity<Void> deleteReceptionist(@PathVariable Long id) {
     receptionistService.deleteReceptionist(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @PutMapping("/edit/{id}")
+  public ResponseEntity<ReceptionistResponseDTO> editReceptionist(@PathVariable Long id, @Valid @RequestBody UpdateReceptionistRequest receptionistDTO) {
+    ReceptionistResponseDTO updatedReceptionistDTO = receptionistService.editReceptionist(id, receptionistDTO);
+    return ResponseEntity.ok(updatedReceptionistDTO);
   }
 }

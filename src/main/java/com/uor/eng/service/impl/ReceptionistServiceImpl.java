@@ -7,6 +7,7 @@ import com.uor.eng.model.Receptionist;
 import com.uor.eng.model.Role;
 import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
 import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.UpdateReceptionistRequest;
 import com.uor.eng.repository.ReceptionistRepository;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
@@ -126,6 +127,33 @@ public class ReceptionistServiceImpl implements IReceptionistService {
     Receptionist receptionist = receptionistRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id + " to delete."));
     receptionistRepository.delete(receptionist);
+  }
+
+  @Override
+  public ReceptionistResponseDTO editReceptionist(Long id, UpdateReceptionistRequest receptionistDTO) {
+    Receptionist existingReceptionist = receptionistRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Receptionist not found with id: " + id));
+
+    if (!existingReceptionist.getUserName().equals(receptionistDTO.getUserName()) &&
+            userRepository.existsByUserName(receptionistDTO.getUserName())) {
+      throw new BadRequestException("Username is already taken!");
+    }
+
+    if (!existingReceptionist.getEmail().equals(receptionistDTO.getEmail()) &&
+            userRepository.existsByEmail(receptionistDTO.getEmail())) {
+      throw new BadRequestException("Email is already in use!");
+    }
+
+    existingReceptionist.setUserName(receptionistDTO.getUserName());
+    existingReceptionist.setEmail(receptionistDTO.getEmail());
+    existingReceptionist.setGender(receptionistDTO.getGender());
+    existingReceptionist.setFirstName(receptionistDTO.getFirstName());
+    existingReceptionist.setNic(receptionistDTO.getNic());
+    existingReceptionist.setPhoneNumber(receptionistDTO.getPhoneNumber());
+
+    Receptionist updatedReceptionist = receptionistRepository.save(existingReceptionist);
+    ReceptionistResponseDTO dto = modelMapper.map(updatedReceptionist, ReceptionistResponseDTO.class);
+    return getReceptionistResponseDTO(updatedReceptionist, dto);
   }
 
   private static ReceptionistResponseDTO getReceptionistResponseDTO(Receptionist receptionist, ReceptionistResponseDTO dto) {

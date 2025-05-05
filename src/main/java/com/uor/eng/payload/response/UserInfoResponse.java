@@ -1,4 +1,4 @@
-package com.uor.eng.security.response;
+package com.uor.eng.payload.response;
 
 import lombok.Data;
 

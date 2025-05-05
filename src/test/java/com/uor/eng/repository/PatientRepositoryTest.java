@@ -18,7 +18,6 @@ public class PatientRepositoryTest {
   private PatientRepository patientRepository;
 
   private Patient patient1;
-  private Patient patient2;
 
   @BeforeEach
   void setUp() {
@@ -29,12 +28,12 @@ public class PatientRepositoryTest {
         .contactNumbers(List.of("0123456789"))
         .build();
 
-    patient2 = Patient.builder()
-        .name("Jane Doe")
-        .email("janedoe@example.com")
-        .nic("987654321V")
-        .contactNumbers(List.of("0123456789"))
-        .build();
+    Patient patient2 = Patient.builder()
+            .name("Jane Doe")
+            .email("janedoe@example.com")
+            .nic("987654321V")
+            .contactNumbers(List.of("0123456789"))
+            .build();
 
     patientRepository.save(patient1);
     patientRepository.save(patient2);
