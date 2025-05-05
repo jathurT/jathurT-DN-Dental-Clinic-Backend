@@ -6,6 +6,7 @@ import com.uor.eng.model.ScheduleStatus;
 import com.uor.eng.payload.booking.BookingResponseDTO;
 import com.uor.eng.payload.booking.CreateBookingDTO;
 import com.uor.eng.payload.dashboard.MonthlyBookingStatsResponse;
+import com.uor.eng.payload.patient.PatientResponse;
 import com.uor.eng.service.IBookingService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,6 +141,35 @@ public class BookingControllerTest {
             .andExpect(jsonPath("$.contactNumber").value(contactNumber));
 
     verify(bookingService, times(1)).getBookingByReferenceIdAndContactNumber(referenceId, contactNumber);
+  }
+
+  @Test
+  void testGetOrCreatePatientFromBooking() throws Exception {
+    // Arrange
+    String bookingId = "ABC123";
+    PatientResponse patientResponse = PatientResponse.builder()
+            .id(1L)
+            .name("John Doe")
+            .email("john@example.com")
+            .nic("123456789V")
+            .contactNumbers(List.of("1234567890"))
+            .logs(Collections.emptyList())
+            .build();
+
+    when(bookingService.getOrCreatePatientFromBookingId(bookingId)).thenReturn(patientResponse);
+
+    // Act & Assert
+    mockMvc.perform(post("/api/bookings/{bookingId}/get-or-create-patient", bookingId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(patientResponse.getId()))
+            .andExpect(jsonPath("$.name").value(patientResponse.getName()))
+            .andExpect(jsonPath("$.email").value(patientResponse.getEmail()))
+            .andExpect(jsonPath("$.nic").value(patientResponse.getNic()))
+            .andExpect(jsonPath("$.contactNumbers[0]").value(patientResponse.getContactNumbers().get(0)))
+            .andExpect(jsonPath("$.logs").isArray());
+
+    // Verify
+    verify(bookingService, times(1)).getOrCreatePatientFromBookingId(bookingId);
   }
 
   @Test

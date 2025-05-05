@@ -169,6 +169,31 @@ public class AuthControllerTest {
   }
 
   @Test
+  public void testCurrentUserName_WithAuthentication() {
+    // Arrange
+    Authentication auth = mock(Authentication.class);
+    when(auth.getName()).thenReturn("testuser");
+
+    // Act
+    ResponseEntity<String> response = authController.currentUserName(auth);
+
+    // Assert
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals("testuser", response.getBody());
+    verify(auth).getName();
+  }
+
+  @Test
+  public void testCurrentUserName_WithoutAuthentication() {
+    // Act
+    ResponseEntity<String> response = authController.currentUserName(null);
+
+    // Assert
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals("anonymousUser", response.getBody());
+  }
+
+  @Test
   public void testRegisterUser_Success() throws Exception {
     // Arrange
     when(userRepository.existsByUserName(anyString())).thenReturn(false);

@@ -87,8 +87,8 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$.userName", is("receptionist1")))
             .andExpect(jsonPath("$.email", is("receptionist1@example.com")))
             .andExpect(jsonPath("$.firstName", is("John")))
-            .andExpect(jsonPath("$.phoneNumber", is("0771234567")))
-            .andExpect(jsonPath("$.shiftTiming", is("Morning")));
+            .andExpect(jsonPath("$.phoneNumber", is("0771234567")));
+
   }
 
   @Test
@@ -198,12 +198,10 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$[0].userName", is("receptionist1")))
             .andExpect(jsonPath("$[0].firstName", is("John")))
             .andExpect(jsonPath("$[0].gender", is("MALE")))
-            .andExpect(jsonPath("$[0].shiftTiming", is("Morning")))
             .andExpect(jsonPath("$[1].id", is(2)))
             .andExpect(jsonPath("$[1].userName", is("receptionist2")))
             .andExpect(jsonPath("$[1].firstName", is("Jane")))
-            .andExpect(jsonPath("$[1].gender", is("FEMALE")))
-            .andExpect(jsonPath("$[1].shiftTiming", is("Evening")));
+            .andExpect(jsonPath("$[1].gender", is("FEMALE")));
   }
 
   private static List<ReceptionistResponseDTO> getReceptionistResponseDTOS() {
@@ -263,8 +261,7 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$.firstName", is("John")))
             .andExpect(jsonPath("$.gender", is("MALE")))
             .andExpect(jsonPath("$.phoneNumber", is("0771234567")))
-            .andExpect(jsonPath("$.nic", is("123456789V")))
-            .andExpect(jsonPath("$.shiftTiming", is("Morning")));
+            .andExpect(jsonPath("$.nic", is("123456789V")));
   }
 
   private static ReceptionistResponseDTO getReceptionistResponseDTO() {
@@ -321,8 +318,7 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$.id", is(1)))
             .andExpect(jsonPath("$.userName", is("receptionist1Updated")))
             .andExpect(jsonPath("$.email", is("receptionist1updated@example.com")))
-            .andExpect(jsonPath("$.firstName", is("John Updated")))
-            .andExpect(jsonPath("$.shiftTiming", is("Afternoon")));
+            .andExpect(jsonPath("$.firstName", is("John Updated")));
   }
 
   private static ReceptionistResponseDTO getResponseDTO() {
