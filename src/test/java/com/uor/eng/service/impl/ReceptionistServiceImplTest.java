@@ -7,6 +7,7 @@ import com.uor.eng.model.Receptionist;
 import com.uor.eng.model.Role;
 import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
 import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.UpdateReceptionistRequest;
 import com.uor.eng.repository.ReceptionistRepository;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
@@ -52,6 +53,7 @@ class ReceptionistServiceImplTest {
   private CreateReceptionistDTO createDTO;
   private ReceptionistResponseDTO responseDTO;
   private Role role;
+  private UpdateReceptionistRequest updateRequest;
 
   @BeforeEach
   void setUp() {
@@ -59,6 +61,7 @@ class ReceptionistServiceImplTest {
     role.setRoleName(AppRole.ROLE_RECEPTIONIST);
 
     receptionist = new Receptionist();
+    receptionist.setUserId(1L);
     receptionist.setUserName("johndoe");
     receptionist.setEmail("john@example.com");
     receptionist.setPassword("encodedPassword");
@@ -69,25 +72,33 @@ class ReceptionistServiceImplTest {
     receptionist.setRoles(Set.of(role));
 
     createDTO = CreateReceptionistDTO.builder()
-        .userName("johndoe")
-        .email("john@example.com")
-        .gender("Male")
-        .password("Password@123")
-        .firstName("John")
-        .nic("123456789V")
-        .phoneNumber("0771234567")
-        .build();
+            .userName("johndoe")
+            .email("john@example.com")
+            .gender("Male")
+            .password("Password@123")
+            .firstName("John")
+            .nic("123456789V")
+            .phoneNumber("0771234567")
+            .build();
+
+    updateRequest = new UpdateReceptionistRequest();
+    updateRequest.setUserName("johndoe");
+    updateRequest.setEmail("john@example.com");
+    updateRequest.setGender("Male");
+    updateRequest.setFirstName("John");
+    updateRequest.setNic("123456789V");
+    updateRequest.setPhoneNumber("0771234567");
 
     responseDTO = ReceptionistResponseDTO.builder()
-        .id(1L)
-        .userName("johndoe")
-        .email("john@example.com")
-        .gender("Male")
-        .firstName("John")
-        .nic("123456789V")
-        .phoneNumber("0771234567")
-        .roles(Set.of("ROLE_RECEPTIONIST"))
-        .build();
+            .id(1L)
+            .userName("johndoe")
+            .email("john@example.com")
+            .gender("Male")
+            .firstName("John")
+            .nic("123456789V")
+            .phoneNumber("0771234567")
+            .roles(Set.of("ROLE_RECEPTIONIST"))
+            .build();
   }
 
   @AfterEach
@@ -187,14 +198,14 @@ class ReceptionistServiceImplTest {
   @Order(8)
   void updateReceptionist_Success() {
     CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
-        .userName("newusername")
-        .email("new@example.com")
-        .gender("Female")
-        .password("NewPassword@123")
-        .firstName("Jane")
-        .nic("987654321V")
-        .phoneNumber("0777654321")
-        .build();
+            .userName("newusername")
+            .email("new@example.com")
+            .gender("Female")
+            .password("NewPassword@123")
+            .firstName("Jane")
+            .nic("987654321V")
+            .phoneNumber("0777654321")
+            .build();
 
     Receptionist updatedReceptionist = new Receptionist();
     updatedReceptionist.setUserName("newusername");
@@ -217,8 +228,9 @@ class ReceptionistServiceImplTest {
   @Order(9)
   void updateReceptionist_ExistingUsername() {
     CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
-        .userName("existinguser")
-        .build();
+            .userName("existinguser")
+            .email("john@example.com")
+            .build();
 
     when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
     when(userRepository.existsByUserName(updateDTO.getUserName())).thenReturn(true);
@@ -231,8 +243,9 @@ class ReceptionistServiceImplTest {
   @Order(10)
   void updateReceptionist_ExistingEmail() {
     CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
-        .email("existing@example.com")
-        .build();
+            .userName("johndoe")
+            .email("existing@example.com")
+            .build();
 
     when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
     when(userRepository.existsByEmail(updateDTO.getEmail())).thenReturn(true);
@@ -247,7 +260,7 @@ class ReceptionistServiceImplTest {
     when(receptionistRepository.findById(1L)).thenReturn(Optional.empty());
 
     assertThrows(ResourceNotFoundException.class, () ->
-        receptionistService.updateReceptionist(1L, createDTO));
+            receptionistService.updateReceptionist(1L, createDTO));
   }
 
   @Test
@@ -267,5 +280,179 @@ class ReceptionistServiceImplTest {
     when(receptionistRepository.findById(1L)).thenReturn(Optional.empty());
 
     assertThrows(ResourceNotFoundException.class, () -> receptionistService.deleteReceptionist(1L));
+  }
+
+  @Test
+  @DisplayName("Edit Receptionist - Success")
+  @Order(14)
+  void editReceptionist_Success() {
+    UpdateReceptionistRequest updateRequest = new UpdateReceptionistRequest();
+    updateRequest.setUserName("newusername");
+    updateRequest.setEmail("new@example.com");
+    updateRequest.setGender("Female");
+    updateRequest.setFirstName("Jane");
+    updateRequest.setNic("987654321V");
+    updateRequest.setPhoneNumber("0777654321");
+
+    Receptionist updatedReceptionist = new Receptionist();
+    updatedReceptionist.setUserName("newusername");
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(userRepository.existsByUserName(updateRequest.getUserName())).thenReturn(false);
+    when(userRepository.existsByEmail(updateRequest.getEmail())).thenReturn(false);
+    when(receptionistRepository.save(any())).thenReturn(updatedReceptionist);
+    when(modelMapper.map(any(), eq(ReceptionistResponseDTO.class))).thenReturn(responseDTO);
+
+    ReceptionistResponseDTO result = receptionistService.editReceptionist(1L, updateRequest);
+
+    assertNotNull(result);
+    verify(receptionistRepository, times(1)).save(any());
+  }
+
+  @Test
+  @DisplayName("Edit Receptionist - Existing Username")
+  @Order(15)
+  void editReceptionist_ExistingUsername() {
+    UpdateReceptionistRequest updateRequest = new UpdateReceptionistRequest();
+    updateRequest.setUserName("existinguser");
+    updateRequest.setEmail("john@example.com");
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(userRepository.existsByUserName(updateRequest.getUserName())).thenReturn(true);
+
+    assertThrows(BadRequestException.class, () -> receptionistService.editReceptionist(1L, updateRequest));
+  }
+
+  @Test
+  @DisplayName("Edit Receptionist - Existing Email")
+  @Order(16)
+  void editReceptionist_ExistingEmail() {
+    UpdateReceptionistRequest updateRequest = new UpdateReceptionistRequest();
+    updateRequest.setUserName("johndoe");
+    updateRequest.setEmail("existing@example.com");
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(userRepository.existsByEmail(updateRequest.getEmail())).thenReturn(true);
+
+    assertThrows(BadRequestException.class, () -> receptionistService.editReceptionist(1L, updateRequest));
+  }
+
+  @Test
+  @DisplayName("Edit Receptionist - Not Found")
+  @Order(17)
+  void editReceptionist_NotFound() {
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.empty());
+
+    assertThrows(ResourceNotFoundException.class, () ->
+            receptionistService.editReceptionist(1L, updateRequest));
+  }
+
+  @Test
+  @DisplayName("Update Receptionist - Same Username and Email")
+  @Order(18)
+  void updateReceptionist_SameUsernameAndEmail() {
+    CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
+            .userName("johndoe")  // same as existing
+            .email("john@example.com")  // same as existing
+            .gender("Male")
+            .password("NewPassword@123")
+            .firstName("John Updated")
+            .nic("123456789V")
+            .phoneNumber("0771234567")
+            .build();
+
+    Receptionist updatedReceptionist = new Receptionist();
+    updatedReceptionist.setUserName("johndoe");
+    updatedReceptionist.setFirstName("John Updated");
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(receptionistRepository.save(any())).thenReturn(updatedReceptionist);
+    when(modelMapper.map(any(), eq(ReceptionistResponseDTO.class))).thenReturn(responseDTO);
+    when(passwordEncoder.encode(updateDTO.getPassword())).thenReturn("newEncodedPassword");
+
+    ReceptionistResponseDTO result = receptionistService.updateReceptionist(1L, updateDTO);
+
+    assertNotNull(result);
+    verify(receptionistRepository, times(1)).save(any());
+    verify(userRepository, never()).existsByUserName(anyString());
+    verify(userRepository, never()).existsByEmail(anyString());
+  }
+
+  @Test
+  @DisplayName("Edit Receptionist - Same Username and Email")
+  @Order(19)
+  void editReceptionist_SameUsernameAndEmail() {
+    UpdateReceptionistRequest updateRequest = new UpdateReceptionistRequest();
+    updateRequest.setUserName("johndoe");  // same as existing
+    updateRequest.setEmail("john@example.com");  // same as existing
+    updateRequest.setGender("Male");
+    updateRequest.setFirstName("John Updated");
+    updateRequest.setNic("123456789V");
+    updateRequest.setPhoneNumber("0771234567");
+
+    Receptionist updatedReceptionist = new Receptionist();
+    updatedReceptionist.setUserName("johndoe");
+    updatedReceptionist.setFirstName("John Updated");
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(receptionistRepository.save(any())).thenReturn(updatedReceptionist);
+    when(modelMapper.map(any(), eq(ReceptionistResponseDTO.class))).thenReturn(responseDTO);
+
+    ReceptionistResponseDTO result = receptionistService.editReceptionist(1L, updateRequest);
+
+    assertNotNull(result);
+    verify(receptionistRepository, times(1)).save(any());
+    verify(userRepository, never()).existsByUserName(anyString());
+    verify(userRepository, never()).existsByEmail(anyString());
+  }
+
+  @Test
+  @DisplayName("Update Receptionist - Null Password")
+  @Order(20)
+  void updateReceptionist_NullPassword() {
+    CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
+            .userName("johndoe")
+            .email("john@example.com")
+            .gender("Male")
+            .password(null)  // null password
+            .firstName("John")
+            .nic("123456789V")
+            .phoneNumber("0771234567")
+            .build();
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(receptionistRepository.save(any())).thenReturn(receptionist);
+    when(modelMapper.map(any(), eq(ReceptionistResponseDTO.class))).thenReturn(responseDTO);
+
+    ReceptionistResponseDTO result = receptionistService.updateReceptionist(1L, updateDTO);
+
+    assertNotNull(result);
+    verify(passwordEncoder, never()).encode(anyString());
+    verify(receptionistRepository, times(1)).save(any());
+  }
+
+  @Test
+  @DisplayName("Update Receptionist - Empty Password")
+  @Order(21)
+  void updateReceptionist_EmptyPassword() {
+    CreateReceptionistDTO updateDTO = CreateReceptionistDTO.builder()
+            .userName("johndoe")
+            .email("john@example.com")
+            .gender("Male")
+            .password("")  // empty password
+            .firstName("John")
+            .nic("123456789V")
+            .phoneNumber("0771234567")
+            .build();
+
+    when(receptionistRepository.findById(1L)).thenReturn(Optional.of(receptionist));
+    when(receptionistRepository.save(any())).thenReturn(receptionist);
+    when(modelMapper.map(any(), eq(ReceptionistResponseDTO.class))).thenReturn(responseDTO);
+
+    ReceptionistResponseDTO result = receptionistService.updateReceptionist(1L, updateDTO);
+
+    assertNotNull(result);
+    verify(passwordEncoder, never()).encode(anyString());
+    verify(receptionistRepository, times(1)).save(any());
   }
 }

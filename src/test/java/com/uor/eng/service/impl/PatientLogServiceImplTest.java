@@ -1,202 +1,635 @@
-//package com.uor.eng.service.impl;
-//
-//import com.uor.eng.exceptions.ResourceNotFoundException;
-//import com.uor.eng.model.Dentist;
-//import com.uor.eng.model.Patient;
-//import com.uor.eng.model.PatientLog;
-//import com.uor.eng.model.PatientLogPhoto;
-//import com.uor.eng.payload.patient.logs.*;
-//import com.uor.eng.repository.DentistRepository;
-//import com.uor.eng.repository.PatientLogPhotoRepository;
-//import com.uor.eng.repository.PatientLogRepository;
-//import com.uor.eng.repository.PatientRepository;
-//import com.uor.eng.util.S3Service;
-//import org.junit.jupiter.api.*;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
-//
-//import java.time.LocalDateTime;
-//import java.util.Collections;
-//import java.util.List;
-//import java.util.Optional;
-//
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.Mockito.*;
-//
-//@ExtendWith(MockitoExtension.class)
-//@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-//class PatientLogServiceImplTest {
-//
-//  @InjectMocks
-//  private PatientLogServiceImpl patientLogService;
-//
-//  @Mock
-//  private PatientRepository patientRepository;
-//
-//  @Mock
-//  private DentistRepository dentistRepository;
-//
-//  @Mock
-//  private PatientLogRepository patientLogRepository;
-//
-//  @Mock
-//  private PatientLogPhotoRepository patientLogPhotoRepository;
-//
-//  @Mock
-//  private S3Service s3Service;
-//
-//  private Patient patient;
-//  private Dentist dentist;
-//  private PatientLog patientLog;
-//  private PatientLogPhoto patientLogPhoto;
-//
-//  @BeforeEach
-//  void setUp() {
-//    patient = new Patient();
-//    patient.setId(1L);
-//
-//    dentist = new Dentist();
-//    dentist.setUserId(1L);
-//    dentist.setFirstName("Dr. John");
-//
-//    patientLog = new PatientLog();
-//    patientLog.setId(1L);
-//    patientLog.setPatient(patient);
-//    patientLog.setDentist(dentist);
-//    patientLog.setActionType("Checkup");
-//    patientLog.setDescription("Routine Checkup");
-//    patientLog.setTimestamp(LocalDateTime.now());
-//
-//    patientLogPhoto = new PatientLogPhoto();
-//    patientLogPhoto.setId(1L);
-//    patientLogPhoto.setS3Key("photo-key");
-//    patientLogPhoto.setDescription("Before treatment");
-//    patientLogPhoto.setTimestamp(LocalDateTime.now());
-//  }
-//
-//  @Test
-//  @DisplayName("Test create patient log - Success")
-//  @Order(1)
-//  void createPatientLog_ShouldCreateLog_WhenValidPatientAndDentistExist() {
-//    PatientLogRequestNoPhotos request = new PatientLogRequestNoPhotos("Checkup", "Routine Checkup", 1L);
-//
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
-//    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(patientLog);
-//
-//    PatientLogResponse response = patientLogService.createPatientLog(1L, request);
-//
-//    assertNotNull(response);
-//    assertEquals("Checkup", response.getActionType());
-//    verify(patientLogRepository, times(1)).save(any(PatientLog.class));
-//  }
-//
-//  @Test
-//  @DisplayName("Test get patient logs - Success")
-//  @Order(2)
-//  void getPatientLogs_ShouldReturnLogs_WhenPatientExists() {
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(patientLogRepository.findByPatientId(1L)).thenReturn(Collections.singletonList(patientLog));
-//    when(patientLogPhotoRepository.findByPatientId(1L)).thenReturn(Collections.singletonList(patientLogPhoto));
-//    when(s3Service.getFileUrl("photo-key")).thenReturn("https://s3/photo-key");
-//
-//    List<PatientLogResponse> responses = patientLogService.getPatientLogs(1L);
-//
-//    assertNotNull(responses);
-//    assertEquals(1, responses.size());
-//    verify(patientLogRepository, times(1)).findByPatientId(1L);
-//  }
-//
-//  @Test
-//  @DisplayName("Test get patient logs - Patient Not Found")
-//  @Order(3)
-//  void getPatientLogs_ShouldThrowResourceNotFoundException_WhenPatientDoesNotExist() {
-//    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
-//
-//    assertThrows(ResourceNotFoundException.class, () -> patientLogService.getPatientLogs(1L));
-//  }
-//
-//  @Test
-//  @DisplayName("Test get patient log by ID - Success")
-//  @Order(4)
-//  void getPatientLog_ShouldReturnLog_WhenValidPatientAndLogId() {
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(patientLog));
-//    when(patientLogPhotoRepository.findByPatientId(1L)).thenReturn(Collections.singletonList(patientLogPhoto));
-//    when(s3Service.getFileUrl("photo-key")).thenReturn("https://s3/photo-key");
-//
-//    PatientLogResponse response = patientLogService.getPatientLog(1L, 1L);
-//
-//    assertNotNull(response);
-//    assertEquals("Checkup", response.getActionType());
-//    verify(patientLogRepository, times(1)).findByIdAndPatientId(1L, 1L);
-//  }
-//
-//  @Test
-//  @DisplayName("Test delete patient log - Success")
-//  @Order(5)
-//  void deletePatientLog_ShouldDeleteLogAndPhotos_WhenValidPatientAndLogId() {
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(patientLog));
-//    when(patientLogPhotoRepository.findByPatientLogId(1L)).thenReturn(Collections.singletonList(patientLogPhoto));
-//
-//    patientLogService.deletePatientLog(1L, 1L);
-//
-//    verify(s3Service, times(1)).deleteFile("photo-key");
-//    verify(patientLogPhotoRepository, times(1)).deleteAll(any());
-//    verify(patientLogRepository, times(1)).delete(patientLog);
-//  }
-//
-//  @Test
-//  @DisplayName("Test update patient log - Success")
-//  @Order(6)
-//  void updatePatientLog_ShouldUpdateLog_WhenValidData() {
-//    PatientLogUpdateRequest request = new PatientLogUpdateRequest("Surgery", "Wisdom tooth removal", null, null);
-//
-//    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(patientLog));
-//    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(patientLog);
-//
-//    PatientLogResponse response = patientLogService.updatePatientLog(1L, 1L, request);
-//
-//    assertNotNull(response);
-//    assertEquals("Surgery", response.getActionType());
-//    assertEquals("Wisdom tooth removal", response.getDescription());
-//    verify(patientLogRepository, times(1)).save(any(PatientLog.class));
-//  }
-//
-//  @Test
-//  @DisplayName("Test associate photos with log - Success")
-//  @Order(7)
-//  void associatePhotosWithLog_ShouldAssociatePhotos_WhenValidPatientAndLogId() {
-//    AssociatePhotosRequest request = new AssociatePhotosRequest(List.of("photo-key"), List.of("Before surgery"));
-//
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(patientLog));
-//    when(s3Service.getFileUrl("photo-key")).thenReturn("https://s3/photo-key");
-//
-//    List<PatientLogPhotoResponse> responses = patientLogService.associatePhotosWithLog(1L, 1L, request);
-//
-//    assertNotNull(responses);
-//    assertEquals(1, responses.size());
-//    assertEquals("Before surgery", responses.get(0).getDescription());
-//    verify(patientLogPhotoRepository, times(1)).save(any(PatientLogPhoto.class));
-//  }
-//
-//  @Test
-//  @DisplayName("Test get photos - Success")
-//  @Order(8)
-//  void getPhotos_ShouldReturnPhotoList_WhenValidPatientAndLogId() {
-//    when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
-//    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(patientLog));
-//    when(patientLogPhotoRepository.findByPatientLogId(1L)).thenReturn(Collections.singletonList(patientLogPhoto));
-//    when(s3Service.getFileUrl("photo-key")).thenReturn("https://s3/photo-key");
-//
-//    List<PatientLogPhotoResponse> responses = patientLogService.getPhotos(1L, 1L);
-//
-//    assertNotNull(responses);
-//    assertEquals(1, responses.size());
-//    assertEquals("Before treatment", responses.get(0).getDescription());
-//  }
-//}
+package com.uor.eng.service.impl;
+
+import com.uor.eng.exceptions.ResourceNotFoundException;
+import com.uor.eng.exceptions.UnauthorizedAccessException;
+import com.uor.eng.model.Dentist;
+import com.uor.eng.model.Patient;
+import com.uor.eng.model.PatientLog;
+import com.uor.eng.model.PatientLogPhoto;
+import com.uor.eng.payload.patient.logs.*;
+import com.uor.eng.repository.DentistRepository;
+import com.uor.eng.repository.PatientLogPhotoRepository;
+import com.uor.eng.repository.PatientLogRepository;
+import com.uor.eng.repository.PatientRepository;
+import com.uor.eng.util.S3Service;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class PatientLogServiceImplTest {
+
+  @Mock
+  private PatientRepository patientRepository;
+
+  @Mock
+  private PatientLogRepository patientLogRepository;
+
+  @Mock
+  private PatientLogPhotoRepository patientLogPhotoRepository;
+
+  @Mock
+  private DentistRepository dentistRepository;
+
+  @Mock
+  private S3Service s3Service;
+
+  private PatientLogServiceImpl patientLogService;
+
+  private Patient testPatient;
+  private Dentist testDentist;
+  private PatientLog testPatientLog;
+  private PatientLogPhoto testPhoto1;
+  private PatientLogPhoto testPhoto2;
+  private List<PatientLogPhoto> testPhotos;
+
+  @BeforeEach
+  void setUp() {
+    patientLogService = new PatientLogServiceImpl(
+            patientRepository,
+            patientLogRepository,
+            patientLogPhotoRepository,
+            dentistRepository,
+            s3Service
+    );
+
+    // Initialize test data
+    testPatient = new Patient();
+    testPatient.setId(1L);
+    testPatient.setName("Test Patient");
+    testPatient.setEmail("patient@test.com");
+    testPatient.setNic("123456789V");
+    testPatient.setContactNumbers(List.of("1234567890"));
+
+    testDentist = new Dentist();
+    testDentist.setUserId(1L);
+    testDentist.setFirstName("Test Dentist");
+    testDentist.setEmail("dentist@test.com");
+
+    testPatientLog = new PatientLog();
+    testPatientLog.setId(1L);
+    testPatientLog.setPatient(testPatient);
+    testPatientLog.setDentist(testDentist);
+    testPatientLog.setActionType("Checkup");
+    testPatientLog.setDescription("Routine dental checkup");
+    testPatientLog.setTimestamp(LocalDateTime.now());
+
+    testPhoto1 = new PatientLogPhoto();
+    testPhoto1.setId(1L);
+    testPhoto1.setPatientLog(testPatientLog);
+    testPhoto1.setS3Key("test-photo-1.jpg");
+    testPhoto1.setDescription("Test photo 1");
+    testPhoto1.setTimestamp(LocalDateTime.now());
+
+    testPhoto2 = new PatientLogPhoto();
+    testPhoto2.setId(2L);
+    testPhoto2.setPatientLog(testPatientLog);
+    testPhoto2.setS3Key("test-photo-2.jpg");
+    testPhoto2.setDescription("Test photo 2");
+    testPhoto2.setTimestamp(LocalDateTime.now());
+
+    testPhotos = new ArrayList<>(Arrays.asList(testPhoto1, testPhoto2));
+    testPatientLog.setPatientLogPhotos(testPhotos);
+  }
+
+  @Test
+  void createPatientLog_Success() {
+    // Given
+    PatientLogRequestNoPhotos request = new PatientLogRequestNoPhotos();
+    request.setActionType("Checkup");
+    request.setDescription("Routine dental checkup");
+    request.setDentistId(1L);
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(testDentist));
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+
+    // When
+    PatientLogResponse response = patientLogService.createPatientLog(1L, request);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("Checkup", response.getActionType());
+    assertEquals("Routine dental checkup", response.getDescription());
+    assertEquals("Test Dentist", response.getDentistName());
+    verify(patientRepository).findById(1L);
+    verify(dentistRepository).findById(1L);
+    verify(patientLogRepository).save(any(PatientLog.class));
+  }
+
+  @Test
+  void createPatientLog_PatientNotFound() {
+    // Given
+    PatientLogRequestNoPhotos request = new PatientLogRequestNoPhotos();
+    request.setActionType("Checkup");
+    request.setDescription("Routine dental checkup");
+    request.setDentistId(1L);
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.createPatientLog(1L, request));
+    verify(patientRepository).findById(1L);
+    verify(dentistRepository, never()).findById(anyLong());
+    verify(patientLogRepository, never()).save(any(PatientLog.class));
+  }
+
+  @Test
+  void createPatientLog_DentistNotFound() {
+    // Given
+    PatientLogRequestNoPhotos request = new PatientLogRequestNoPhotos();
+    request.setActionType("Checkup");
+    request.setDescription("Routine dental checkup");
+    request.setDentistId(1L);
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.createPatientLog(1L, request));
+    verify(patientRepository).findById(1L);
+    verify(dentistRepository).findById(1L);
+    verify(patientLogRepository, never()).save(any(PatientLog.class));
+  }
+
+  @Test
+  void getPatientLogs_Success() {
+    // Given
+    List<PatientLog> patientLogs = List.of(testPatientLog);
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByPatientId(1L)).thenReturn(patientLogs);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    List<PatientLogResponse> responses = patientLogService.getPatientLogs(1L);
+
+    // Then
+    assertNotNull(responses);
+    assertEquals(1, responses.size());
+    PatientLogResponse response = responses.get(0);
+    assertEquals("Checkup", response.getActionType());
+    assertEquals("Routine dental checkup", response.getDescription());
+    assertEquals("Test Dentist", response.getDentistName());
+    assertEquals(2, response.getPhotos().size());
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByPatientId(1L);
+  }
+
+  @Test
+  void getPatientLogs_PatientNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.getPatientLogs(1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByPatientId(anyLong());
+  }
+
+  @Test
+  void getPatientLog_Success() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    PatientLogResponse response = patientLogService.getPatientLog(1L, 1L);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("Checkup", response.getActionType());
+    assertEquals("Routine dental checkup", response.getDescription());
+    assertEquals("Test Dentist", response.getDentistName());
+    assertEquals(2, response.getPhotos().size());
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+  }
+
+  @Test
+  void getPatientLog_PatientNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.getPatientLog(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByIdAndPatientId(anyLong(), anyLong());
+  }
+
+  @Test
+  void getPatientLog_LogNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.getPatientLog(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+  }
+
+  @Test
+  void deletePatientLog_Success() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findByPatientLogId(1L)).thenReturn(testPhotos);
+    doNothing().when(s3Service).deleteFile(anyString());
+    doNothing().when(patientLogPhotoRepository).deleteAll(anyList());
+    doNothing().when(patientLogRepository).delete(any(PatientLog.class));
+
+    // When
+    patientLogService.deletePatientLog(1L, 1L);
+
+    // Then
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findByPatientLogId(1L);
+    verify(s3Service, times(2)).deleteFile(anyString());
+    verify(patientLogPhotoRepository).deleteAll(testPhotos);
+    verify(patientLogRepository).delete(testPatientLog);
+  }
+
+  @Test
+  void deletePatientLog_PatientNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.deletePatientLog(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByIdAndPatientId(anyLong(), anyLong());
+    verify(patientLogPhotoRepository, never()).findByPatientLogId(anyLong());
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).deleteAll(anyList());
+    verify(patientLogRepository, never()).delete(any(PatientLog.class));
+  }
+
+  @Test
+  void deletePatientLog_LogNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.deletePatientLog(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, never()).findByPatientLogId(anyLong());
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).deleteAll(anyList());
+    verify(patientLogRepository, never()).delete(any(PatientLog.class));
+  }
+
+  @Test
+  void updatePatientLog_Success_WithBasicUpdate() {
+    // Given
+    PatientLogUpdateRequest request = new PatientLogUpdateRequest();
+    request.setActionType("Treatment");
+    request.setDescription("Updated description");
+
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    PatientLogResponse response = patientLogService.updatePatientLog(1L, 1L, request);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("Treatment", testPatientLog.getActionType());
+    assertEquals("Updated description", testPatientLog.getDescription());
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogRepository).save(testPatientLog);
+  }
+
+  @Test
+  void updatePatientLog_Success_WithPhotoDelete() {
+    // Given
+    PatientLogUpdateRequest request = new PatientLogUpdateRequest();
+    request.setActionType("Treatment");
+    request.setDescription("Updated description");
+    request.setPhotosToDelete(List.of(1L));
+
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findById(1L)).thenReturn(Optional.of(testPhoto1));
+    doNothing().when(s3Service).deleteFile(anyString());
+    doNothing().when(patientLogPhotoRepository).delete(any(PatientLogPhoto.class));
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    PatientLogResponse response = patientLogService.updatePatientLog(1L, 1L, request);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("Treatment", testPatientLog.getActionType());
+    assertEquals("Updated description", testPatientLog.getDescription());
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findById(1L);
+    verify(s3Service).deleteFile(testPhoto1.getS3Key());
+    verify(patientLogPhotoRepository).delete(testPhoto1);
+    verify(patientLogRepository).save(testPatientLog);
+  }
+
+  @Test
+  void updatePatientLog_Success_WithNewPhotos() {
+    // Given
+    PatientLogUpdateRequest request = new PatientLogUpdateRequest();
+    request.setActionType("Treatment");
+    request.setDescription("Updated description");
+    request.setNewPhotoKeys(List.of("new-photo.jpg"));
+
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.save(any(PatientLogPhoto.class))).thenReturn(new PatientLogPhoto());
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    PatientLogResponse response = patientLogService.updatePatientLog(1L, 1L, request);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("Treatment", testPatientLog.getActionType());
+    assertEquals("Updated description", testPatientLog.getDescription());
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).save(any(PatientLogPhoto.class));
+    verify(patientLogRepository).save(testPatientLog);
+  }
+
+  @Test
+  void updatePatientLog_LogNotFound() {
+    // Given
+    PatientLogUpdateRequest request = new PatientLogUpdateRequest();
+    request.setActionType("Treatment");
+    request.setDescription("Updated description");
+
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.updatePatientLog(1L, 1L, request));
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogRepository, never()).save(any(PatientLog.class));
+  }
+
+  @Test
+  void updatePatientLog_PhotoNotFound() {
+    // Given
+    PatientLogUpdateRequest request = new PatientLogUpdateRequest();
+    request.setActionType("Treatment");
+    request.setDescription("Updated description");
+    request.setPhotosToDelete(List.of(3L)); // Non-existent photo ID
+
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findById(3L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.updatePatientLog(1L, 1L, request));
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findById(3L);
+    verify(patientLogRepository, never()).save(any(PatientLog.class));
+  }
+
+  @Test
+  void associatePhotosWithLog_Success() {
+    // Given
+    AssociatePhotosRequest request = new AssociatePhotosRequest();
+    request.setS3Keys(List.of("new-photo-1.jpg", "new-photo-2.jpg"));
+    request.setDescriptions(List.of("Description 1", "Description 2"));
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.save(any(PatientLogPhoto.class))).thenAnswer(invocation -> {
+      PatientLogPhoto photo = invocation.getArgument(0);
+      photo.setId(3L); // Assign some ID
+      return photo;
+    });
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    List<PatientLogPhotoResponse> responses = patientLogService.associatePhotosWithLog(1L, 1L, request);
+
+    // Then
+    assertNotNull(responses);
+    assertEquals(2, responses.size());
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, times(2)).save(any(PatientLogPhoto.class));
+    verify(patientLogRepository).save(testPatientLog);
+    verify(s3Service, times(2)).getFileUrl(anyString());
+  }
+
+  @Test
+  void associatePhotosWithLog_PatientNotFound() {
+    // Given
+    AssociatePhotosRequest request = new AssociatePhotosRequest();
+    request.setS3Keys(List.of("new-photo.jpg"));
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.associatePhotosWithLog(1L, 1L, request));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByIdAndPatientId(anyLong(), anyLong());
+    verify(patientLogPhotoRepository, never()).save(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void associatePhotosWithLog_LogNotFound() {
+    // Given
+    AssociatePhotosRequest request = new AssociatePhotosRequest();
+    request.setS3Keys(List.of("new-photo.jpg"));
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.associatePhotosWithLog(1L, 1L, request));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, never()).save(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void associatePhotosWithLog_NoS3Keys() {
+    // Given
+    AssociatePhotosRequest request = new AssociatePhotosRequest();
+    request.setS3Keys(List.of());
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+
+    // When & Then
+    assertThrows(IllegalArgumentException.class,
+            () -> patientLogService.associatePhotosWithLog(1L, 1L, request));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, never()).save(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void getPhotos_Success() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findByPatientLogId(1L)).thenReturn(testPhotos);
+    when(s3Service.getFileUrl(anyString())).thenReturn("https://test-url.com/photo.jpg");
+
+    // When
+    List<PatientLogPhotoResponse> responses = patientLogService.getPhotos(1L, 1L);
+
+    // Then
+    assertNotNull(responses);
+    assertEquals(2, responses.size());
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findByPatientLogId(1L);
+    verify(s3Service, times(2)).getFileUrl(anyString());
+  }
+
+  @Test
+  void getPhotos_PatientNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.getPhotos(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByIdAndPatientId(anyLong(), anyLong());
+    verify(patientLogPhotoRepository, never()).findByPatientLogId(anyLong());
+  }
+
+  @Test
+  void getPhotos_LogNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.getPhotos(1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, never()).findByPatientLogId(anyLong());
+  }
+
+  @Test
+  void deletePhoto_Success() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findById(1L)).thenReturn(Optional.of(testPhoto1));
+    doNothing().when(s3Service).deleteFile(anyString());
+    doNothing().when(patientLogPhotoRepository).delete(any(PatientLogPhoto.class));
+    when(patientLogRepository.save(any(PatientLog.class))).thenReturn(testPatientLog);
+
+    // When
+    patientLogService.deletePhoto(1L, 1L, 1L);
+
+    // Then
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findById(1L);
+    verify(s3Service).deleteFile(testPhoto1.getS3Key());
+    verify(patientLogPhotoRepository).delete(testPhoto1);
+    verify(patientLogRepository).save(testPatientLog);
+  }
+
+  @Test
+  void deletePhoto_PatientNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.deletePhoto(1L, 1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository, never()).findByIdAndPatientId(anyLong(), anyLong());
+    verify(patientLogPhotoRepository, never()).findById(anyLong());
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).delete(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void deletePhoto_LogNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.deletePhoto(1L, 1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository, never()).findById(anyLong());
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).delete(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void deletePhoto_PhotoNotFound() {
+    // Given
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findById(3L)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThrows(ResourceNotFoundException.class,
+            () -> patientLogService.deletePhoto(1L, 1L, 3L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findById(3L);
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).delete(any(PatientLogPhoto.class));
+  }
+
+  @Test
+  void deletePhoto_UnauthorizedAccess() {
+    // Given
+    // Create a different log to simulate unauthorized access
+    PatientLog differentLog = new PatientLog();
+    differentLog.setId(2L);
+
+    testPhoto1.setPatientLog(differentLog); // Set different log for the photo
+
+    when(patientRepository.findById(1L)).thenReturn(Optional.of(testPatient));
+    when(patientLogRepository.findByIdAndPatientId(1L, 1L)).thenReturn(Optional.of(testPatientLog));
+    when(patientLogPhotoRepository.findById(1L)).thenReturn(Optional.of(testPhoto1));
+
+    // When & Then
+    assertThrows(UnauthorizedAccessException.class,
+            () -> patientLogService.deletePhoto(1L, 1L, 1L));
+    verify(patientRepository).findById(1L);
+    verify(patientLogRepository).findByIdAndPatientId(1L, 1L);
+    verify(patientLogPhotoRepository).findById(1L);
+    verify(s3Service, never()).deleteFile(anyString());
+    verify(patientLogPhotoRepository, never()).delete(any(PatientLogPhoto.class));
+  }
+}
