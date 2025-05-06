@@ -134,7 +134,7 @@ public class BookingServiceImpl implements IBookingService {
 
           // Add a delay before retry
           try {
-            Thread.sleep((long) Math.pow(2, attempt + 1) * 50);
+            Thread.sleep((long) Math.pow(2, (double) attempt + 1) * 50);
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new BadRequestException("Booking process was interrupted.");
@@ -148,7 +148,7 @@ public class BookingServiceImpl implements IBookingService {
           }
 
           try {
-            Thread.sleep((long) Math.pow(2, attempt + 1) * 100);
+            Thread.sleep((long) Math.pow(2, (double)attempt + 1) * 100);
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new BadRequestException("Booking process was interrupted.");
