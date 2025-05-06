@@ -47,4 +47,16 @@ public class ContactController {
     contactService.sendReply(id, reply);
     return new ResponseEntity<>(HttpStatus.OK);
   }
+
+  @GetMapping("/with-reply")
+  public ResponseEntity<List<ContactDTO>> getContactsWithReplySent() {
+    List<ContactDTO> contacts = contactService.getContactsWithReplySent();
+    return new ResponseEntity<>(contacts, HttpStatus.OK);
+  }
+
+  @GetMapping("/without-reply")
+  public ResponseEntity<List<ContactDTO>> getContactsWithNoReplySent() {
+    List<ContactDTO> contacts = contactService.getContactsWithNoReplySent();
+    return new ResponseEntity<>(contacts, HttpStatus.OK);
+  }
 }

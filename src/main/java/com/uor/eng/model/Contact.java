@@ -34,4 +34,7 @@ public class Contact {
   @NotBlank(message = "Message is required")
   @Column(length = 1000)
   private String message;
+
+  @Column(nullable = false)
+  private Boolean replySent = false;
 }

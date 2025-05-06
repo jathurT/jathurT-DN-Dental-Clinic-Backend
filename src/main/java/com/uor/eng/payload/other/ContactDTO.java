@@ -14,4 +14,5 @@ public class ContactDTO {
   private String contactNumber;
   private String subject;
   private String message;
+  private Boolean replySent = false;
 }

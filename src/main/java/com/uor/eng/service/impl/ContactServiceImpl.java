@@ -8,6 +8,7 @@ import com.uor.eng.repository.ContactRepository;
 import com.uor.eng.service.IContactService;
 import com.uor.eng.util.EmailService;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class ContactServiceImpl implements IContactService {
   private final ModelMapper modelMapper;
   private final EmailService emailService;
 
+  @Autowired
   public ContactServiceImpl(ContactRepository contactRepository,
                             ModelMapper modelMapper,
                             EmailService emailService) {
@@ -69,10 +71,37 @@ public class ContactServiceImpl implements IContactService {
   }
 
   @Override
+  @Transactional
   public void sendReply(Long id, String reply) {
     Contact contact = contactRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Contact with ID " + id + " not found. Please check the ID and try again."));
+
+    contact.setReplySent(true);
+    contactRepository.save(contact);
+
     ContactDTO contactDTO = modelMapper.map(contact, ContactDTO.class);
     emailService.sendResponseForContactUs(contactDTO, reply);
+  }
+
+  @Override
+  public List<ContactDTO> getContactsWithReplySent() {
+    List<Contact> contacts = contactRepository.findByReplySent(true);
+    if (contacts.isEmpty()) {
+      throw new ResourceNotFoundException("No contacts with replies found.");
+    }
+    return contacts.stream()
+            .map(contact -> modelMapper.map(contact, ContactDTO.class))
+            .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ContactDTO> getContactsWithNoReplySent() {
+    List<Contact> contacts = contactRepository.findByReplySent(false);
+    if (contacts.isEmpty()) {
+      throw new ResourceNotFoundException("No contacts without replies found.");
+    }
+    return contacts.stream()
+            .map(contact -> modelMapper.map(contact, ContactDTO.class))
+            .collect(Collectors.toList());
   }
 }
