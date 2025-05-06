@@ -14,4 +14,8 @@ public interface IContactService {
   void deleteContact(Long id);
 
   void sendReply(Long id, String reply);
+
+  List<ContactDTO> getContactsWithReplySent();
+
+  List<ContactDTO> getContactsWithNoReplySent();
 }
