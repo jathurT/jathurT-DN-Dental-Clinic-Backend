@@ -52,7 +52,7 @@ public class EmailService {
     sendEmail("templates/appointment-reminder.html", "Appointment Reminder - Tomorrow", bookingDetails);
   }
 
-  private void sendEmail(String templatePath, String subject, BookingResponseDTO bookingDetails) {
+  void sendEmail(String templatePath, String subject, BookingResponseDTO bookingDetails) {
     try {
       String template = loadTemplate(templatePath);
       String htmlContent = populateTemplate(template, bookingDetails);
@@ -94,7 +94,7 @@ public class EmailService {
     }
   }
 
-  private String loadTemplate(String templatePath) throws IOException {
+  String loadTemplate(String templatePath) throws IOException {
     ClassPathResource classPathResource = new ClassPathResource(templatePath);
     try (InputStream inputStream = classPathResource.getInputStream();
          BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
