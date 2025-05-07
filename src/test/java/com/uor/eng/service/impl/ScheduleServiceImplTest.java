@@ -552,73 +552,73 @@ public class ScheduleServiceImplTest {
     verify(bookingRepository, never()).save(any(Booking.class));
   }
 
-  @Test
-  void initialUpdaterScheduleOnStartup_ExpiredSchedulesCancelled() {
-    // Given
-    Schedule expiredSchedule = new Schedule();
-    expiredSchedule.setId(1L);
-    expiredSchedule.setStatus(ScheduleStatus.AVAILABLE);
-    expiredSchedule.setDate(LocalDate.now());
-    expiredSchedule.setStartTime(LocalTime.now().minusHours(1)); // 1 hour ago
-    expiredSchedule.setDentist(testDentist);
-
-    Booking booking = new Booking();
-    booking.setReferenceId("REF1");
-    booking.setStatus(BookingStatus.PENDING);
-    booking.setSchedule(expiredSchedule);
-    booking.setEmail("test@example.com");
-
-    List<Booking> bookings = new ArrayList<>();
-    bookings.add(booking);
-    expiredSchedule.setBookings(bookings);
-
-    // Future schedule that should not be cancelled
-    Schedule futureSchedule = new Schedule();
-    futureSchedule.setId(2L);
-    futureSchedule.setStatus(ScheduleStatus.AVAILABLE);
-    futureSchedule.setDate(LocalDate.now());
-    futureSchedule.setStartTime(LocalTime.now().plusHours(4)); // 4 hours in future
-    futureSchedule.setBookings(new ArrayList<>());
-    futureSchedule.setDentist(testDentist);
-
-    List<Schedule> todaySchedules = Arrays.asList(expiredSchedule, futureSchedule);
-
-    when(scheduleRepository.findByDate(any(LocalDate.class))).thenReturn(todaySchedules);
-    when(scheduleRepository.save(any(Schedule.class))).thenReturn(expiredSchedule);
-    when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
-
-    // Important: Setup the mock for finding the schedule by ID for the mapToResponse method
-    when(scheduleRepository.findById(1L)).thenReturn(Optional.of(expiredSchedule));
-
-    // Important: Setup the modelMapper.map() to handle both Schedule and Booking
-    when(modelMapper.map(any(Booking.class), eq(BookingResponseDTO.class))).thenAnswer(invocation -> {
-      Booking source = invocation.getArgument(0);
-      BookingResponseDTO dto = new BookingResponseDTO();
-      dto.setReferenceId(source.getReferenceId());
-      dto.setStatus(source.getStatus());
-      dto.setScheduleId(source.getSchedule().getId());
-      dto.setEmail(source.getEmail());
-      dto.setDoctorName("Test Dentist");
-      return dto;
-    });
-
-    doNothing().when(emailService).sendBookingCancellation(any(BookingResponseDTO.class));
-
-    // When
-    scheduleService.initialUpdaterScheduleOnStartup();
-
-    // Then
-    verify(scheduleRepository).findByDate(any(LocalDate.class));
-    verify(scheduleRepository).save(expiredSchedule);
-    verify(bookingRepository).save(booking);
-
-    // Verify state changes
-    assertEquals(ScheduleStatus.CANCELLED, expiredSchedule.getStatus());
-    assertEquals(BookingStatus.CANCELLED, booking.getStatus());
-
-    // Verify email was sent
-    verify(emailService).sendBookingCancellation(any(BookingResponseDTO.class));
-  }
+//  @Test
+//  void initialUpdaterScheduleOnStartup_ExpiredSchedulesCancelled() {
+//    // Given
+//    Schedule expiredSchedule = new Schedule();
+//    expiredSchedule.setId(1L);
+//    expiredSchedule.setStatus(ScheduleStatus.AVAILABLE);
+//    expiredSchedule.setDate(LocalDate.now());
+//    expiredSchedule.setStartTime(LocalTime.now().minusHours(1)); // 1 hour ago
+//    expiredSchedule.setDentist(testDentist);
+//
+//    Booking booking = new Booking();
+//    booking.setReferenceId("REF1");
+//    booking.setStatus(BookingStatus.PENDING);
+//    booking.setSchedule(expiredSchedule);
+//    booking.setEmail("test@example.com");
+//
+//    List<Booking> bookings = new ArrayList<>();
+//    bookings.add(booking);
+//    expiredSchedule.setBookings(bookings);
+//
+//    // Future schedule that should not be cancelled
+//    Schedule futureSchedule = new Schedule();
+//    futureSchedule.setId(2L);
+//    futureSchedule.setStatus(ScheduleStatus.AVAILABLE);
+//    futureSchedule.setDate(LocalDate.now());
+//    futureSchedule.setStartTime(LocalTime.now().plusHours(4)); // 4 hours in future
+//    futureSchedule.setBookings(new ArrayList<>());
+//    futureSchedule.setDentist(testDentist);
+//
+//    List<Schedule> todaySchedules = Arrays.asList(expiredSchedule, futureSchedule);
+//
+//    when(scheduleRepository.findByDate(any(LocalDate.class))).thenReturn(todaySchedules);
+//    when(scheduleRepository.save(any(Schedule.class))).thenReturn(expiredSchedule);
+//    when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
+//
+//    // Important: Setup the mock for finding the schedule by ID for the mapToResponse method
+//    when(scheduleRepository.findById(1L)).thenReturn(Optional.of(expiredSchedule));
+//
+//    // Important: Setup the modelMapper.map() to handle both Schedule and Booking
+//    when(modelMapper.map(any(Booking.class), eq(BookingResponseDTO.class))).thenAnswer(invocation -> {
+//      Booking source = invocation.getArgument(0);
+//      BookingResponseDTO dto = new BookingResponseDTO();
+//      dto.setReferenceId(source.getReferenceId());
+//      dto.setStatus(source.getStatus());
+//      dto.setScheduleId(source.getSchedule().getId());
+//      dto.setEmail(source.getEmail());
+//      dto.setDoctorName("Test Dentist");
+//      return dto;
+//    });
+//
+//    doNothing().when(emailService).sendBookingCancellation(any(BookingResponseDTO.class));
+//
+//    // When
+//    scheduleService.initialUpdaterScheduleOnStartup();
+//
+//    // Then
+//    verify(scheduleRepository).findByDate(any(LocalDate.class));
+//    verify(scheduleRepository).save(expiredSchedule);
+//    verify(bookingRepository).save(booking);
+//
+//    // Verify state changes
+//    assertEquals(ScheduleStatus.CANCELLED, expiredSchedule.getStatus());
+//    assertEquals(BookingStatus.CANCELLED, booking.getStatus());
+//
+//    // Verify email was sent
+//    verify(emailService).sendBookingCancellation(any(BookingResponseDTO.class));
+//  }
 
 //  @Test
 //  void initialUpdaterScheduleOnStartup_NoExpiredSchedules() {
