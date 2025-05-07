@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BookingServiceImpl implements IBookingService {
 
-
   private final Counter createBookingCounter;
   private final Counter createBookingErrorCounter;
   private final Timer createBookingTimer;
@@ -137,7 +136,8 @@ public class BookingServiceImpl implements IBookingService {
           try {
             Thread.sleep((long) Math.pow(2, (double) attempt + 1) * 50);
           } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt(); // Re-interrupt the thread
+            // Properly handle thread interruption by preserving the interrupt status
+            Thread.currentThread().interrupt();
             throw new BadRequestException("Booking process was interrupted.");
           }
         } catch (PessimisticLockingFailureException e) {
@@ -151,7 +151,8 @@ public class BookingServiceImpl implements IBookingService {
           try {
             Thread.sleep((long) Math.pow(2, (double) attempt + 1) * 100);
           } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt(); // Re-interrupt the thread
+            // Properly handle thread interruption by preserving the interrupt status
+            Thread.currentThread().interrupt();
             throw new BadRequestException("Booking process was interrupted.");
           }
         }
