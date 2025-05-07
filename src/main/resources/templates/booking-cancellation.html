@@ -13,69 +13,134 @@
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #f8f5f5;
             color: #333;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .email-container {
             max-width: 600px;
-            margin: 40px auto;
+            margin: 30px auto;
             background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(197, 40, 40, 0.08);
             overflow: hidden;
         }
 
+        /* Header styling */
         .header {
-            background: linear-gradient(135deg, #d50000, #c62828);
-            padding: 30px;
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
+            padding: 35px 25px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             color: #ffffff;
-            font-size: 24px;
-            margin: 0;
-            font-weight: 600;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
 
+        /* Cancelled status badge */
         .status-badge {
-            background-color: #ef5350;
+            background-color: rgba(255, 255, 255, 0.15);
             color: #ffffff;
-            padding: 8px 20px;
-            border-radius: 25px;
+            padding: 8px 22px;
+            border-radius: 30px;
             display: inline-block;
-            margin: 15px 0;
             font-weight: 600;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 1px;
         }
 
+        /* X symbol styling */
+        .x-icon {
+            margin: 0 auto 20px;
+            width: 70px;
+            height: 70px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(183, 28, 28, 0.15);
+        }
+
+        .x-icon::before,
+        .x-icon::after {
+            content: '';
+            position: absolute;
+            width: 3px;
+            height: 30px;
+            background-color: #d32f2f;
+            border-radius: 2px;
+        }
+
+        .x-icon::before {
+            transform: rotate(45deg);
+        }
+
+        .x-icon::after {
+            transform: rotate(-45deg);
+        }
+
+        /* Content styling */
         .content {
-            padding: 30px;
+            padding: 35px 30px;
+        }
+
+        h2 {
+            color: #424242;
+            font-size: 20px;
+            margin-bottom: 20px;
         }
 
         .cancellation-notice {
             background-color: #ffebee;
-            border-left: 4px solid #f44336;
-            padding: 15px 20px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
+            border-left: 4px solid #ef5350;
+            padding: 18px 22px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+            display: flex;
+            align-items: center;
         }
 
+        .cancellation-notice::before {
+            content: "!";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background-color: #ef5350;
+            color: white;
+            border-radius: 50%;
+            margin-right: 15px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Appointment details */
         .appointment-details {
-            background-color: #f9f9f9;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 25px 0;
+            background: linear-gradient(to bottom right, #fff9f9, #fef5f5);
+            border-radius: 14px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 15px rgba(183, 28, 28, 0.05);
+            border: 1px solid rgba(239, 83, 80, 0.1);
         }
 
         .detail-row {
             display: flex;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             align-items: flex-start;
         }
 
@@ -84,127 +149,166 @@
         }
 
         .detail-icon {
-            width: 36px;
-            height: 36px;
-            background-color: #ffcdd2;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             margin-right: 15px;
             flex-shrink: 0;
-        }
 
-        .detail-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: #d32f2f;
+            font-size: 18px;
+
         }
 
         .detail-content {
             flex: 1;
+            padding-top: 3px;
         }
 
         .detail-label {
             font-weight: 600;
             color: #c62828;
-            margin-bottom: 3px;
             display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
         }
 
         .detail-value {
             color: #424242;
-            font-size: 15px;
+            font-size: 16px;
+            font-weight: 500;
         }
 
+        /* Sympathy message */
+        .sympathy-message {
+            background-color: #e8f5e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+            color: #2e7d32;
+            font-weight: 500;
+            border: 1px solid #c8e6c9;
+        }
+
+        /* Action buttons */
         .action-buttons {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            margin-top: 30px;
             gap: 15px;
+            margin-top: 35px;
         }
 
         .btn-book-new {
             display: inline-block;
-            background-color: #00c33c;
+            background-color: #4caf50;
             color: #ffffff;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.2);
         }
 
         .btn-contact {
             display: inline-block;
             background-color: #f5f5f5;
             color: #424242;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
-            border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
             text-align: center;
+            border: 1px solid #e0e0e0;
         }
 
         .btn-book-new:hover {
-            background-color: #009e31;
-            transform: translateY(-2px);
+            background-color: #43a047;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
         }
 
         .btn-contact:hover {
+            background-color: #eeeeee;
+            transform: translateY(-3px);
             border-color: #bdbdbd;
-            transform: translateY(-2px);
         }
 
-        .sympathy-message {
-            background-color: #e8f5e9;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-            color: #2e7d32;
-        }
-
+        /* Footer styling */
         .footer {
             background-color: #f8f9fa;
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
             border-top: 1px solid #e9ecef;
         }
 
         .footer p {
-            margin: 5px 0;
+            margin: 6px 0;
             color: #6c757d;
             font-size: 14px;
         }
 
         .contact-info {
-            color: #00c33c;
+            color: #4caf50;
             text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-info:hover {
+            color: #388e3c;
+            text-decoration: underline;
+        }
+
+        /* Logo styling */
+        .clinic-logo {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .logo-inner {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            margin: 0 auto 5px;
         }
 
         /* Responsive adjustments */
         @media screen and (max-width: 600px) {
             .email-container {
-                margin: 0;
-                border-radius: 0;
-                width: 100%;
+                margin: 10px;
+                border-radius: 12px;
+                width: calc(100% - 20px);
             }
 
             .header, .content, .footer {
-                padding: 20px;
+                padding: 25px 20px;
             }
 
             .header h1 {
                 font-size: 22px;
             }
 
+            .x-icon {
+                width: 60px;
+                height: 60px;
+            }
+
             .appointment-details {
-                padding: 15px;
+                padding: 20px;
             }
 
             .action-buttons {
@@ -213,7 +317,6 @@
 
             .btn-book-new, .btn-contact {
                 width: 100%;
-                margin: 5px 0;
             }
         }
     </style>
@@ -222,25 +325,21 @@
 <div class="email-container">
     <div class="header">
         <h1>Appointment Cancellation</h1>
-        <div class="status-badge">CANCELLED</div>
+
     </div>
 
     <div class="content">
-        <h2 style="color: #424242; font-size: 20px;">Dear {{name}},</h2>
+        <h2>Dear {{name}},</h2>
 
         <div class="cancellation-notice">
-            <strong>Your appointment has been cancelled.</strong> We apologize for any inconvenience this may cause.
+            <span><strong>Your appointment has been cancelled.</strong> We apologize for any inconvenience this may cause.</span>
         </div>
 
         <p>Unfortunately, we had to cancel your appointment. The details of the cancelled appointment are:</p>
 
         <div class="appointment-details">
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">📅</div>
                 <div class="detail-content">
                     <div class="detail-label">Date</div>
                     <div class="detail-value">{{scheduleDate}} ({{scheduleDayOfWeek}})</div>
@@ -248,12 +347,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
-                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">⏰</div>
                 <div class="detail-content">
                     <div class="detail-label">Time</div>
                     <div class="detail-value">{{scheduleStartTime}}</div>
@@ -261,11 +355,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">👨‍⚕️</div>
                 <div class="detail-content">
                     <div class="detail-label">Doctor</div>
                     <div class="detail-value">Dr. {{doctorName}}</div>
@@ -273,11 +363,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">🔖</div>
                 <div class="detail-content">
                     <div class="detail-label">Reference ID</div>
                     <div class="detail-value">{{referenceId}}</div>
@@ -297,9 +383,9 @@
 
     <div class="footer">
         <p><strong>DN Dental Clinic</strong></p>
-        <p>123 Dental Street, Healthcare City, HC 12345</p>
-        <p>Phone: <a href="tel:+1234567890" class="contact-info">(123) 456-7890</a> | Email: <a
-                href="mailto:info@dndentalclinic.com" class="contact-info">info@dndentalclinic.com</a></p>
+        <p>Main Street, Karaitivu - 02</p>
+        <p>Phone: <a href="tel:+94763463948" class="contact-info">763463948</a> | Email: <a
+                href="dndentalcliniclk@gmail.com" class="contact-info">dndentalcliniclk@gmail.com</a></p>
         <p style="font-size: 12px; margin-top: 15px;">&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
     </div>
 </div>
