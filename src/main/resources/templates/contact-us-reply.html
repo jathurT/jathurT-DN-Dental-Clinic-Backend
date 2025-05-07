@@ -13,70 +13,113 @@
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f1f8f4;
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #f6fcf7;
             color: #333;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .email-container {
             max-width: 600px;
-            margin: 40px auto;
+            margin: 30px auto;
             background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 180, 72, 0.1);
             overflow: hidden;
         }
 
+        /* Header styling */
         .header {
             background: linear-gradient(135deg, #00c853, #00b248);
-            padding: 30px;
+            padding: 35px 25px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             color: #ffffff;
-            font-size: 24px;
-            margin: 0;
-            font-weight: 600;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
 
+        /* Reply icon styling */
         .reply-icon {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             background-color: #ffffff;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin: 20px 0;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 12px rgba(0, 180, 72, 0.15);
+            position: relative;
         }
 
-        .reply-icon svg {
-            width: 30px;
-            height: 30px;
-            fill: #00c853;
+        /* Arrow styling using CSS */
+        .reply-arrow {
+            position: relative;
+            width: 32px;
+            height: 16px;
         }
 
+        .reply-arrow::before {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 3px;
+            background-color: #00c853;
+            left: 0;
+            top: 6px;
+            border-radius: 2px;
+        }
+
+        .reply-arrow::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            right: 2px;
+            top: 0;
+            border-style: solid;
+            border-width: 8px 0 8px 12px;
+            border-color: transparent transparent transparent #00c853;
+        }
+
+        /* Content styling */
         .content {
-            padding: 30px;
+            padding: 35px 30px;
         }
 
         .greeting {
             font-size: 18px;
             color: #2c3e50;
             margin-bottom: 20px;
+            font-weight: 500;
         }
 
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Original message styling */
         .original-message {
             background-color: #f1f8f4;
             border-left: 4px solid #00c853;
-            padding: 20px;
+            padding: 22px;
             margin: 25px 0;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .original-message strong {
+            display: block;
+            margin-bottom: 12px;
+            color: #00a040;
+            font-size: 16px;
         }
 
         .message-info {
@@ -89,16 +132,34 @@
             gap: 10px;
         }
 
-        .message-content {
-            margin: 0;
-            line-height: 1.6;
+        .message-info-item {
+            display: flex;
+            align-items: center;
         }
 
+        .info-icon {
+            margin-right: 6px;
+            color: #00c853;
+        }
+
+        .message-content {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            margin: 0;
+            line-height: 1.6;
+            color: #424242;
+            font-style: italic;
+        }
+
+        /* Reply section styling */
         .reply-section {
             background-color: #e8f5e9;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 10px;
+            padding: 25px;
             margin: 25px 0;
+            border: 1px solid #c8e6c9;
         }
 
         .reply-header {
@@ -106,11 +167,28 @@
             color: #1b5e20;
             font-size: 16px;
             margin-bottom: 15px;
+            position: relative;
+            padding-left: 22px;
+        }
+
+        .reply-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #1b5e20;
         }
 
         .reply-content {
             line-height: 1.7;
             color: #333;
+            background-color: white;
+            padding: 18px;
+            border-radius: 8px;
+            border: 1px solid #c8e6c9;
         }
 
         .divider {
@@ -120,39 +198,46 @@
             border: none;
         }
 
+        /* Support message */
         .support-message {
             text-align: center;
             color: #00c853;
             font-weight: 600;
             margin: 25px 0;
+            padding: 15px;
+            background-color: #f0f9f1;
+            border-radius: 10px;
+            border: 1px dashed #a5d6a7;
         }
 
+        /* Action buttons */
         .action-buttons {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
             gap: 15px;
-            margin-top: 30px;
+            margin-top: 35px;
         }
 
         .btn-primary {
             display: inline-block;
             background-color: #00c853;
             color: #ffffff;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 200, 83, 0.2);
         }
 
         .btn-secondary {
             display: inline-block;
             background-color: #f1f8f4;
             color: #00c853;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
             border: 2px solid #00c853;
@@ -162,27 +247,42 @@
 
         .btn-primary:hover {
             background-color: #00b248;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 200, 83, 0.25);
         }
 
         .btn-secondary:hover {
             background-color: #e8f5e9;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
 
+        /* Footer styling */
         .footer {
             background-color: #f8f9fa;
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
             border-top: 1px solid #e9ecef;
         }
 
         .footer p {
-            margin: 5px 0;
+            margin: 6px 0;
             color: #6c757d;
             font-size: 14px;
         }
 
+        .contact-info {
+            color: #00c853;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-info:hover {
+            color: #00a040;
+            text-decoration: underline;
+        }
+
+        /* Social links */
         .social-links {
             display: flex;
             justify-content: center;
@@ -195,26 +295,47 @@
             color: #00c853;
             text-decoration: none;
             font-weight: 500;
+            transition: all 0.3s;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background-color: #f1f8f4;
         }
 
         .social-links a:hover {
-            text-decoration: underline;
+            background-color: #e8f5e9;
+            color: #00a040;
         }
 
-        .social-divider {
-            color: #ccc;
+        /* Logo styling */
+        .clinic-logo {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .logo-inner {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00c853, #00a040);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            margin: 0 auto 5px;
         }
 
         /* Responsive adjustments */
         @media screen and (max-width: 600px) {
             .email-container {
-                margin: 0;
-                border-radius: 0;
-                width: 100%;
+                margin: 10px;
+                border-radius: 12px;
+                width: calc(100% - 20px);
             }
 
             .header, .content, .footer {
-                padding: 20px;
+                padding: 25px 20px;
             }
 
             .header h1 {
@@ -222,9 +343,8 @@
             }
 
             .reply-icon {
-                width: 50px;
-                height: 50px;
-                margin: 15px 0;
+                width: 60px;
+                height: 60px;
             }
 
             .message-info {
@@ -245,8 +365,9 @@
                 justify-content: center;
             }
 
-            .social-divider {
-                display: none;
+            .social-links a {
+                padding: 5px 8px;
+                font-size: 13px;
             }
         }
     </style>
@@ -255,11 +376,7 @@
 <div class="email-container">
     <div class="header">
         <h1>Response to Your Inquiry</h1>
-        <div class="reply-icon">
-            <svg viewBox="0 0 24 24">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-        </div>
+
     </div>
 
     <div class="content">
@@ -271,22 +388,28 @@
         <div class="original-message">
             <strong>Your Original Message:</strong>
             <div class="message-info">
-                <span>📧 {{email}}</span>
-                <span>📅 Received Today</span>
+                <div class="message-info-item">
+                    <span class="info-icon">📧</span>
+                    <span>{{email}}</span>
+                </div>
+                <div class="message-info-item">
+                    <span class="info-icon">📅</span>
+                    <span>Received Today</span>
+                </div>
             </div>
-            <p class="message-content">{{message}}</p>
+            <div class="message-content">{{message}}</div>
         </div>
 
         <div class="reply-section">
             <div class="reply-header">Our Response:</div>
-            <p class="reply-content">{{reply}}</p>
+            <div class="reply-content">{{reply}}</div>
         </div>
 
         <hr class="divider">
 
-        <p class="support-message">
+        <div class="support-message">
             Need further assistance? We're here to help!
-        </p>
+        </div>
 
         <div class="action-buttons">
             <a href="https://dental-clinic.com/contact" class="btn-primary">Start New Conversation</a>
@@ -294,22 +417,15 @@
         </div>
     </div>
 
+
     <div class="footer">
         <p><strong>DN Dental Clinic</strong></p>
-        <p>123 Dental Street, Healthcare City, HC 12345</p>
-        <p>Phone: <a href="tel:+1234567890" class="contact-info">(123) 456-7890</a> | Email: <a
-                href="mailto:info@dndentalclinic.com" class="contact-info">info@dndentalclinic.com</a></p>
-
-        <div class="social-links">
-            <a href="#" aria-label="Facebook">Facebook</a>
-            <span class="social-divider">|</span>
-            <a href="#" aria-label="Instagram">Instagram</a>
-            <span class="social-divider">|</span>
-            <a href="#" aria-label="LinkedIn">LinkedIn</a>
-        </div>
-
+        <p>Main Street, Karaitivu - 02</p>
+        <p>Phone: <a href="tel:+94763463948" class="contact-info">763463948</a> | Email: <a
+                href="dndentalcliniclk@gmail.com" class="contact-info">dndentalcliniclk@gmail.com</a></p>
         <p style="font-size: 12px; margin-top: 15px;">&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
     </div>
+
 </div>
 </body>
 </html>

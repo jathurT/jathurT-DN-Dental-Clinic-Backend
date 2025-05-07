@@ -13,85 +13,171 @@
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f1f8f4;
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #f6fef8;
             color: #333;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .email-container {
             max-width: 600px;
-            margin: 40px auto;
+            margin: 30px auto;
             background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 156, 48, 0.12);
             overflow: hidden;
         }
 
+        /* Header with brand elements */
         .header {
             background: linear-gradient(135deg, #1b5e20, #2e7d32);
-            padding: 30px;
+            padding: 35px 25px;
             text-align: center;
+            position: relative;
+        }
+
+        .logo {
+            display: inline-block;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .logo-circle {
+            width: 60px;
+            height: 60px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1b5e20;
+            letter-spacing: -1px;
+        }
+
+        .logo-subtext {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4caf50;
+            color: white;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .header h1 {
             color: #ffffff;
             font-size: 24px;
-            margin: 0;
-            font-weight: 600;
+            font-weight: 700;
+            margin-top: 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .reminder-badge {
-            background-color: #388e3c;
+            background-color: rgba(255, 255, 255, 0.15);
             color: #ffffff;
-            padding: 8px 20px;
-            border-radius: 25px;
+            padding: 8px 22px;
+            border-radius: 30px;
             display: inline-block;
-            margin: 15px 0;
+            margin: 15px 0 5px;
             font-weight: 600;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
+        /* Main content area */
         .content {
-            padding: 30px;
+            padding: 35px 30px;
         }
 
         .greeting {
             font-size: 18px;
-            color: #2c3e50;
-            margin-bottom: 20px;
+            color: #3a3a3a;
+            margin-bottom: 25px;
+            font-weight: 500;
         }
 
         .alert-box {
             background-color: #e8f5e9;
             border-left: 4px solid #43a047;
-            padding: 15px 20px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
+            padding: 18px 22px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+            display: flex;
+            align-items: center;
         }
 
+        .alert-box::before {
+            content: "!";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background-color: #43a047;
+            color: white;
+            border-radius: 50%;
+            margin-right: 15px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .alert-box strong {
+            margin-right: 5px;
+        }
+
+        /* Appointment card */
         .appointment-card {
-            background-color: #f1f8f4;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 25px 0;
-            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.1);
+            background: linear-gradient(to bottom right, #f6fef8, #edf7ef);
+            border-radius: 14px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.08);
+            border: 1px solid rgba(46, 125, 50, 0.1);
         }
 
         .appointment-header {
             font-size: 22px;
             color: #1b5e20;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .appointment-header::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 3px;
+            width: 60px;
+            background-color: #81c784;
+            border-radius: 3px;
         }
 
         .detail-row {
             display: flex;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             align-items: flex-start;
+            position: relative;
         }
 
         .detail-row:last-child {
@@ -99,101 +185,111 @@
         }
 
         .detail-icon {
-            width: 36px;
-            height: 36px;
-            background-color: #e8f5e9;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
+            margin-right: 18px;
             flex-shrink: 0;
-        }
-
-        .detail-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: #1b5e20;
+            color: #1b5e20;
+            font-size: 18px;
         }
 
         .detail-content {
             flex: 1;
+            padding-top: 3px;
         }
 
         .detail-label {
             font-weight: 600;
             color: #1b5e20;
             display: block;
-            margin-bottom: 3px;
-        }
-
-        .detail-value {
-            color: #424242;
+            margin-bottom: 5px;
             font-size: 15px;
         }
 
+        .detail-value {
+            color: #4a4a4a;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Important notice section */
         .important-notice {
             text-align: center;
             color: #43a047;
             font-weight: 600;
-            margin: 25px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            margin: 30px 0;
+            padding: 15px;
+            background-color: #f0f9f1;
+            border-radius: 10px;
+            border: 1px dashed #a5d6a7;
         }
 
+        .important-notice::before {
+            content: "ℹ️";
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        /* Action buttons */
         .action-buttons {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
             gap: 15px;
-            margin-top: 30px;
+            margin-top: 35px;
         }
 
         .btn-primary {
             display: inline-block;
             background-color: #43a047;
             color: #ffffff;
-            padding: 12px 25px;
-            border-radius: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(67, 160, 71, 0.2);
         }
 
         .btn-secondary {
             display: inline-block;
-            background-color: #a5d6a7;
-            color: #1b5e20;
-            padding: 12px 25px;
-            border-radius: 8px;
+            background-color: #ecf7ed;
+            color: #2e7d32;
+            padding: 14px 28px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
             text-align: center;
+            border: 1px solid #a5d6a7;
         }
 
         .btn-primary:hover {
             background-color: #388e3c;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(67, 160, 71, 0.25);
         }
 
         .btn-secondary:hover {
-            background-color: #81c784;
-            transform: translateY(-2px);
+            background-color: #dbeddc;
+            transform: translateY(-3px);
         }
 
+        /* Footer styling */
         .footer {
             background-color: #f8f9fa;
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
             border-top: 1px solid #e9ecef;
         }
 
         .footer p {
-            margin: 5px 0;
+            margin: 6px 0;
             color: #6c757d;
             font-size: 14px;
         }
@@ -201,18 +297,25 @@
         .contact-info {
             color: #43a047;
             text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-info:hover {
+            color: #2e7d32;
+            text-decoration: underline;
         }
 
         /* Responsive adjustments */
         @media screen and (max-width: 600px) {
             .email-container {
-                margin: 0;
-                border-radius: 0;
-                width: 100%;
+                margin: 10px;
+                border-radius: 12px;
+                width: calc(100% - 20px);
             }
 
             .header, .content, .footer {
-                padding: 20px;
+                padding: 25px 20px;
             }
 
             .header h1 {
@@ -220,7 +323,7 @@
             }
 
             .appointment-card {
-                padding: 15px;
+                padding: 20px;
             }
 
             .appointment-header {
@@ -248,19 +351,14 @@
         <p class="greeting">Dear {{name}},</p>
 
         <div class="alert-box">
-            <strong>Reminder:</strong> You have an appointment scheduled for tomorrow. Please make sure to arrive 15
-            minutes early.
+            <span><strong>Reminder:</strong> You have an appointment scheduled for tomorrow. Please make sure to arrive 15 minutes early.</span>
         </div>
 
         <div class="appointment-card">
             <div class="appointment-header">Upcoming Appointment</div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">📅</div>
                 <div class="detail-content">
                     <div class="detail-label">Date</div>
                     <div class="detail-value">{{scheduleDate}}</div>
@@ -268,12 +366,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
-                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">⏰</div>
                 <div class="detail-content">
                     <div class="detail-label">Time</div>
                     <div class="detail-value">{{scheduleStartTime}}</div>
@@ -281,11 +374,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">👨‍⚕️</div>
                 <div class="detail-content">
                     <div class="detail-label">Doctor</div>
                     <div class="detail-value">Dr. {{doctorName}}</div>
@@ -293,11 +382,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">🔖</div>
                 <div class="detail-content">
                     <div class="detail-label">Reference ID</div>
                     <div class="detail-value">{{referenceId}}</div>
@@ -305,11 +390,7 @@
             </div>
 
             <div class="detail-row">
-                <div class="detail-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2V9h-2V7h4v10z"/>
-                    </svg>
-                </div>
+                <div class="detail-icon">🏥</div>
                 <div class="detail-content">
                     <div class="detail-label">Appointment #</div>
                     <div class="detail-value">{{appointmentNumber}}</div>
@@ -318,10 +399,7 @@
         </div>
 
         <p class="important-notice">
-            <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: #43a047;">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-            </svg>
-            Important: Please bring your ID and any previous medical records
+            Please bring your ID and any previous medical records
         </p>
 
         <div class="action-buttons">
@@ -332,9 +410,9 @@
 
     <div class="footer">
         <p><strong>DN Dental Clinic</strong></p>
-        <p>123 Dental Street, Healthcare City, HC 12345</p>
-        <p>Phone: <a href="tel:+1234567890" class="contact-info">(123) 456-7890</a> | Email: <a
-                href="mailto:info@dndentalclinic.com" class="contact-info">info@dndentalclinic.com</a></p>
+        <p>Main Street, Karaitivu - 02</p>
+        <p>Phone: <a href="tel:+94763463948" class="contact-info">763463948</a> | Email: <a
+                href="dndentalcliniclk@gmail.com" class="contact-info">dndentalcliniclk@gmail.com</a></p>
         <p style="font-size: 12px; margin-top: 15px;">&copy; {{currentYear}} DN Dental Clinic. All rights reserved.</p>
     </div>
 </div>
