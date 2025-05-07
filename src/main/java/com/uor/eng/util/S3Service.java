@@ -91,7 +91,7 @@ public class S3Service {
   }
 
   @PostConstruct
-  private void initializePresigner() {
+  void initializePresigner() {
     this.presigner = S3Presigner.builder()
         .region(Region.of(region))
         .credentialsProvider(DefaultCredentialsProvider.create())
