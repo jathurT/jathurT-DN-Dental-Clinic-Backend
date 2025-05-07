@@ -40,7 +40,10 @@ public class ContactControllerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private ContactDTO contactDTO;
+  private ContactDTO contactDTOWithReply;
   private List<ContactDTO> contactList;
+  private List<ContactDTO> contactsWithReply;
+  private List<ContactDTO> contactsWithoutReply;
 
   @BeforeEach
   public void setup() {
@@ -59,16 +62,20 @@ public class ContactControllerTest {
     contactDTO.setContactNumber("1234567890");
     contactDTO.setSubject("Test Subject");
     contactDTO.setMessage("This is a test message");
+    contactDTO.setReplySent(false);
 
-    ContactDTO contactDTO2 = new ContactDTO();
-    contactDTO2.setId(2L);
-    contactDTO2.setName("Jane Smith");
-    contactDTO2.setEmail("jane.smith@example.com");
-    contactDTO2.setContactNumber("0987654321");
-    contactDTO2.setSubject("Another Subject");
-    contactDTO2.setMessage("This is another test message");
+    contactDTOWithReply = new ContactDTO();
+    contactDTOWithReply.setId(2L);
+    contactDTOWithReply.setName("Jane Smith");
+    contactDTOWithReply.setEmail("jane.smith@example.com");
+    contactDTOWithReply.setContactNumber("0987654321");
+    contactDTOWithReply.setSubject("Another Subject");
+    contactDTOWithReply.setMessage("This is another test message");
+    contactDTOWithReply.setReplySent(true);
 
-    contactList = Arrays.asList(contactDTO, contactDTO2);
+    contactList = Arrays.asList(contactDTO, contactDTOWithReply);
+    contactsWithReply = List.of(contactDTOWithReply);
+    contactsWithoutReply = List.of(contactDTO);
   }
 
   @Test
@@ -87,7 +94,8 @@ public class ContactControllerTest {
             .andExpect(jsonPath("$.email", is("john.doe@example.com")))
             .andExpect(jsonPath("$.contactNumber", is("1234567890")))
             .andExpect(jsonPath("$.subject", is("Test Subject")))
-            .andExpect(jsonPath("$.message", is("This is a test message")));
+            .andExpect(jsonPath("$.message", is("This is a test message")))
+            .andExpect(jsonPath("$.replySent", is(false)));
 
     verify(contactService, times(1)).saveContact(any(ContactDTO.class));
   }
@@ -126,8 +134,10 @@ public class ContactControllerTest {
             .andExpect(jsonPath("$", hasSize(2)))
             .andExpect(jsonPath("$[0].id", is(1)))
             .andExpect(jsonPath("$[0].name", is("John Doe")))
+            .andExpect(jsonPath("$[0].replySent", is(false)))
             .andExpect(jsonPath("$[1].id", is(2)))
-            .andExpect(jsonPath("$[1].name", is("Jane Smith")));
+            .andExpect(jsonPath("$[1].name", is("Jane Smith")))
+            .andExpect(jsonPath("$[1].replySent", is(true)));
 
     verify(contactService, times(1)).getAllContacts();
   }
@@ -172,7 +182,8 @@ public class ContactControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id", is(1)))
             .andExpect(jsonPath("$.name", is("John Doe")))
-            .andExpect(jsonPath("$.email", is("john.doe@example.com")));
+            .andExpect(jsonPath("$.email", is("john.doe@example.com")))
+            .andExpect(jsonPath("$.replySent", is(false)));
 
     verify(contactService, times(1)).getContactById(1L);
   }
@@ -268,5 +279,82 @@ public class ContactControllerTest {
 
     // Since we expect a bad request before the service is called
     verify(contactService, never()).sendReply(anyLong(), anyString());
+  }
+
+  @Test
+  public void testGetContactsWithReplySent_Success() throws Exception {
+    // Arrange
+    when(contactService.getContactsWithReplySent()).thenReturn(contactsWithReply);
+
+    // Act & Assert
+    mockMvc.perform(get("/api/contacts/with-reply"))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].id", is(2)))
+            .andExpect(jsonPath("$[0].name", is("Jane Smith")))
+            .andExpect(jsonPath("$[0].replySent", is(true)));
+
+    verify(contactService, times(1)).getContactsWithReplySent();
+  }
+
+  @Test
+  public void testGetContactsWithReplySent_EmptyList() throws Exception {
+    // Arrange
+    when(contactService.getContactsWithReplySent()).thenReturn(List.of());
+
+    // Act & Assert
+    mockMvc.perform(get("/api/contacts/with-reply"))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(0)));
+
+    verify(contactService, times(1)).getContactsWithReplySent();
+  }
+
+  @Test
+  public void testGetContactsWithNoReplySent_Success() throws Exception {
+    // Arrange
+    when(contactService.getContactsWithNoReplySent()).thenReturn(contactsWithoutReply);
+
+    // Act & Assert
+    mockMvc.perform(get("/api/contacts/without-reply"))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].id", is(1)))
+            .andExpect(jsonPath("$[0].name", is("John Doe")))
+            .andExpect(jsonPath("$[0].replySent", is(false)));
+
+    verify(contactService, times(1)).getContactsWithNoReplySent();
+  }
+
+  @Test
+  public void testGetContactsWithNoReplySent_EmptyList() throws Exception {
+    // Arrange
+    when(contactService.getContactsWithNoReplySent()).thenReturn(List.of());
+
+    // Act & Assert
+    mockMvc.perform(get("/api/contacts/without-reply"))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(0)));
+
+    verify(contactService, times(1)).getContactsWithNoReplySent();
+  }
+
+  @Test
+  public void testGetContactsWithNoReplySent_NotFound() throws Exception {
+    // Arrange
+    when(contactService.getContactsWithNoReplySent())
+            .thenThrow(new ResourceNotFoundException("No contacts without replies found"));
+
+    // Act & Assert
+    mockMvc.perform(get("/api/contacts/without-reply"))
+            .andDo(print())
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.details.error", is("No contacts without replies found")));
+
+    verify(contactService, times(1)).getContactsWithNoReplySent();
   }
 }

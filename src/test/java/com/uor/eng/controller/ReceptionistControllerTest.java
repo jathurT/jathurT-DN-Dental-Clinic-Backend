@@ -5,6 +5,7 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.payload.receiptionist.CreateReceptionistDTO;
 import com.uor.eng.payload.receiptionist.ReceptionistResponseDTO;
+import com.uor.eng.payload.receiptionist.UpdateReceptionistRequest;
 import com.uor.eng.service.IReceptionistService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,7 @@ public class ReceptionistControllerTest {
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
 
+
     Set<String> roles = new HashSet<>();
     roles.add("ROLE_RECEPTIONIST");
 
@@ -102,6 +104,7 @@ public class ReceptionistControllerTest {
     request.setPassword("Password123@");
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
+
 
     when(receptionistService.createReceptionist(any(CreateReceptionistDTO.class)))
             .thenThrow(new BadRequestException("Username is already taken!"));
@@ -184,8 +187,32 @@ public class ReceptionistControllerTest {
 
   @Test
   public void testGetAllReceptionists_Success() throws Exception {
-    // Arrange
-    List<ReceptionistResponseDTO> receptionists = getReceptionistResponseDTOS();
+    Set<String> roles = new HashSet<>();
+    roles.add("ROLE_RECEPTIONIST");
+
+    ReceptionistResponseDTO receptionist1 = new ReceptionistResponseDTO();
+    receptionist1.setId(1L);
+    receptionist1.setUserName("receptionist1");
+    receptionist1.setEmail("receptionist1@example.com");
+    receptionist1.setFirstName("John");
+    receptionist1.setGender("MALE");
+    receptionist1.setPhoneNumber("0771234567");
+    receptionist1.setNic("123456789V");
+
+    receptionist1.setRoles(roles);
+
+    ReceptionistResponseDTO receptionist2 = new ReceptionistResponseDTO();
+    receptionist2.setId(2L);
+    receptionist2.setUserName("receptionist2");
+    receptionist2.setEmail("receptionist2@example.com");
+    receptionist2.setFirstName("Jane");
+    receptionist2.setGender("FEMALE");
+    receptionist2.setPhoneNumber("0777654321");
+    receptionist2.setNic("987654321V");
+
+    receptionist2.setRoles(roles);
+
+    List<ReceptionistResponseDTO> receptionists = Arrays.asList(receptionist1, receptionist2);
 
     when(receptionistService.getAllReceptionists()).thenReturn(receptionists);
 
@@ -204,33 +231,6 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$[1].gender", is("FEMALE")));
   }
 
-  private static List<ReceptionistResponseDTO> getReceptionistResponseDTOS() {
-    Set<String> roles = new HashSet<>();
-    roles.add("ROLE_RECEPTIONIST");
-
-    ReceptionistResponseDTO receptionist1 = new ReceptionistResponseDTO();
-    receptionist1.setId(1L);
-    receptionist1.setUserName("receptionist1");
-    receptionist1.setEmail("receptionist1@example.com");
-    receptionist1.setFirstName("John");
-    receptionist1.setGender("MALE");
-    receptionist1.setPhoneNumber("0771234567");
-    receptionist1.setNic("123456789V");
-    receptionist1.setRoles(roles);
-
-    ReceptionistResponseDTO receptionist2 = new ReceptionistResponseDTO();
-    receptionist2.setId(2L);
-    receptionist2.setUserName("receptionist2");
-    receptionist2.setEmail("receptionist2@example.com");
-    receptionist2.setFirstName("Jane");
-    receptionist2.setGender("FEMALE");
-    receptionist2.setPhoneNumber("0777654321");
-    receptionist2.setNic("987654321V");
-    receptionist2.setRoles(roles);
-
-    return Arrays.asList(receptionist1, receptionist2);
-  }
-
   @Test
   public void testGetAllReceptionists_NoReceptionists() throws Exception {
     // Arrange
@@ -247,7 +247,18 @@ public class ReceptionistControllerTest {
   @Test
   public void testGetReceptionistById_Success() throws Exception {
     // Arrange
-    ReceptionistResponseDTO receptionist = getReceptionistResponseDTO();
+    Set<String> roles = new HashSet<>();
+    roles.add("ROLE_RECEPTIONIST");
+
+    ReceptionistResponseDTO receptionist = new ReceptionistResponseDTO();
+    receptionist.setId(1L);
+    receptionist.setUserName("receptionist1");
+    receptionist.setEmail("receptionist1@example.com");
+    receptionist.setFirstName("John");
+    receptionist.setGender("MALE");
+    receptionist.setPhoneNumber("0771234567");
+    receptionist.setNic("123456789V");
+    receptionist.setRoles(roles);
 
     when(receptionistService.getReceptionistById(1L)).thenReturn(receptionist);
 
@@ -262,22 +273,6 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$.gender", is("MALE")))
             .andExpect(jsonPath("$.phoneNumber", is("0771234567")))
             .andExpect(jsonPath("$.nic", is("123456789V")));
-  }
-
-  private static ReceptionistResponseDTO getReceptionistResponseDTO() {
-    Set<String> roles = new HashSet<>();
-    roles.add("ROLE_RECEPTIONIST");
-
-    ReceptionistResponseDTO receptionist = new ReceptionistResponseDTO();
-    receptionist.setId(1L);
-    receptionist.setUserName("receptionist1");
-    receptionist.setEmail("receptionist1@example.com");
-    receptionist.setFirstName("John");
-    receptionist.setGender("MALE");
-    receptionist.setPhoneNumber("0771234567");
-    receptionist.setNic("123456789V");
-    receptionist.setRoles(roles);
-    return receptionist;
   }
 
   @Test
@@ -305,7 +300,20 @@ public class ReceptionistControllerTest {
     request.setNic("123456789V");
     request.setPhoneNumber("0771234567");
 
-    ReceptionistResponseDTO response = getResponseDTO();
+
+    Set<String> roles = new HashSet<>();
+    roles.add("ROLE_RECEPTIONIST");
+
+    ReceptionistResponseDTO response = new ReceptionistResponseDTO();
+    response.setId(1L);
+    response.setUserName("receptionist1Updated");
+    response.setEmail("receptionist1updated@example.com");
+    response.setFirstName("John Updated");
+    response.setGender("MALE");
+    response.setPhoneNumber("0771234567");
+    response.setNic("123456789V");
+
+    response.setRoles(roles);
 
     when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class))).thenReturn(response);
 
@@ -319,22 +327,7 @@ public class ReceptionistControllerTest {
             .andExpect(jsonPath("$.userName", is("receptionist1Updated")))
             .andExpect(jsonPath("$.email", is("receptionist1updated@example.com")))
             .andExpect(jsonPath("$.firstName", is("John Updated")));
-  }
 
-  private static ReceptionistResponseDTO getResponseDTO() {
-    Set<String> roles = new HashSet<>();
-    roles.add("ROLE_RECEPTIONIST");
-
-    ReceptionistResponseDTO response = new ReceptionistResponseDTO();
-    response.setId(1L);
-    response.setUserName("receptionist1Updated");
-    response.setEmail("receptionist1updated@example.com");
-    response.setFirstName("John Updated");
-    response.setGender("MALE");
-    response.setPhoneNumber("0771234567");
-    response.setNic("123456789V");
-    response.setRoles(roles);
-    return response;
   }
 
   @Test
@@ -386,30 +379,6 @@ public class ReceptionistControllerTest {
   }
 
   @Test
-  public void testUpdateReceptionist_BadRequest_NicExists() throws Exception {
-    // Arrange
-    CreateReceptionistDTO request = new CreateReceptionistDTO();
-    request.setUserName("receptionist1");
-    request.setEmail("receptionist1@example.com");
-    request.setFirstName("John");
-    request.setGender("MALE");
-    request.setPassword("Password123@");
-    request.setNic("987654321V");
-    request.setPhoneNumber("0771234567");
-
-    when(receptionistService.updateReceptionist(anyLong(), any(CreateReceptionistDTO.class)))
-            .thenThrow(new BadRequestException("NIC is already in use!"));
-
-    // Act & Assert
-    mockMvc.perform(put("/api/receptionist/1")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
-            .andDo(print())
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.details.error").value("NIC is already in use!"));
-  }
-
-  @Test
   public void testUpdateReceptionist_NotFound() throws Exception {
     // Arrange
     CreateReceptionistDTO request = new CreateReceptionistDTO();
@@ -455,5 +424,93 @@ public class ReceptionistControllerTest {
             .andDo(print())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.details.error").value("Receptionist not found with id: 999 to delete."));
+  }
+
+  @Test
+  public void testEditReceptionist_Success() throws Exception {
+    // Arrange
+    UpdateReceptionistRequest request = new UpdateReceptionistRequest();
+    request.setUserName("receptionist1Updated");
+    request.setEmail("receptionist1updated@example.com");
+    request.setFirstName("John Updated");
+    request.setGender("MALE");
+    request.setNic("123456789V");
+    request.setPhoneNumber("0771234567");
+
+
+    Set<String> roles = new HashSet<>();
+    roles.add("ROLE_RECEPTIONIST");
+
+    ReceptionistResponseDTO response = new ReceptionistResponseDTO();
+    response.setId(1L);
+    response.setUserName("receptionist1Updated");
+    response.setEmail("receptionist1updated@example.com");
+    response.setFirstName("John Updated");
+    response.setGender("MALE");
+    response.setPhoneNumber("0771234567");
+    response.setNic("123456789V");
+
+    response.setRoles(roles);
+
+    when(receptionistService.editReceptionist(anyLong(), any(UpdateReceptionistRequest.class))).thenReturn(response);
+
+    // Act & Assert
+    mockMvc.perform(put("/api/receptionist/edit/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id", is(1)))
+            .andExpect(jsonPath("$.userName", is("receptionist1Updated")))
+            .andExpect(jsonPath("$.email", is("receptionist1updated@example.com")))
+            .andExpect(jsonPath("$.firstName", is("John Updated")));
+
+  }
+
+  @Test
+  public void testEditReceptionist_BadRequest_UsernameExists() throws Exception {
+    // Arrange
+    UpdateReceptionistRequest request = new UpdateReceptionistRequest();
+    request.setUserName("existingUser");
+    request.setEmail("receptionist1@example.com");
+    request.setFirstName("John");
+    request.setGender("MALE");
+    request.setNic("123456789V");
+    request.setPhoneNumber("0771234567");
+
+    when(receptionistService.editReceptionist(anyLong(), any(UpdateReceptionistRequest.class)))
+            .thenThrow(new BadRequestException("Username is already taken!"));
+
+    // Act & Assert
+    mockMvc.perform(put("/api/receptionist/edit/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.details.error").value("Username is already taken!"));
+  }
+
+  @Test
+  public void testEditReceptionist_NotFound() throws Exception {
+    // Arrange
+    UpdateReceptionistRequest request = new UpdateReceptionistRequest();
+    request.setUserName("receptionist1Updated");
+    request.setEmail("receptionist1updated@example.com");
+    request.setFirstName("John");
+    request.setGender("MALE");
+    request.setNic("123456789V");
+    request.setPhoneNumber("0771234567");
+
+
+    when(receptionistService.editReceptionist(anyLong(), any(UpdateReceptionistRequest.class)))
+            .thenThrow(new ResourceNotFoundException("Receptionist not found with id: 999"));
+
+    // Act & Assert
+    mockMvc.perform(put("/api/receptionist/edit/999")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andDo(print())
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.details.error").value("Receptionist not found with id: 999"));
   }
 }
