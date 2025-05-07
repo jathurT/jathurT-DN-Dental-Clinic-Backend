@@ -109,6 +109,7 @@ public class WebSecurityConfig {
                             .requestMatchers("/api/schedules/{id}").permitAll()
                             .requestMatchers("/api/schedules/getSeven").permitAll()
                             .requestMatchers("/api/feedback/submit").permitAll()
+                            .requestMatchers("/api/feedback/show").permitAll()
                             .requestMatchers("/api/contacts/submit").permitAll()
                             .requestMatchers("/h2-console/**").permitAll()
                             .requestMatchers("/actuator/**").permitAll()

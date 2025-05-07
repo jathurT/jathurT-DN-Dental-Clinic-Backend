@@ -13,71 +13,126 @@
         }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f1f8f4;
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            background-color: #f6fef8;
             color: #333;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .email-container {
             max-width: 600px;
-            margin: 40px auto;
+            margin: 30px auto;
             background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 195, 60, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 195, 60, 0.12);
             overflow: hidden;
         }
 
+        /* Header with brand elements */
         .header {
-            background: linear-gradient(135deg, #00c33c, #009e31);
-            padding: 30px;
+            background: linear-gradient(135deg, #00b140, #009e31);
+            padding: 40px 25px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             color: #ffffff;
-            font-size: 24px;
+            font-size: 26px;
+            font-weight: 700;
             margin: 0;
-            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
 
+        /* Logo styling */
         .logo-section {
             background-color: #ffffff;
-            padding: 15px 0;
+            padding: 20px 0;
             text-align: center;
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .logo-circle {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00c33c, #009e31);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 195, 60, 0.2);
+            margin: 0 auto;
+        }
+
+        .logo-inner {
+            width: 70px;
+            height: 70px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00c33c, #009e31);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -1px;
         }
 
         .logo-section h2 {
-            color: #00c33c;
-            font-size: 26px;
-            margin: 0;
+            color: #00b140;
+            font-size: 22px;
+            margin: 12px 0 0;
             font-weight: 700;
         }
 
+        /* Content styling */
         .content {
-            padding: 30px;
+            padding: 35px 30px;
         }
 
         .greeting {
             font-size: 18px;
             color: #2c3e50;
             margin-bottom: 20px;
+            font-weight: 500;
         }
 
-        .info-card {
-            background-color: #f8fdf9;
-            border: 1px solid #e8f5e9;
-            border-radius: 8px;
-            padding: 20px;
+        .success-message {
+            background-color: #e8f5e9;
+            border-left: 4px solid #00b140;
+            padding: 16px 20px;
             margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+            color: #00b140;
+            font-weight: 500;
+        }
+
+        /* Info card styling */
+        .info-card {
+            background: linear-gradient(to bottom right, #f8fdf9, #eefbf0);
+            border: 1px solid #e8f5e9;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 25px 0;
+            box-shadow: 0 4px 15px rgba(0, 156, 48, 0.08);
         }
 
         .info-row {
             display: flex;
-            margin-bottom: 12px;
+            margin-bottom: 18px;
             align-items: center;
         }
 
@@ -89,18 +144,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
-            background-color: #e8f5e9;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            margin-right: 12px;
+            margin-right: 15px;
             flex-shrink: 0;
-        }
-
-        .info-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: #00881b;
+            color: #00881b;
+            font-size: 18px;
         }
 
         .info-details {
@@ -111,49 +161,77 @@
             font-weight: 600;
             color: #00881b;
             display: block;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 14px;
         }
 
         .info-value {
             color: #2c3e50;
             font-weight: 500;
+            font-size: 16px;
         }
 
         .status-chip {
             background-color: #e8f5e9;
-            color: #2e7d32;
-            padding: 4px 12px;
+            color: #00881b;
+            padding: 5px 12px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: 600;
             display: inline-block;
+            border: 1px solid #c8e6c9;
+        }
+
+        .arrival-notice {
+            text-align: center;
+            color: #00881b;
+            padding: 15px;
+            background-color: #f0f9f1;
+            border-radius: 10px;
+            border: 1px dashed #a5d6a7;
+            margin: 25px 0;
+            font-weight: 500;
+        }
+
+        .arrival-notice strong {
+            font-weight: 700;
+        }
+
+        /* Action button */
+        .action-button-container {
+            text-align: center;
+            margin-top: 30px;
         }
 
         .action-button {
             display: inline-block;
-            background-color: #00c33c;
+            background-color: #00b140;
             color: #ffffff;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
-            margin-top: 20px;
-            transition: background-color 0.3s ease;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 177, 64, 0.2);
         }
 
         .action-button:hover {
             background-color: #009e31;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 177, 64, 0.25);
         }
 
+        /* Footer styling */
         .footer {
             background-color: #f8f9fa;
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
             border-top: 1px solid #e9ecef;
         }
 
         .footer p {
-            margin: 5px 0;
+            margin: 6px 0;
             color: #6c757d;
             font-size: 14px;
         }
@@ -161,6 +239,13 @@
         .contact-info {
             color: #00881b;
             text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .contact-info:hover {
+            color: #006614;
+            text-decoration: underline;
         }
 
         .social-links {
@@ -171,22 +256,23 @@
             color: #6c757d;
             text-decoration: none;
             margin: 0 10px;
+            transition: color 0.3s;
         }
 
         .social-links a:hover {
-            color: #00c33c;
+            color: #00b140;
         }
 
         /* Responsive adjustments */
         @media screen and (max-width: 600px) {
             .email-container {
-                margin: 0;
-                border-radius: 0;
-                width: 100%;
+                margin: 10px;
+                border-radius: 12px;
+                width: calc(100% - 20px);
             }
 
             .header, .content, .footer {
-                padding: 20px;
+                padding: 25px 20px;
             }
 
             .header h1 {
@@ -194,24 +280,31 @@
             }
 
             .logo-section h2 {
-                font-size: 22px;
+                font-size: 20px;
             }
 
             .info-card {
-                padding: 15px;
+                padding: 20px;
             }
 
-            .greeting {
-                font-size: 16px;
+            .info-row {
+                margin-bottom: 15px;
+            }
+
+            .info-icon {
+                width: 36px;
+                height: 36px;
             }
 
             .action-button {
                 display: block;
-                text-align: center;
+                width: 100%;
+                padding: 14px 20px;
             }
 
             .social-links a {
                 margin: 0 5px;
+                font-size: 13px;
             }
         }
     </style>
@@ -222,21 +315,19 @@
         <h1>Appointment Confirmed</h1>
     </div>
 
-    <div class="logo-section">
-        <h2>DN Dental Clinic</h2>
-    </div>
 
     <div class="content">
         <p class="greeting">Dear {{name}},</p>
-        <p>Your appointment has been successfully confirmed. Here are your appointment details:</p>
+
+        <div class="success-message">
+            Your appointment has been successfully confirmed. Thank you for choosing DN Dental Clinic.
+        </div>
+
+        <p>Here are your appointment details:</p>
 
         <div class="info-card">
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">🔖</div>
                 <div class="info-details">
                     <span class="info-label">Reference ID</span>
                     <span class="info-value">{{referenceId}}</span>
@@ -244,11 +335,7 @@
             </div>
 
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">📅</div>
                 <div class="info-details">
                     <span class="info-label">Date</span>
                     <span class="info-value">{{scheduleDate}} ({{scheduleDayOfWeek}})</span>
@@ -256,12 +343,7 @@
             </div>
 
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
-                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">⏰</div>
                 <div class="info-details">
                     <span class="info-label">Time</span>
                     <span class="info-value">{{scheduleStartTime}}</span>
@@ -269,11 +351,7 @@
             </div>
 
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">👨‍⚕️</div>
                 <div class="info-details">
                     <span class="info-label">Doctor</span>
                     <span class="info-value">Dr. {{doctorName}}</span>
@@ -281,11 +359,7 @@
             </div>
 
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v4h2v-4h2l-3-3-3 3zm1 9h2v-2h-2v2z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">📊</div>
                 <div class="info-details">
                     <span class="info-label">Status</span>
                     <span class="info-value"><span class="status-chip">{{status}}</span></span>
@@ -293,11 +367,7 @@
             </div>
 
             <div class="info-row">
-                <div class="info-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2V9h-2V7h4v10z"/>
-                    </svg>
-                </div>
+                <div class="info-icon">🏥</div>
                 <div class="info-details">
                     <span class="info-label">Appointment #</span>
                     <span class="info-value">{{appointmentNumber}}</span>
@@ -305,10 +375,11 @@
             </div>
         </div>
 
-        <p>Please arrive 15 minutes before your scheduled time. If you need to reschedule or cancel, please contact us
-            at least 24 hours in advance.</p>
+        <div class="arrival-notice">
+            <strong>Please note:</strong> Arrive 15 minutes before your scheduled time. For cancellations, contact us at least 24 hours in advance.
+        </div>
 
-        <div style="text-align: center; margin-top: 30px;">
+        <div class="action-button-container">
             <a href="#" class="action-button">View Appointment Details</a>
         </div>
     </div>
