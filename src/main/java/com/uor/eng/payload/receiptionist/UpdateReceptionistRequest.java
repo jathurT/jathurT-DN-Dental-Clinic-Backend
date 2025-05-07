@@ -4,15 +4,9 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class UpdateReceptionistRequest {
   @NotBlank(message = "Username is mandatory")
   @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
@@ -23,8 +17,8 @@ public class UpdateReceptionistRequest {
   @Size(max = 50, message = "Email must be at most 50 characters")
   private String email;
 
-  @NotBlank(message ="Gender is mandatory")
-  @Size(min = 4, max = 6, message ="Gender must be between 4 and 6 characters")
+  @NotBlank(message = "Gender is mandatory")
+  @Size(min = 4, max = 6, message = "Gender must be between 4 and 6 characters")
   private String gender;
 
   @NotBlank(message = "First name is mandatory")
