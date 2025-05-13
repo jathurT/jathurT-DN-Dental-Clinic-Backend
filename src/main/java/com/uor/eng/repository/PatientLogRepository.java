@@ -12,4 +12,6 @@ public interface PatientLogRepository extends JpaRepository<PatientLog, Long> {
   List<PatientLog> findByPatientId(Long id);
 
   Optional<Object> findByIdAndPatientId(Long logId, Long id);
+
+  List<PatientLog> findByDentistUserId(Long userId);
 }

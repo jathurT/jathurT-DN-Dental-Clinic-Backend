@@ -4,11 +4,13 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Dentist;
+import com.uor.eng.model.PatientLog;
 import com.uor.eng.model.Role;
 import com.uor.eng.payload.dentist.CreateDentistDTO;
 import com.uor.eng.payload.dentist.DentistResponseDTO;
 import com.uor.eng.payload.dentist.UpdateDentistRequest;
 import com.uor.eng.repository.DentistRepository;
+import com.uor.eng.repository.PatientLogRepository;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
 import com.uor.eng.service.IDentistService;
@@ -29,17 +31,20 @@ public class DentistServiceImpl implements IDentistService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final RoleRepository roleRepository;
+  private final PatientLogRepository patientLogRepository;
 
   public DentistServiceImpl(DentistRepository dentistRepository,
                             ModelMapper modelMapper,
                             UserRepository userRepository,
                             PasswordEncoder passwordEncoder,
-                            RoleRepository roleRepository) {
+                            RoleRepository roleRepository,
+                            PatientLogRepository patientLogRepository) {
     this.dentistRepository = dentistRepository;
     this.modelMapper = modelMapper;
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.roleRepository = roleRepository;
+    this.patientLogRepository = patientLogRepository;
   }
 
   @Override
@@ -85,16 +90,21 @@ public class DentistServiceImpl implements IDentistService {
   }
 
   @Override
+  @Transactional
   public void deleteDentist(Long id) {
-    if (!dentistRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Dentist not found with id: " + id);
-    }
-    Dentist dentist = findDentistById(id);
-    if (dentist.getSchedules().isEmpty()) {
-      dentistRepository.deleteById(id);
-    } else {
+    Dentist dentist = dentistRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Dentist not found with id: " + id));
+
+    if (!dentist.getSchedules().isEmpty()) {
       throw new BadRequestException("Cannot delete dentist with existing schedules.");
     }
+
+    List<PatientLog> patientLogs = patientLogRepository.findByDentistUserId(dentist.getUserId());
+    if (!patientLogs.isEmpty()) {
+      patientLogRepository.deleteAll(patientLogs);
+    }
+
+    dentistRepository.delete(dentist);
   }
 
   @Override
@@ -106,7 +116,6 @@ public class DentistServiceImpl implements IDentistService {
 
     updateDentistDetailsByDoctor(existingDentist, updateDentistDTO);
     Dentist updatedDentist = dentistRepository.save(existingDentist);
-
     return mapToDentistResponseDTO(updatedDentist);
   }
 
