@@ -40,7 +40,7 @@ class JwtUtilsTest {
   private UserDetailsImpl userDetails;
   private final String username = "testuser";
   private final String jwtCookieName = "testCookie";
-  private final SecretKey secretKey = Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512);
+  private final SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
   private final String jwtSecret = Base64.getEncoder().encodeToString(secretKey.getEncoded());
   private final int jwtExpirationMs = 3600000; // 1 hour
 

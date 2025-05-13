@@ -207,6 +207,12 @@ public class BookingServiceImpl implements IBookingService {
     Optional<Booking> booking = bookingRepository.findById(id);
     if (booking.isPresent()) {
       bookingRepository.deleteById(id);
+      Schedule schedule = booking.get().getSchedule();
+      schedule.setAvailableSlots(schedule.getAvailableSlots() + 1);
+      if (schedule.getStatus() == ScheduleStatus.FULL) {
+        schedule.setStatus(ScheduleStatus.AVAILABLE);
+      }
+      scheduleRepository.save(schedule);
     } else {
       throw new ResourceNotFoundException("Booking with ID " + id + " does not exist. Unable to delete.");
     }
