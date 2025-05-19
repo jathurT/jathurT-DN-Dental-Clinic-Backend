@@ -4,12 +4,14 @@ import com.uor.eng.exceptions.BadRequestException;
 import com.uor.eng.exceptions.ResourceNotFoundException;
 import com.uor.eng.model.AppRole;
 import com.uor.eng.model.Dentist;
+import com.uor.eng.model.PatientLog;
 import com.uor.eng.model.Role;
 import com.uor.eng.model.Schedule;
 import com.uor.eng.payload.dentist.CreateDentistDTO;
 import com.uor.eng.payload.dentist.DentistResponseDTO;
 import com.uor.eng.payload.dentist.UpdateDentistRequest;
 import com.uor.eng.repository.DentistRepository;
+import com.uor.eng.repository.PatientLogRepository;
 import com.uor.eng.repository.RoleRepository;
 import com.uor.eng.repository.UserRepository;
 import org.junit.jupiter.api.*;
@@ -45,6 +47,9 @@ class DentistServiceImplTest {
 
   @Mock
   private RoleRepository roleRepository;
+
+  @Mock
+  private PatientLogRepository patientLogRepository;
 
   @InjectMocks
   private DentistServiceImpl dentistService;
@@ -213,14 +218,14 @@ class DentistServiceImplTest {
   @Order(8)
   void deleteDentist_Success() {
     // Arrange
-    when(dentistRepository.existsById(1L)).thenReturn(true);
     when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(patientLogRepository.findByDentistUserId(dentist.getUserId())).thenReturn(Collections.emptyList());
 
     // Act
     dentistService.deleteDentist(1L);
 
     // Assert
-    verify(dentistRepository).deleteById(1L);
+    verify(dentistRepository).delete(dentist);
   }
 
   @Test
@@ -228,7 +233,7 @@ class DentistServiceImplTest {
   @Order(9)
   void deleteDentist_NotFound() {
     // Arrange
-    when(dentistRepository.existsById(1L)).thenReturn(false);
+    when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
 
     // Act & Assert
     ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
@@ -241,7 +246,6 @@ class DentistServiceImplTest {
   @Order(10)
   void deleteDentist_HasSchedules() {
     // Arrange
-    when(dentistRepository.existsById(1L)).thenReturn(true);
     List<Schedule> schedules = Collections.singletonList(new Schedule());
     dentist.setSchedules(schedules);
     when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
@@ -253,8 +257,25 @@ class DentistServiceImplTest {
   }
 
   @Test
-  @DisplayName("Update dentist - Success")
+  @DisplayName("Delete dentist - With patient logs")
   @Order(11)
+  void deleteDentist_WithPatientLogs() {
+    // Arrange
+    List<PatientLog> patientLogs = Collections.singletonList(new PatientLog());
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(patientLogRepository.findByDentistUserId(dentist.getUserId())).thenReturn(patientLogs);
+
+    // Act
+    dentistService.deleteDentist(1L);
+
+    // Assert
+    verify(patientLogRepository).deleteAll(patientLogs);
+    verify(dentistRepository).delete(dentist);
+  }
+
+  @Test
+  @DisplayName("Update dentist - Success")
+  @Order(12)
   void updateDentist_Success() {
     // Arrange
     when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
@@ -272,7 +293,7 @@ class DentistServiceImplTest {
 
   @Test
   @DisplayName("Edit dentist - Success")
-  @Order(12)
+  @Order(13)
   void editDentist_Success() {
     // Arrange
     when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
@@ -290,7 +311,7 @@ class DentistServiceImplTest {
 
   @Test
   @DisplayName("Edit dentist - Not found")
-  @Order(13)
+  @Order(14)
   void editDentist_NotFound() {
     // Arrange
     when(dentistRepository.findById(1L)).thenReturn(Optional.empty());
@@ -303,7 +324,7 @@ class DentistServiceImplTest {
 
   @Test
   @DisplayName("Edit dentist - Username taken")
-  @Order(14)
+  @Order(15)
   void editDentist_UsernameTaken() {
     // Arrange
     when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
@@ -313,5 +334,20 @@ class DentistServiceImplTest {
     BadRequestException exception = assertThrows(BadRequestException.class,
             () -> dentistService.editDentist(1L, updateDentistRequest));
     assertEquals("Username is already taken!", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Edit dentist - Email taken")
+  @Order(16)
+  void editDentist_EmailTaken() {
+    // Arrange
+    when(dentistRepository.findById(1L)).thenReturn(Optional.of(dentist));
+    when(userRepository.existsByUserName(updateDentistRequest.getUserName())).thenReturn(false);
+    when(userRepository.existsByEmail(updateDentistRequest.getEmail())).thenReturn(true);
+
+    // Act & Assert
+    BadRequestException exception = assertThrows(BadRequestException.class,
+            () -> dentistService.editDentist(1L, updateDentistRequest));
+    assertEquals("Email is already in use!", exception.getMessage());
   }
 }
